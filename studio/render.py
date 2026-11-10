@@ -6,9 +6,10 @@ from pathlib import Path
 import subprocess
 from tempfile import TemporaryDirectory
 
-from .audio import prepare_audio
+from .audio import audio_summary, prepare_audio
 from .core import MAX_SECONDS, new_package, probe, require, run, write_json
 from .design import Composition, draw_caption, resolve_font, thumbnail, transition_frame
+from .visual import audit_visual
 
 
 def encoder(width, height, fps):
@@ -86,7 +87,9 @@ def write_script(path, episode, channel, timeline):
                     pose = ", ".join(f"{name}={value}" for name, value in key.items() if name != "at")
                     rows.append(f"  - {clock(frame, fps)} · {pose}")
             for cue in resolved["speech"]:
-                rows.append(f"- {clock(cue['start'], fps)}–{clock(cue['end'], fps)} · {cue['speaker']}: {cue['text']} [{cue['source']}]")
+                direction = f" Delivery: {cue['delivery']}." if "delivery" in cue else ""
+                rows.append(f"- {clock(cue['start'], fps)}–{clock(cue['end'], fps)} · {cue['speaker']}: "
+                            f"{cue['text']} [{cue['source']}].{direction}")
             for cue in resolved["sfx"]:
                 rows.append(f"- {clock(cue['start'], fps)}–{clock(cue['end'], fps)} · SFX {cue['source']} at gain {cue['gain']}.")
             rows.append("")
@@ -179,7 +182,8 @@ def verify(path, timeline, canvas, limit):
             "caption_cues": len(timeline["captions"])}
 
 
-def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="python", library=None):
+def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="python", library=None,
+           audio_library=None):
     shots = [shot for scene in episode["scenes"] for shot in scene["shots"]]
     has_three = any("three" in shot for shot in shots)
     if backend == "python":
@@ -195,7 +199,14 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
     font = resolve_font(channel, channel_dir)
     with new_package(target) as out, TemporaryDirectory() as temp:
         work = Path(temp)
-        timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work)
+        timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work, audio_library)
+        visual_report = audit_visual(episode, library, timeline)
+        if visual_report["issues"]:
+            issues = []
+            for item in visual_report["issues"][:5]:
+                subjects = f" ({', '.join(item['ids'])})" if item["ids"] else ""
+                issues.append(f"{item['shot']} frame {item['frame']}: {item['message']}{subjects}")
+            raise ValueError("Visual checks failed. Run check-visual for the full report. " + " | ".join(issues))
         if backend == "python":
             encode(episode, timeline, levels, canvas, channel, font, episode_dir, out, work / "mix.wav", burn)
         else:
@@ -210,9 +221,12 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
                     if "three" in shot:
                         timing["three"] = shot["three"]
         report = verify(out / "video.mp4", timeline, canvas, episode.get("max_seconds", MAX_SECONDS))
-        report.update({"renderer": backend, "preview": preview, "burned_captions": burn and bool(timeline["captions"])})
+        report.update({"renderer": backend, "preview": preview, "burned_captions": burn and bool(timeline["captions"]),
+                       "audio": audio_summary(timeline)})
         if timeline["captions"]:
             export_srt(out / "captions.srt", timeline["captions"], timeline["fps"])
+        if visual_report["checked_shots"]:
+            write_json(out / "visual-qa.json", visual_report)
         write_json(out / "timeline.json", timeline)
         write_json(out / "qa.json", report)
         write_script(out / "timed-script.md", episode, channel, timeline)

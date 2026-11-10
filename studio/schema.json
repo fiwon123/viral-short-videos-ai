@@ -27,6 +27,7 @@
         },
         "font": {"$ref": "#/$defs/path"},
         "scene_library": {"$ref": "#/$defs/path"},
+        "audio_library": {"$ref": "#/$defs/path"},
         "banner": {
           "type": "object", "required": ["width", "height", "safe_width", "safe_height"], "additionalProperties": false,
           "properties": {
@@ -78,6 +79,10 @@
         "text": {"$ref": "#/$defs/text"},
         "file": {"$ref": "#/$defs/path"},
         "mouth_for": {"$ref": "#/$defs/text"},
+        "hitbox": {
+          "type": "array", "minItems": 2, "maxItems": 2,
+          "items": {"type": "number", "exclusiveMinimum": 0, "maximum": 2}
+        },
         "points": {
           "type": "array", "minItems": 3,
           "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/unit"}}
@@ -93,12 +98,59 @@
         ]
       }
     },
+    "cast_voice": {
+      "type": "object", "required": ["engine", "direction"], "additionalProperties": false,
+      "properties": {
+        "engine": {"enum": ["kokoro", "recorded"]},
+        "direction": {"$ref": "#/$defs/text"},
+        "identity": {"$ref": "#/$defs/text"},
+        "character_design": {
+          "type": "object", "required": ["reference", "traits", "voice_fit"], "additionalProperties": false,
+          "properties": {
+            "reference": {"$ref": "#/$defs/path"},
+            "traits": {"$ref": "#/$defs/text"},
+            "voice_fit": {"$ref": "#/$defs/text"},
+            "approved_take": {"$ref": "#/$defs/path"}
+          }
+        },
+        "blend": {
+          "type": "object", "minProperties": 1, "maxProperties": 4,
+          "propertyNames": {"pattern": "^[a-z]{2}_[a-z0-9_]+$"},
+          "additionalProperties": {"type": "number", "exclusiveMinimum": 0, "maximum": 100}
+        },
+        "language": {"enum": ["en-us", "en-gb", "es", "fr-fr", "hi", "it", "pt-br", "ja", "zh"]},
+        "speed": {"type": "number", "minimum": 0.5, "maximum": 2}
+      },
+      "if": {"properties": {"engine": {"const": "kokoro"}}},
+      "then": {"required": ["blend", "language"]},
+      "else": {"required": ["identity"], "not": {"anyOf": [
+        {"required": ["blend"]}, {"required": ["language"]}, {"required": ["speed"]}
+      ]}}
+    },
+    "audio_library": {
+      "type": "object", "required": ["version"], "additionalProperties": false,
+      "properties": {
+        "version": {"type": "integer", "minimum": 1},
+        "voices": {
+          "type": "object", "propertyNames": {"$ref": "#/$defs/text"},
+          "additionalProperties": {"$ref": "#/$defs/cast_voice"}
+        },
+        "sounds": {
+          "type": "object", "propertyNames": {"$ref": "#/$defs/text"},
+          "additionalProperties": {
+            "type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/path"}
+          }
+        }
+      }
+    },
     "speech": {
       "type": "object", "required": ["speaker", "text"], "additionalProperties": false,
       "properties": {
         "speaker": {"$ref": "#/$defs/text"},
         "text": {"$ref": "#/$defs/text"},
         "caption": {"$ref": "#/$defs/text"},
+        "spoken_text": {"$ref": "#/$defs/text"},
+        "delivery": {"$ref": "#/$defs/text"},
         "at": {"$ref": "#/$defs/seconds"},
         "file": {"$ref": "#/$defs/path"},
         "voice": {"$ref": "#/$defs/text"}
@@ -106,10 +158,14 @@
     },
     "sfx": {
       "type": "object", "required": ["at"], "additionalProperties": false,
-      "oneOf": [{"required": ["cue"]}, {"required": ["file"]}],
+      "oneOf": [{"required": ["cue"]}, {"required": ["file"]}, {"required": ["sound"]}],
+      "dependentRequired": {"variant": ["sound"]},
       "properties": {
         "at": {"$ref": "#/$defs/seconds"},
         "cue": {"enum": ["pop", "whoosh", "chime"]},
+        "sound": {"$ref": "#/$defs/text"},
+        "variant": {"type": "integer", "minimum": 1},
+        "rate": {"type": "number", "minimum": 0.75, "maximum": 1.35},
         "file": {"$ref": "#/$defs/path"},
         "gain": {"$ref": "#/$defs/unit"}
       }
@@ -122,6 +178,18 @@
       "type": "array", "minItems": 3, "maxItems": 3,
       "items": {"type": "number", "exclusiveMinimum": 0, "maximum": 100}
     },
+    "lighting": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "ambient": {"type": "number", "minimum": 0, "maximum": 10},
+        "key": {"type": "number", "minimum": 0, "maximum": 10},
+        "position": {"$ref": "#/$defs/vector3"},
+        "target": {"$ref": "#/$defs/vector3"},
+        "color": {"$ref": "#/$defs/color"},
+        "shadows": {"type": "boolean"},
+        "shadow_extent": {"type": "number", "minimum": 0.5, "maximum": 100}
+      }
+    },
     "three_object": {
       "type": "object", "required": ["id", "kind", "position"], "additionalProperties": false,
       "properties": {
@@ -131,7 +199,15 @@
         "rotation": {"$ref": "#/$defs/vector3"},
         "scale": {"$ref": "#/$defs/scale3"},
         "color": {"$ref": "#/$defs/color"},
-        "file": {"$ref": "#/$defs/path"}
+        "file": {"$ref": "#/$defs/path"},
+        "visible": {"type": "boolean"},
+        "variant_group": {"$ref": "#/$defs/text"},
+        "cast_shadow": {"type": "boolean"},
+        "receive_shadow": {"type": "boolean"},
+        "hitbox": {
+          "type": "object", "required": ["size"], "additionalProperties": false,
+          "properties": {"size": {"$ref": "#/$defs/scale3"}, "center": {"$ref": "#/$defs/vector3"}}
+        }
       },
       "if": {"properties": {"kind": {"const": "glb"}}},
       "then": {"required": ["file"], "not": {"required": ["color"]}},
@@ -139,6 +215,7 @@
     },
     "three_scene": {
       "type": "object", "required": ["camera", "objects"], "additionalProperties": false,
+      "not": {"required": ["lighting", "lighting_rig"]},
       "properties": {
         "camera": {
           "type": "object", "required": ["position", "target"], "additionalProperties": false,
@@ -148,22 +225,16 @@
           }
         },
         "objects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/three_object"}},
-        "lighting": {
-          "type": "object", "additionalProperties": false,
-          "properties": {
-            "ambient": {"type": "number", "minimum": 0, "maximum": 10},
-            "key": {"type": "number", "minimum": 0, "maximum": 10},
-            "position": {"$ref": "#/$defs/vector3"},
-            "color": {"$ref": "#/$defs/color"}
-          }
-        }
+        "lighting": {"$ref": "#/$defs/lighting"},
+        "lighting_rig": {"$ref": "#/$defs/text"}
       }
     },
     "library": {
       "type": "object", "required": ["version", "scenes"], "additionalProperties": false,
       "properties": {
         "version": {"type": "integer", "minimum": 1},
-        "scenes": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/three_scene"}}
+        "scenes": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/three_scene"}},
+        "lighting_rigs": {"type": "object", "additionalProperties": {"$ref": "#/$defs/lighting"}}
       }
     },
     "three_camera_key": {
@@ -178,7 +249,8 @@
       "properties": {
         "at": {"$ref": "#/$defs/unit"}, "ease": {"enum": ["linear", "in", "out", "smooth"]},
         "position": {"$ref": "#/$defs/vector3"}, "rotation": {"$ref": "#/$defs/vector3"},
-        "scale": {"$ref": "#/$defs/scale3"}
+        "scale": {"$ref": "#/$defs/scale3"},
+        "visible": {"type": "boolean"}
       }
     },
     "three_shot": {
@@ -192,6 +264,42 @@
         }
       }
     },
+    "id_pair": {
+      "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/text"}
+    },
+    "visual_checks": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "avoid_2d": {"type": "array", "items": {"$ref": "#/$defs/id_pair"}},
+        "keep_in_frame": {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true},
+        "avoid_3d": {"type": "array", "items": {"$ref": "#/$defs/id_pair"}},
+        "contacts": {
+          "type": "array", "items": {
+            "type": "object", "required": ["objects", "at"], "additionalProperties": false,
+            "properties": {
+              "objects": {"$ref": "#/$defs/id_pair"}, "at": {"$ref": "#/$defs/unit"},
+              "tolerance": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          }
+        },
+        "floor": {
+          "type": "object", "required": ["y", "objects"], "additionalProperties": false,
+          "properties": {
+            "y": {"type": "number", "minimum": -1000, "maximum": 1000},
+            "objects": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+            "tolerance": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "continuity": {
+          "type": "object", "minProperties": 1, "additionalProperties": false,
+          "properties": {
+            "camera": {"const": true}, "lighting": {"const": true},
+            "objects": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}}
+          }
+        }
+      }
+    },
     "shot": {
       "type": "object", "required": ["id", "duration", "layers"], "additionalProperties": false,
       "properties": {
@@ -199,6 +307,7 @@
         "duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 720},
         "direction": {"$ref": "#/$defs/text"},
         "three": {"$ref": "#/$defs/three_shot"},
+        "checks": {"$ref": "#/$defs/visual_checks"},
         "background": {"$ref": "#/$defs/color"},
         "layers": {"type": "array", "items": {"$ref": "#/$defs/layer"}},
         "speech": {"type": "array", "items": {"$ref": "#/$defs/speech"}},

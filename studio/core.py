@@ -77,7 +77,7 @@ def validate_channel(channel, base):
             raise ValueError("Banner safe area must fit inside the banner")
 
 
-def validate_episode(episode, base, channel_base=None):
+def validate_episode(episode, base, channel_base=None, *, check_visual_assets=True):
     fps = episode["fps"]
     limit = episode.get("max_seconds", MAX_SECONDS)
     ids, shots = set(), {}
@@ -101,7 +101,8 @@ def validate_episode(episode, base, channel_base=None):
                 times = [point["at"] for point in layer.get("keyframes", [])]
                 if times != sorted(set(times)):
                     raise ValueError(f"{shot_id}/{layer['id']} requires increasing keyframe times")
-            for item in (*shot["layers"], *shot.get("speech", []), *shot.get("sfx", [])):
+            visual_assets = shot["layers"] if check_visual_assets else []
+            for item in (*visual_assets, *shot.get("speech", []), *shot.get("sfx", [])):
                 if item.get("kind") == "svg":
                     validate_svg(svg_asset(item, base, channel_base))
                 elif "file" in item:

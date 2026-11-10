@@ -31,6 +31,13 @@ def load_library(channel, base):
     path = asset(base, name)
     library = load(path, "library")
     for scene_id, scene in library["scenes"].items():
+        if rig := scene.get("lighting_rig"):
+            if rig not in library.get("lighting_rigs", {}):
+                raise ValueError(f"{scene_id} references an unknown lighting rig: {rig}")
+            scene["lighting"] = library["lighting_rigs"][rig]
+        light = scene.get("lighting", {})
+        if ("target" in light or light.get("shadows")) and light.get("position", [-3, 6, 5]) == light.get("target", [0, 0, 0]):
+            raise ValueError(f"{scene_id} light position and target must differ")
         camera = scene["camera"]
         if camera["position"] == camera["target"]:
             raise ValueError(f"{scene_id} camera position and target must differ")

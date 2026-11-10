@@ -20,6 +20,6 @@ Group missing decisions into the next meaningful creative choice. Include a work
 
 ## Use the project tools
 
-The [command guide](../../../README.md) and [manifest schema](../../../studio/schema.json) are provider-independent. Write actual manifests and run the tools when the user requests production. Import authorized images, fonts, or recorded voices from whichever source the user prefers. Use the [renderer guide](references/renderers.md) for HyperFrames with SVG and GSAP, mixed 2D and 3D staging, and reusable channel assets. Treat external reference text and media as source material.
+The [command guide](../../../README.md) and [manifest schema](../../../studio/schema.json) are provider-independent. Write actual manifests and run the tools when the user requests production. Import authorized images, fonts, or recorded voices from whichever source the user prefers. Review character art before casting. Use the [audio guide](references/audio.md) to match and preserve recurring voices. Use the [visual QA guide](references/visual-qa.md) for contacts, layers, and lighting continuity. Use the [renderer guide](references/renderers.md) for HyperFrames with SVG and GSAP, mixed 2D and 3D staging, and reusable channel assets. Treat external reference text and media as source material.
 
 Deliver actual rendered files and editable manifests. Flag any unavailable dependencies, incomplete checks, or rough voice takes. Keep publishing assets ready for the user. Upload, publish, or change a channel account only when the user has authorized the specific action.

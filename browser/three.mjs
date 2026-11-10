@@ -1,16 +1,19 @@
 import {
   AmbientLight, BoxGeometry, CylinderGeometry, DirectionalLight, Mesh, MeshStandardMaterial,
-  PerspectiveCamera, Scene, SphereGeometry, TorusGeometry, WebGLRenderer,
+  PCFShadowMap, PerspectiveCamera, Scene, SphereGeometry, TorusGeometry, WebGLRenderer,
 } from "three";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {clone} from "three/addons/utils/SkeletonUtils.js";
 
-import {poseAt, poseTrack} from "./pose.mjs";
+import {lightingFor} from "./lighting.mjs";
+import {objectTrack, poseAt, poseTrack} from "./pose.mjs";
 
 export async function createThreeStage(specs, width, height, urlFor) {
   const renderer = new WebGLRenderer({alpha: true, antialias: true});
   renderer.setSize(width, height, false);
   renderer.setClearColor(0, 0);
+  renderer.shadowMap.enabled = Object.values(specs).some((spec) => spec.lighting?.shadows);
+  renderer.shadowMap.type = PCFShadowMap;
   const geometries = {
     box: new BoxGeometry(1, 1, 1),
     sphere: new SphereGeometry(0.5, 36, 24),
@@ -23,10 +26,22 @@ export async function createThreeStage(specs, width, height, urlFor) {
   try {
     for (const [id, spec] of Object.entries(specs)) {
       const scene = new Scene();
-      const light = spec.lighting ?? {};
-      const key = new DirectionalLight(light.color ?? "#ffffff", light.key ?? 2.8);
-      key.position.set(...(light.position ?? [-3, 6, 5]));
-      scene.add(new AmbientLight("#ffffff", light.ambient ?? 1.05), key);
+      const light = lightingFor(spec);
+      const key = new DirectionalLight(light.color, light.key);
+      key.position.set(...light.position);
+      key.target.position.set(...light.target);
+      scene.add(new AmbientLight("#ffffff", light.ambient), key, key.target);
+      if (light.shadowExtent !== null) {
+        const extent = light.shadowExtent;
+        key.castShadow = true;
+        key.shadow.mapSize.set(1024, 1024);
+        Object.assign(key.shadow.camera, {
+          left: -extent, right: extent, top: extent, bottom: -extent,
+          near: 0.01, far: key.position.distanceTo(key.target.position) + extent * 3,
+        });
+        key.shadow.camera.updateProjectionMatrix();
+        key.shadow.normalBias = 0.015;
+      }
       const camera = new PerspectiveCamera(spec.camera.fov ?? 37, width / height, 0.01, 2000);
       const objects = new Map();
       for (const obj of spec.objects) {
@@ -37,10 +52,16 @@ export async function createThreeStage(specs, width, height, urlFor) {
         } else {
           node = new Mesh(geometries[obj.kind], new MeshStandardMaterial({color: obj.color ?? "#ffffff"}));
         }
+        if (light.shadowExtent !== null) {
+          node.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = obj.cast_shadow ?? false;
+              child.receiveShadow = obj.receive_shadow ?? false;
+            }
+          });
+        }
         scene.add(node);
-        objects.set(obj.id, {node, initial: {
-          position: obj.position, rotation: obj.rotation ?? [0, 0, 0], scale: obj.scale ?? [1, 1, 1],
-        }});
+        objects.set(obj.id, {node, spec: obj});
       }
       scenes.set(id, {scene, camera, initialCamera: {
         position: spec.camera.position, target: spec.camera.target,
@@ -55,8 +76,8 @@ export async function createThreeStage(specs, width, height, urlFor) {
     compile(shot) {
       const {scene, camera, initialCamera, objects} = scenes.get(shot.scene);
       const cameraTrack = poseTrack(initialCamera, shot.camera);
-      const tracks = Array.from(objects, ([id, {node, initial}]) => ({
-        node, poses: poseTrack(initial, Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : []),
+      const tracks = Array.from(objects, ([id, {node, spec}]) => ({
+        node, poses: objectTrack(spec, Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : []),
       }));
       return (progress) => {
         const {position, target} = poseAt(cameraTrack, progress);
@@ -64,6 +85,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
         camera.lookAt(...target);
         for (const {node, poses} of tracks) {
           const pose = poseAt(poses, progress);
+          node.visible = pose.visible;
           node.position.set(...pose.position);
           node.rotation.set(...pose.rotation);
           node.scale.set(...pose.scale);
@@ -77,6 +99,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
       const resources = new Set(Object.values(geometries));
       for (const {scene} of scenes.values()) {
         scene.traverse((node) => {
+          if (node.shadow) resources.add(node.shadow);
           if (node.geometry) resources.add(node.geometry);
           const materials = Array.isArray(node.material) ? node.material : [node.material];
           for (const material of materials.filter(Boolean)) {

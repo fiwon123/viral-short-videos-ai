@@ -38,4 +38,4 @@ Use the `library` and `three_shot` definitions in the [schema](../../../../studi
 
 Set the shot's `three.scene` to a library scene name. Optionally keyframe camera position and target and each object's position, rotation, or scale. Times are normalized over the resolved shot, and Three.js rotations use radians. A shot starts at the library's default poses. Specify a matching opening pose when continuity needs to carry across a cut. GLB objects support whole-model transforms. Complex skeletal animation needs an authored rig workflow.
 
-Render a preview with the selected backend. Review representative shots from this episode next to approved frames from the series. Check faces, camera and prop scale, lighting, caption clearance, and transition continuity before rendering the full package.
+Declare hitboxes, contacts, and continuity rules with the [staging and visual QA guide](visual-qa.md). Render a preview with the selected backend. Review representative shots from this episode next to approved frames from the series. Check faces, camera and prop scale, lighting, caption clearance, and transition continuity before rendering the full package.

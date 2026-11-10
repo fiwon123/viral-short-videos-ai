@@ -4,22 +4,28 @@
 import argparse
 from importlib.util import find_spec
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import sys
+from tempfile import TemporaryDirectory
 
 
 def options():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("doctor", help="check local dependencies")
-    for name, help_text in (("validate", "check episode and channel inputs"), ("render", "render a production package")):
+    for name, help_text in (("validate", "check episode and channel inputs"),
+                            ("audio", "audition the cast and mix without rendering video"),
+                            ("check-visual", "check protected layers, contacts, and continuity on the resolved timeline"),
+                            ("render", "render a production package")):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("episode", type=Path)
         command.add_argument("--channel", required=True, type=Path)
-        if name == "render":
+        if name in {"audio", "render"}:
             command.add_argument("--out", required=True, type=Path)
+        if name == "render":
             command.add_argument("--preview", action="store_true", help="use half-size resolution")
             command.add_argument("--renderer", choices=("python", "remotion", "hyperframes"), default="python",
                                  help="select the visual renderer")
@@ -49,6 +55,12 @@ def doctor():
         "hyperframes_installed": (npm_modules / "hyperframes").is_dir(),
         "three_installed": (npm_modules / "three").is_dir(),
     }}
+    model_dir = Path(__file__).resolve().parent / "audio-models"
+    result["neural_audio"] = {
+        "kokoro_installed": find_spec("kokoro_onnx") is not None,
+        "model_present": Path(os.environ.get("STUDIO_KOKORO_MODEL", model_dir / "kokoro-v1.0.int8.onnx")).is_file(),
+        "voices_present": Path(os.environ.get("STUDIO_KOKORO_VOICES", model_dir / "voices-v1.0.bin")).is_file(),
+    }
     if binaries["ffmpeg"] and modules["jsonschema"]:
         from studio.core import run
 
@@ -90,20 +102,47 @@ def execute(args):
             })
         return {"brand": channel["name"], "package": str(args.out.resolve())}, 0
 
-    from studio.scenes import load_library, validate_three
-
+    from studio.audio_library import load_audio_library, validate_audio
     episode = load(args.episode, "episode")
-    validate_episode(episode, args.episode.parent, args.channel.parent)
+    validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
+    audio_library = load_audio_library(channel, args.channel.parent)
+    validate_audio(episode, audio_library)
+    if args.command == "audio":
+        from studio.audio import audio_summary, prepare_audio
+        from studio.render import export_srt
+
+        with new_package(args.out) as out, TemporaryDirectory() as temp:
+            timeline, _ = prepare_audio(episode, args.episode.parent, out / "mix.wav", Path(temp), audio_library)
+            report = {"duration_seconds": timeline["duration_frames"] / timeline["fps"], **audio_summary(timeline)}
+            write_json(out / "timeline.json", timeline)
+            write_json(out / "audio-qa.json", report)
+            if timeline["captions"]:
+                export_srt(out / "captions.srt", timeline["captions"], timeline["fps"])
+        return {**report, "package": str(args.out.resolve())}, 0
+
+    from studio.scenes import load_library, validate_three
+    from studio.visual import validate_visual
+
     library = load_library(channel, args.channel.parent)
     for scene in episode["scenes"]:
         for shot in scene["shots"]:
             validate_three(shot, library)
+    validate_visual(episode, library)
     if args.command == "validate":
         return {"valid": True, "episode": episode["title"], "channel": channel["name"]}, 0
+    if args.command == "check-visual":
+        from studio.audio import prepare_audio
+        from studio.visual import audit_visual
+
+        with TemporaryDirectory() as temp:
+            work = Path(temp)
+            timeline, _ = prepare_audio(episode, args.episode.parent, work / "mix.wav", work, audio_library)
+            report = audit_visual(episode, library, timeline, include_cameras=True)
+        return report, int(bool(report["issues"]))
     from studio.render import render
 
     report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview, not args.no_burn,
-                    backend=args.renderer, library=library)
+                    backend=args.renderer, library=library, audio_library=audio_library)
     return {**report, "package": str(args.out.resolve())}, 0
 
 

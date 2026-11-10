@@ -26,7 +26,7 @@ An AI-assisted studio for making original animated videos from the first channel
 
 ## ⚙️ Render an episode locally
 
-Use Python 3.10+ and FFmpeg with FFprobe, AAC, and either `libx264` or `libopenh264`. Install eSpeak NG for synthetic dialogue or supply a recorded or generated audio file for each line.
+Use Python 3.10+ and FFmpeg with FFprobe, AAC, and either `libx264` or `libopenh264`. Use approved recordings or the optional Kokoro setup for dialogue. eSpeak NG remains available for scratch speech.
 
 Run these commands from the repository root on macOS or Linux.
 
@@ -50,6 +50,17 @@ python video.py render "$episode" --channel "$channel" --out output/my-episode
 
 Use a fresh output directory for each run. Add `--preview` to render at half resolution or `--no-burn` to keep captions in a separate SRT file.
 
+## 🎙️ Consistent voices and scene-specific sound
+
+Give each recurring character a versioned voice profile tied to their approved visual design. Use local Kokoro blends for synthetic voices or attach approved recorded takes. Save sound variants by prop or action, such as different latch closures, and let the studio rotate them. Reserve a specific take for a signature sound or a key moment.
+
+```sh
+python video.py audio episodes/my-episode/episode.json --channel channels/my-channel/channel.json \
+  --out output/my-episode-audio
+```
+
+Review the WAV, subtitle timings, and audio report before animating. The [audio guide](.agents/skills/viral-video-studio/references/audio.md) has setup instructions, the cast and sound library format, and the audition workflow.
+
 ## 🎥 Consistent visuals with Remotion, HyperFrames, and Three.js
 
 Render a single episode manifest with either browser backend. Both consume the same resolved shot timings, audio, subtitle cues, channel graphics, and 3D assets. The existing Python renderer is still available for 2D projects.
@@ -70,6 +81,16 @@ python video.py render episodes/my-episode/episode.json --channel channels/my-ch
 ```
 
 Use `kind: "svg"` for vector art, `asset_scope: "channel"` for shared channel SVGs, and `plane: "background"` to place flat art behind the Three.js stage. Foreground graphics and captions sit above the 3D scene. Use `--renderer remotion` for the same manifest in a React workflow. Add the [renderer guide](.agents/skills/viral-video-studio/references/renderers.md) as a project source when planning vector or mixed episodes in ChatGPT.
+
+## 🎞️ Check the staging before rendering
+
+Use reusable lighting rigs, explicit 3D pose visibility, and shot checks for protected layers, hitbox overlaps, floor penetration, intended contacts, and continuity across cuts.
+
+```sh
+python video.py check-visual episodes/my-episode/episode.json --channel channels/my-channel/channel.json
+```
+
+The [staging and visual QA guide](.agents/skills/viral-video-studio/references/visual-qa.md) explains how to declare checks and inspect the preview for the things that need a visual review.
 
 ## 📦 What the studio saves
 

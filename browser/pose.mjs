@@ -24,8 +24,18 @@ export function poseAt(points, progress) {
     const t = easing((progress - start) / (end - start), mode);
     const mix = (a, b) => a + (b - a) * t;
     return Object.fromEntries(Object.entries(from).map(([key, value]) => [
-      key, Array.isArray(value) ? value.map((part, j) => mix(part, to[key][j])) : mix(value, to[key]),
+      key, typeof value === "boolean" ? (progress >= end ? to[key] : value)
+        : Array.isArray(value) ? value.map((part, j) => mix(part, to[key][j])) : mix(value, to[key]),
     ]));
   }
   return points.at(-1)[1];
+}
+
+export function objectTrack(object, keys) {
+  return poseTrack({
+    position: object.position,
+    rotation: object.rotation ?? [0, 0, 0],
+    scale: object.scale ?? [1, 1, 1],
+    visible: object.visible ?? true,
+  }, keys);
 }

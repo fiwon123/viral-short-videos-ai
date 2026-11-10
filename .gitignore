@@ -12,3 +12,7 @@ node_modules/
 /research/
 /reference-media/
 /output/
+
+# Local speech models and generated takes
+/audio-models/
+.audio-takes/
