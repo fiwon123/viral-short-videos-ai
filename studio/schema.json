@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
+    "tags": {"type": "array", "items": {"$ref": "#/$defs/text"}, "minItems": 1, "uniqueItems": true},
+    "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+    "unit": {"type": "number", "minimum": 0, "maximum": 1},
+    "seconds": {"type": "number", "minimum": 0, "maximum": 720},
+    "path": {"type": "string", "minLength": 1},
+    "channel": {
+      "type": "object",
+      "required": ["name", "tagline", "description", "tags", "mark", "palette"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/text"},
+        "handle": {"$ref": "#/$defs/text"},
+        "tagline": {"$ref": "#/$defs/text"},
+        "description": {"$ref": "#/$defs/text"},
+        "tags": {"$ref": "#/$defs/tags"},
+        "mark": {"type": "string", "minLength": 1, "maxLength": 6},
+        "palette": {
+          "type": "object", "required": ["background", "foreground", "accent", "secondary"], "additionalProperties": false,
+          "properties": {
+            "background": {"$ref": "#/$defs/color"}, "foreground": {"$ref": "#/$defs/color"},
+            "accent": {"$ref": "#/$defs/color"}, "secondary": {"$ref": "#/$defs/color"}
+          }
+        },
+        "font": {"$ref": "#/$defs/path"},
+        "banner": {
+          "type": "object", "required": ["width", "height", "safe_width", "safe_height"], "additionalProperties": false,
+          "properties": {
+            "width": {"type": "integer", "minimum": 320, "maximum": 4096},
+            "height": {"type": "integer", "minimum": 160, "maximum": 4096},
+            "safe_width": {"type": "integer", "minimum": 160},
+            "safe_height": {"type": "integer", "minimum": 80}
+          }
+        }
+      }
+    },
+    "pose": {
+      "type": "object",
+      "properties": {
+        "x": {"type": "number", "minimum": -2, "maximum": 3},
+        "y": {"type": "number", "minimum": -2, "maximum": 3},
+        "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
+        "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
+        "opacity": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "keyframe": {
+      "type": "object", "required": ["at"],
+      "allOf": [{"$ref": "#/$defs/pose"}],
+      "unevaluatedProperties": false,
+      "properties": {
+        "at": {"$ref": "#/$defs/unit"},
+        "ease": {"enum": ["linear", "in", "out", "smooth"]}
+      }
+    },
+    "layer": {
+      "type": "object", "required": ["id", "kind", "x", "y"],
+      "allOf": [{"$ref": "#/$defs/pose"}],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/text"},
+        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image"]},
+        "width": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
+        "height": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
+        "fill": {
+          "anyOf": [{"$ref": "#/$defs/color"}, {"enum": ["background", "foreground", "accent", "secondary"]}]
+        },
+        "radius": {"$ref": "#/$defs/unit"},
+        "text": {"$ref": "#/$defs/text"},
+        "file": {"$ref": "#/$defs/path"},
+        "mouth_for": {"$ref": "#/$defs/text"},
+        "points": {
+          "type": "array", "minItems": 3,
+          "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/unit"}}
+        },
+        "keyframes": {"type": "array", "items": {"$ref": "#/$defs/keyframe"}}
+      },
+      "if": {"properties": {"kind": {"const": "image"}}},
+      "then": {"required": ["file"]},
+      "else": {
+        "allOf": [
+          {"if": {"properties": {"kind": {"const": "text"}}}, "then": {"required": ["text"]}},
+          {"if": {"properties": {"kind": {"const": "polygon"}}}, "then": {"required": ["points"]}}
+        ]
+      }
+    },
+    "speech": {
+      "type": "object", "required": ["speaker", "text"], "additionalProperties": false,
+      "properties": {
+        "speaker": {"$ref": "#/$defs/text"},
+        "text": {"$ref": "#/$defs/text"},
+        "caption": {"$ref": "#/$defs/text"},
+        "at": {"$ref": "#/$defs/seconds"},
+        "file": {"$ref": "#/$defs/path"},
+        "voice": {"$ref": "#/$defs/text"}
+      }
+    },
+    "sfx": {
+      "type": "object", "required": ["at"], "additionalProperties": false,
+      "oneOf": [{"required": ["cue"]}, {"required": ["file"]}],
+      "properties": {
+        "at": {"$ref": "#/$defs/seconds"},
+        "cue": {"enum": ["pop", "whoosh", "chime"]},
+        "file": {"$ref": "#/$defs/path"},
+        "gain": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "shot": {
+      "type": "object", "required": ["id", "duration", "layers"], "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/text"},
+        "duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 720},
+        "direction": {"$ref": "#/$defs/text"},
+        "background": {"$ref": "#/$defs/color"},
+        "layers": {"type": "array", "items": {"$ref": "#/$defs/layer"}},
+        "speech": {"type": "array", "items": {"$ref": "#/$defs/speech"}},
+        "sfx": {"type": "array", "items": {"$ref": "#/$defs/sfx"}},
+        "transition": {
+          "type": "object", "required": ["type", "duration"], "additionalProperties": false,
+          "properties": {
+            "type": {"enum": ["dissolve", "wipe-left"]},
+            "duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 3}
+          }
+        }
+      }
+    },
+    "episode": {
+      "type": "object", "required": ["title", "description", "tags", "width", "height", "fps", "scenes", "thumbnail"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {"$ref": "#/$defs/text"},
+        "description": {"$ref": "#/$defs/text"},
+        "tags": {"$ref": "#/$defs/tags"},
+        "width": {"type": "integer", "minimum": 240, "maximum": 3840, "multipleOf": 2},
+        "height": {"type": "integer", "minimum": 240, "maximum": 3840, "multipleOf": 2},
+        "fps": {"enum": [12, 15, 24, 25, 30, 48, 50, 60]},
+        "max_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 720},
+        "voice": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "name": {"$ref": "#/$defs/text"}, "speed": {"type": "integer", "minimum": 90, "maximum": 240}
+          }
+        },
+        "music": {
+          "type": "object", "additionalProperties": false,
+          "oneOf": [{"required": ["preset"]}, {"required": ["file"]}],
+          "properties": {
+            "preset": {"const": "pulse"}, "file": {"$ref": "#/$defs/path"}, "gain": {"$ref": "#/$defs/unit"}
+          }
+        },
+        "scenes": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "required": ["id", "purpose", "shots"], "additionalProperties": false,
+            "properties": {
+              "id": {"$ref": "#/$defs/text"}, "purpose": {"$ref": "#/$defs/text"},
+              "shots": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/shot"}}
+            }
+          }
+        },
+        "thumbnail": {
+          "type": "object", "required": ["shot", "text"], "additionalProperties": false,
+          "properties": {
+            "shot": {"$ref": "#/$defs/text"}, "text": {"$ref": "#/$defs/text"}, "at": {"$ref": "#/$defs/unit"},
+            "hide_layers": {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true}
+          }
+        }
+      }
+    }
+  }
+}
