@@ -332,6 +332,13 @@
         "height": {"type": "integer", "minimum": 240, "maximum": 3840, "multipleOf": 2},
         "fps": {"enum": [12, 15, 24, 25, 30, 48, 50, 60]},
         "max_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 720},
+        "tiktok": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "caption": {"$ref": "#/$defs/text"},
+            "hashtags": {"type": "array", "items": {"$ref": "#/$defs/text"}, "minItems": 1, "uniqueItems": true}
+          }
+        },
         "voice": {
           "type": "object", "additionalProperties": false,
           "properties": {

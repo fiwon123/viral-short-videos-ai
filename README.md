@@ -12,7 +12,7 @@ An AI-assisted studio for making original animated videos from the first channel
 | **Build the channel** | A consistent identity with a name, description, logo, banner, tags, and a brief for future episodes. |
 | **Choose an episode** | A short list of original concepts with a hook, payoff, visual approach, and estimated runtime. The assistant can also break down a reference by timestamp. |
 | **Produce the video** | A shot-by-shot script, animated layers, timed speech, sound effects, optional music, and captions aligned to the voice takes. |
-| **Prepare for publishing** | A verified MP4, thumbnail, subtitle file when applicable, and ready-to-copy title, description, and tags. |
+| **Prepare for publishing** | A verified MP4, thumbnail, subtitle file when applicable, and `publishing.md` with ready-to-copy YouTube title, description, and tags plus a TikTok caption. |
 
 ## 🤖 Start in ChatGPT
 
@@ -96,7 +96,7 @@ The [staging and visual QA guide](.agents/skills/viral-video-studio/references/v
 
 | Output | Contents |
 | --- | --- |
-| **Episode package** | `video.mp4`, `thumbnail.png`, `captions.srt` when there are caption cues, and `publishing.json` with the title, description, and tags. |
+| **Episode package** | `video.mp4`, `thumbnail.png`, `captions.srt` when there are caption cues, `publishing.md` with copy-ready YouTube title, description, and tags plus a TikTok caption, and `publishing.json` with the same fields as JSON. |
 | **Production record** | `timed-script.md`, frame-based `timeline.json`, and `qa.json` with the verified runtime, frame count, resolution, codecs, and caption count. |
 | **Channel kit** | `logo.png`, `banner.png`, a banner safe-area preview, and channel publishing metadata. |
 | **Reference breakdown** | Contact sheet, sampled frames, candidate cut timestamps, extracted audio, and supported embedded text captions when available. |

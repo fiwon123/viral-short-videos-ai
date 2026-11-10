@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from .audio import audio_summary, prepare_audio
 from .core import MAX_SECONDS, new_package, probe, require, run, write_json
 from .design import Composition, draw_caption, resolve_font, thumbnail, transition_frame
+from .publishing import publishing_guide
 from .visual import audit_visual
 
 
@@ -228,7 +229,11 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
         if visual_report["checked_shots"]:
             write_json(out / "visual-qa.json", visual_report)
         write_json(out / "timeline.json", timeline)
-        write_json(out / "qa.json", report)
         write_script(out / "timed-script.md", episode, channel, timeline)
         write_json(out / "publishing.json", {key: episode[key] for key in ("title", "description", "tags")})
+        guide, warnings = publishing_guide(episode, channel, timeline, out, target)
+        (out / "publishing.md").write_text(guide, encoding="utf-8")
+        if warnings:
+            report["publishing_warnings"] = warnings
+        write_json(out / "qa.json", report)
     return report
