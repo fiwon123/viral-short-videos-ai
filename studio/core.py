@@ -3,10 +3,12 @@
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
+from xml.etree import ElementTree
 
 from jsonschema import Draft202012Validator
 
@@ -37,6 +39,36 @@ def asset(base, name):
     return path
 
 
+def svg_asset(layer, base, channel_base):
+    if layer.get("asset_scope") == "channel":
+        if channel_base is None:
+            raise ValueError("A channel-scoped SVG requires a channel manifest")
+        base = channel_base
+    path = asset(base, layer["file"])
+    if path.suffix.lower() != ".svg":
+        raise ValueError(f"SVG layer requires a .svg file: {layer['file']}")
+    return path
+
+
+def validate_svg(path):
+    try:
+        root = ElementTree.parse(path).getroot()
+    except (ElementTree.ParseError, LookupError) as error:
+        raise ValueError(f"Invalid SVG {path.name}: {error}") from error
+    if root.tag != "{http://www.w3.org/2000/svg}svg":
+        raise ValueError(f"Expected an SVG root with the SVG namespace: {path.name}")
+    for node in root.iter():
+        tag = node.tag.rsplit("}", 1)[-1]
+        if tag in {"animate", "animateColor", "animateMotion", "animateTransform", "set", "script", "foreignObject"}:
+            raise ValueError(f"Use static SVG artwork and manifest keyframes: {path.name}")
+        css = "".join(node.itertext()) if tag == "style" else node.get("style", "")
+        if re.search(r"\b(?:animation|transition)(?:-[a-z-]+)?\s*:", css, re.IGNORECASE):
+            raise ValueError(f"Use manifest keyframes for SVG animation: {path.name}")
+        for name, value in node.attrib.items():
+            if name.rsplit("}", 1)[-1] == "href" and not value.strip().startswith("#"):
+                raise ValueError(f"SVG artwork must be self-contained: {path.name}")
+
+
 def validate_channel(channel, base):
     if "font" in channel:
         asset(base, channel["font"])
@@ -45,7 +77,7 @@ def validate_channel(channel, base):
             raise ValueError("Banner safe area must fit inside the banner")
 
 
-def validate_episode(episode, base):
+def validate_episode(episode, base, channel_base=None):
     fps = episode["fps"]
     limit = episode.get("max_seconds", MAX_SECONDS)
     ids, shots = set(), {}
@@ -70,7 +102,9 @@ def validate_episode(episode, base):
                 if times != sorted(set(times)):
                     raise ValueError(f"{shot_id}/{layer['id']} requires increasing keyframe times")
             for item in (*shot["layers"], *shot.get("speech", []), *shot.get("sfx", [])):
-                if "file" in item:
+                if item.get("kind") == "svg":
+                    validate_svg(svg_asset(item, base, channel_base))
+                elif "file" in item:
                     asset(base, item["file"])
     if total_frames / fps > limit:
         raise ValueError(f"Planned runtime exceeds {limit:g} seconds")

@@ -153,8 +153,9 @@ class Composition:
         self.canvas = canvas
         palette = channel["palette"]
         self.background = shot.get("background", palette["background"])
+        layers = sorted(shot["layers"], key=lambda layer: layer.get("plane") != "background")
         self.layers = [(layer["id"], sprite(layer, canvas, palette, font, base), poses(layer), layer.get("mouth_for"))
-                       for layer in shot["layers"]]
+                       for layer in layers]
 
     def frame(self, progress, speaking, hidden=()):
         image = Image.new("RGB", self.canvas, self.background)

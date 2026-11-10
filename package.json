@@ -1,0 +1,17 @@
+{
+  "name": "viral-video-studio-renderers",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "dependencies": {
+    "@remotion/bundler": "4.0.542",
+    "@remotion/renderer": "4.0.542",
+    "esbuild": "0.28.2",
+    "gsap": "3.15.1",
+    "hyperframes": "0.9.29",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.542",
+    "three": "0.187.0"
+  }
+}

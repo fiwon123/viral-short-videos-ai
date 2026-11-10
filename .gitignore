@@ -1,4 +1,14 @@
 __pycache__/
 .venv/
+node_modules/
 .env
+.env.*
+!.env.example
+
+# Local production inputs and outputs
+/channels/
+/episodes/
+/examples/
+/research/
+/reference-media/
 /output/

@@ -42,7 +42,8 @@ def write_script(path, episode, channel, timeline):
     rows = [f"# {episode['title']}", "", f"{episode['width']} × {episode['height']} · {fps} fps",
             f"Runtime {clock(timeline['duration_frames'], fps)}", "",
             "Layer coordinates and box sizes are canvas fractions with the origin at the top left. "
-            "Positions refer to layer centers. Layers are drawn back to front.", ""]
+            "Positions refer to layer centers. Background layers sit behind the 3D stage and foreground layers sit above it. "
+            "Layers within each plane are drawn back to front.", ""]
     if episode.get("music"):
         music = episode["music"]
         rows.extend([f"Music bed: {music.get('file', music.get('preset'))}, gain {music.get('gain', 0.10)}, ducked under speech.", ""])
@@ -52,6 +53,13 @@ def write_script(path, episode, channel, timeline):
             start, end = resolved["start"], resolved["end"]
             rows.extend([f"### {shot['id']} · {clock(start, fps)}–{clock(end, fps)}", "",
                          shot.get("direction", "Use the composition and motion cues below."), ""])
+            if three := shot.get("three"):
+                rows.append(f"- 3D scene `{three['scene']}` from `{channel['scene_library']}`.")
+                for subject, keys in [("Camera", three.get("camera", [])), *three.get("objects", {}).items()]:
+                    for key in keys:
+                        frame = start + round(key["at"] * (end - start - 1))
+                        pose = ", ".join(f"{name}={value}" for name, value in key.items() if name != "at")
+                        rows.append(f"  - {clock(frame, fps)} · {subject} · {pose}")
             background = shot.get("background", channel["palette"]["background"])
             rows.append(f"- Background {background}.")
             if transition := resolved.get("transition"):
@@ -59,12 +67,12 @@ def write_script(path, episode, channel, timeline):
             elif start:
                 rows.append("- Cut at the shot boundary.")
             for layer in shot["layers"]:
-                stage = (f"- {layer['id']} ({layer['kind']}) at ({layer['x']}, {layer['y']}), "
+                stage = (f"- {layer['id']} ({layer['kind']}, {layer.get('plane', 'foreground')}) at ({layer['x']}, {layer['y']}), "
                          f"box {layer.get('width', 0.55)} × {layer.get('height', 0.2)}, "
                          f"scale {layer.get('scale', 1)}, rotation {layer.get('rotate', 0)}°, "
                          f"opacity {layer.get('opacity', 1)}.")
                 if "file" in layer:
-                    stage += f" Asset `{layer['file']}`."
+                    stage += f" {layer.get('asset_scope', 'episode').capitalize()} asset `{layer['file']}`."
                 else:
                     fill = layer.get("fill", "foreground")
                     stage += f" Fill {channel['palette'].get(fill, fill)}."
@@ -171,7 +179,14 @@ def verify(path, timeline, canvas, limit):
             "caption_cues": len(timeline["captions"])}
 
 
-def render(episode, channel, episode_dir, channel_dir, target, preview, burn):
+def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="python", library=None):
+    shots = [shot for scene in episode["scenes"] for shot in scene["shots"]]
+    has_three = any("three" in shot for shot in shots)
+    if backend == "python":
+        if has_three:
+            raise ValueError("Three.js shots require --renderer remotion or --renderer hyperframes")
+        if any(layer["kind"] == "svg" for shot in shots for layer in shot["layers"]):
+            raise ValueError("SVG layers require --renderer hyperframes or --renderer remotion")
     require("ffmpeg")
     require("ffprobe")
     canvas = episode["width"], episode["height"]
@@ -181,9 +196,21 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn):
     with new_package(target) as out, TemporaryDirectory() as temp:
         work = Path(temp)
         timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work)
-        encode(episode, timeline, levels, canvas, channel, font, episode_dir, out, work / "mix.wav", burn)
+        if backend == "python":
+            encode(episode, timeline, levels, canvas, channel, font, episode_dir, out, work / "mix.wav", burn)
+        else:
+            from .browser import render_browser
+
+            render_browser(backend, episode, channel, timeline, levels, canvas, font, episode_dir, channel_dir,
+                           library, work, out, burn, preview)
+        if has_three:
+            timeline["scene_library"] = {"file": channel["scene_library"], "version": library[0]["version"]}
+            for scene, resolved in zip(episode["scenes"], timeline["scenes"]):
+                for shot, timing in zip(scene["shots"], resolved["shots"]):
+                    if "three" in shot:
+                        timing["three"] = shot["three"]
         report = verify(out / "video.mp4", timeline, canvas, episode.get("max_seconds", MAX_SECONDS))
-        report.update({"preview": preview, "burned_captions": burn and bool(timeline["captions"])})
+        report.update({"renderer": backend, "preview": preview, "burned_captions": burn and bool(timeline["captions"])})
         if timeline["captions"]:
             export_srt(out / "captions.srt", timeline["captions"], timeline["fps"])
         write_json(out / "timeline.json", timeline)

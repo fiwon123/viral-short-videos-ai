@@ -21,6 +21,8 @@ def options():
         if name == "render":
             command.add_argument("--out", required=True, type=Path)
             command.add_argument("--preview", action="store_true", help="use half-size resolution")
+            command.add_argument("--renderer", choices=("python", "remotion", "hyperframes"), default="python",
+                                 help="select the visual renderer")
             command.add_argument("--no-burn", action="store_true", help="export captions as a separate SRT only")
     brand = commands.add_parser("brand", help="generate a logo, banner, and channel metadata")
     brand.add_argument("channel", type=Path)
@@ -40,7 +42,13 @@ def options():
 def doctor():
     binaries = {name: shutil.which(name) for name in ("ffmpeg", "ffprobe", "espeak-ng")}
     modules = {name: bool(find_spec(name)) for name in ("PIL", "numpy", "jsonschema")}
-    result = {"binaries": binaries, "python_modules": modules}
+    npm_modules = Path(__file__).resolve().parent / "node_modules"
+    result = {"binaries": binaries, "python_modules": modules, "browser_renderers": {
+        "node": shutil.which("node"),
+        "remotion_installed": (npm_modules / "@remotion" / "renderer").is_dir(),
+        "hyperframes_installed": (npm_modules / "hyperframes").is_dir(),
+        "three_installed": (npm_modules / "three").is_dir(),
+    }}
     if binaries["ffmpeg"] and modules["jsonschema"]:
         from studio.core import run
 
@@ -82,13 +90,20 @@ def execute(args):
             })
         return {"brand": channel["name"], "package": str(args.out.resolve())}, 0
 
+    from studio.scenes import load_library, validate_three
+
     episode = load(args.episode, "episode")
-    validate_episode(episode, args.episode.parent)
+    validate_episode(episode, args.episode.parent, args.channel.parent)
+    library = load_library(channel, args.channel.parent)
+    for scene in episode["scenes"]:
+        for shot in scene["shots"]:
+            validate_three(shot, library)
     if args.command == "validate":
         return {"valid": True, "episode": episode["title"], "channel": channel["name"]}, 0
     from studio.render import render
 
-    report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview, not args.no_burn)
+    report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview, not args.no_burn,
+                    backend=args.renderer, library=library)
     return {**report, "package": str(args.out.resolve())}, 0
 
 

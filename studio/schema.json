@@ -26,6 +26,7 @@
           }
         },
         "font": {"$ref": "#/$defs/path"},
+        "scene_library": {"$ref": "#/$defs/path"},
         "banner": {
           "type": "object", "required": ["width", "height", "safe_width", "safe_height"], "additionalProperties": false,
           "properties": {
@@ -58,11 +59,16 @@
     },
     "layer": {
       "type": "object", "required": ["id", "kind", "x", "y"],
-      "allOf": [{"$ref": "#/$defs/pose"}],
+      "allOf": [
+        {"$ref": "#/$defs/pose"},
+        {"if": {"required": ["asset_scope"]}, "then": {"properties": {"kind": {"const": "svg"}}}}
+      ],
       "unevaluatedProperties": false,
       "properties": {
         "id": {"$ref": "#/$defs/text"},
-        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image"]},
+        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image", "svg"]},
+        "plane": {"enum": ["background", "foreground"]},
+        "asset_scope": {"enum": ["episode", "channel"]},
         "width": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
         "height": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
         "fill": {
@@ -78,7 +84,7 @@
         },
         "keyframes": {"type": "array", "items": {"$ref": "#/$defs/keyframe"}}
       },
-      "if": {"properties": {"kind": {"const": "image"}}},
+      "if": {"properties": {"kind": {"enum": ["image", "svg"]}}},
       "then": {"required": ["file"]},
       "else": {
         "allOf": [
@@ -108,12 +114,91 @@
         "gain": {"$ref": "#/$defs/unit"}
       }
     },
+    "vector3": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"type": "number", "minimum": -1000, "maximum": 1000}
+    },
+    "scale3": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"type": "number", "exclusiveMinimum": 0, "maximum": 100}
+    },
+    "three_object": {
+      "type": "object", "required": ["id", "kind", "position"], "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/text"},
+        "kind": {"enum": ["box", "sphere", "cylinder", "torus", "glb"]},
+        "position": {"$ref": "#/$defs/vector3"},
+        "rotation": {"$ref": "#/$defs/vector3"},
+        "scale": {"$ref": "#/$defs/scale3"},
+        "color": {"$ref": "#/$defs/color"},
+        "file": {"$ref": "#/$defs/path"}
+      },
+      "if": {"properties": {"kind": {"const": "glb"}}},
+      "then": {"required": ["file"], "not": {"required": ["color"]}},
+      "else": {"not": {"required": ["file"]}}
+    },
+    "three_scene": {
+      "type": "object", "required": ["camera", "objects"], "additionalProperties": false,
+      "properties": {
+        "camera": {
+          "type": "object", "required": ["position", "target"], "additionalProperties": false,
+          "properties": {
+            "position": {"$ref": "#/$defs/vector3"}, "target": {"$ref": "#/$defs/vector3"},
+            "fov": {"type": "number", "minimum": 10, "maximum": 110}
+          }
+        },
+        "objects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/three_object"}},
+        "lighting": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "ambient": {"type": "number", "minimum": 0, "maximum": 10},
+            "key": {"type": "number", "minimum": 0, "maximum": 10},
+            "position": {"$ref": "#/$defs/vector3"},
+            "color": {"$ref": "#/$defs/color"}
+          }
+        }
+      }
+    },
+    "library": {
+      "type": "object", "required": ["version", "scenes"], "additionalProperties": false,
+      "properties": {
+        "version": {"type": "integer", "minimum": 1},
+        "scenes": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/three_scene"}}
+      }
+    },
+    "three_camera_key": {
+      "type": "object", "required": ["at"], "additionalProperties": false,
+      "properties": {
+        "at": {"$ref": "#/$defs/unit"}, "ease": {"enum": ["linear", "in", "out", "smooth"]},
+        "position": {"$ref": "#/$defs/vector3"}, "target": {"$ref": "#/$defs/vector3"}
+      }
+    },
+    "three_object_key": {
+      "type": "object", "required": ["at"], "additionalProperties": false,
+      "properties": {
+        "at": {"$ref": "#/$defs/unit"}, "ease": {"enum": ["linear", "in", "out", "smooth"]},
+        "position": {"$ref": "#/$defs/vector3"}, "rotation": {"$ref": "#/$defs/vector3"},
+        "scale": {"$ref": "#/$defs/scale3"}
+      }
+    },
+    "three_shot": {
+      "type": "object", "required": ["scene"], "additionalProperties": false,
+      "properties": {
+        "scene": {"$ref": "#/$defs/text"},
+        "camera": {"type": "array", "items": {"$ref": "#/$defs/three_camera_key"}},
+        "objects": {
+          "type": "object",
+          "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/three_object_key"}}
+        }
+      }
+    },
     "shot": {
       "type": "object", "required": ["id", "duration", "layers"], "additionalProperties": false,
       "properties": {
         "id": {"$ref": "#/$defs/text"},
         "duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 720},
         "direction": {"$ref": "#/$defs/text"},
+        "three": {"$ref": "#/$defs/three_shot"},
         "background": {"$ref": "#/$defs/color"},
         "layers": {"type": "array", "items": {"$ref": "#/$defs/layer"}},
         "speech": {"type": "array", "items": {"$ref": "#/$defs/speech"}},
