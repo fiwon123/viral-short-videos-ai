@@ -39,3 +39,11 @@ Use the `library` and `three_shot` definitions in the [schema](../../../../studi
 Set the shot's `three.scene` to a library scene name. Optionally keyframe camera position and target and each object's position, rotation, or scale. Times are normalized over the resolved shot, and Three.js rotations use radians. A shot starts at the library's default poses. Specify a matching opening pose when continuity needs to carry across a cut. GLB objects support whole-model transforms. Complex skeletal animation needs an authored rig workflow.
 
 Declare hitboxes, contacts, and continuity rules with the [staging and visual QA guide](visual-qa.md). Render a preview with the selected backend. Review representative shots from this episode next to approved frames from the series. Check faces, camera and prop scale, lighting, caption clearance, and transition continuity before rendering the full package.
+
+## Stage effects and weight
+
+Give a channel a reusable effects kit with `python -m studio.vfx channels/<slug>`. It writes palette-matched SVGs (flash, shockwave, impact stars, dust, smoke, splash, ripple, speed lines, sparkle) that episodes reference as channel-scoped layers. Start every effect at `opacity: 0` in the base pose, or it shows from frame one. Pop in over one or two frames, hold, then fade over the stated life.
+
+Anchor screen-space effects to 3D contacts with `studio.lens.screen(point, camera)`, using the same shot camera and the canvas size. Recompute when the camera moves during the shot.
+
+Keyframe 3D motion through `studio.physics`: `drop()` for falling props, `burst()` and `splash()` for debris and droplets, `shake()` for decaying camera jitter. The renderer interpolates linearly between keys, so sample the curve at the frame rate instead of trusting two distant keys. Contact frames should be exact; `drop()` places them on the floor and emits squash on the same object keys. Bias debris upward and keep speeds modest so pieces stay in frame. Hide one-off particles after their last key, or they hang in the air.

@@ -91,6 +91,8 @@ Estimate time to eligibility only from stated assumptions or my own data.
 
 Save the approved identity, characters, voice references, subtitle style, thumbnail style, and repeatable episode format with the channel. Reuse those decisions while giving each episode a new premise, action, and payoff. Study references for staging, timing, and performance, then create your own characters, artwork, dialogue, and sound.
 
+Channels can also carry a generated Foley bank and a palette-matched effects kit: `python -m studio.sfx channels/<slug>` writes layered, variant-based sound effects, `python -m studio.vfx channels/<slug>` draws flash, dust, splash and shockwave art, and `studio/physics.py` samples falling, bouncing, splashing and shaking motion instead of hand-placed keys.
+
 Try a 15–30 second first cut for a single visual gag, then adjust the length to fit the beats and the platform. Review it on a phone. Check where the eye goes in the opening, whether the payoff reads when muted, and whether captions and effects line up in playback. Each render includes `publishing.md` with YouTube title, description, and tags, plus a TikTok caption with hashtags. [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md)
 
 ## 📈 Posting and monetization

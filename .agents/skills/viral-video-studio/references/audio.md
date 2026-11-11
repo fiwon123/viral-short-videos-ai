@@ -41,6 +41,20 @@ Spot the episode by action, material, scale, perspective, and frame. Choose whic
 
 Use `"sound": "wood-latch"` in a shot's SFX cue to select from the channel library. The starting variant depends on the episode folder, then variants rotate for repeated uses. Set `variant` with a one-based index to lock a take. Use a shot-local `file` for a new hero effect. Combine a contact transient and a short tail with two cues when the action needs both. Set gain per cue. An optional `rate` changes pitch and duration together, so recheck timing after changing it. Use low room tone where it helps continuity. Leave the legacy synth presets for scratch work.
 
+## Generate fresh Foley
+
+When a channel needs a starting bank, synthesize one instead of shipping silence or borrowed samples:
+
+```sh
+python -m studio.sfx channels/my-channel --library audio/cast-v2.json \
+  --voices audio/cast-candidate-v1.json
+```
+
+Every sound is layered from a transient, a body, and a tail, then filtered and peak-normalised with a 0.4 ms edge fade, so a cue's gain carries the size of the event. Three variants differ in pitch and texture so repeated uses do not phase together. Keep names behavioural (`thud`, `bonk`, `splash`, `burst`) rather than literal recordings, and point `audio_library` at the written JSON. Regenerating rewrites the WAVs and keeps the voice profiles, so recast voices separately.
+
+Split the bank into impact, liquid, destruction, and comedy families and layer two or three cues per beat: contact, then debris, then settle. Put the contact on the exact frame. Keep music 6–12 dB under speech. If a real recording matters for a hero moment, import it as a shot-local `file` and leave the generated bank as the consistent bed.
+
+
 ## Approve audio before animation
 
 Run the audio-only mix with the same episode manifest used for the final video.

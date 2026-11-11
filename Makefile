@@ -22,8 +22,12 @@ SLUG := $(notdir $(patsubst %/,%,$(dir $(EPISODE))))
 PREVIEW_OUT = output/$(SLUG)-preview
 RENDER_OUT = output/$(SLUG)-v1
 CHANNEL_ARG = $(if $(CHANNEL),--channel $(CHANNEL),)
+CHANNEL_DIR = $(patsubst %/,%,$(dir $(CHANNEL)))
+LIBRARY ?= audio/cast-v2.json
+VOICES ?=
+VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets doctor list \
+.PHONY: help status init assets sfx vfx doctor list \
         validate check audio preview render \
         clean clean-cache clean-previews \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -34,6 +38,8 @@ help:
 	@echo "  make status                 resolved channel, episode, and .env"
 	@echo "  make init                   write .env from what is already on disk"
 	@echo "  make assets                 what the channel needs, and what is optional"
+	@echo "  make sfx                    regenerate the channel Foley bank"
+	@echo "  make vfx                    redraw the channel VFX kit from its palette"
 	@echo "  make doctor                 check ffmpeg, node, Chrome, Kokoro"
 	@echo "  make list                   channel folders and episodes"
 	@echo
@@ -67,6 +73,14 @@ init:
 assets:
 	@test -n "$(CHANNEL)" || { echo "No channel resolved. Run make status, or set CHANNEL=channels/<slug>/channel.json"; exit 1; }
 	@$(PYTHON) -m studio.inventory $(CHANNEL)
+
+sfx:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
+	@$(PYTHON) -m studio.sfx $(CHANNEL_DIR) --library $(LIBRARY) $(VOICES_ARG)
+
+vfx:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
+	@$(PYTHON) -m studio.vfx $(CHANNEL_DIR)
 
 doctor:
 	@$(PYTHON) video.py doctor
