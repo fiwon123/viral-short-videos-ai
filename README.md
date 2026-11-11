@@ -110,4 +110,28 @@ YouTube also lists a **February 1, 2027** change that requires **10 million qual
 
 Install Python 3.10+ and FFmpeg with FFprobe. From the repository folder, run `python -m pip install -r requirements.txt` and `python video.py doctor`. For SVG or 3D projects, install Node.js 22+ and Chrome or Chromium, then run `npm ci --ignore-scripts`. Follow the export command your assistant provides. [Renderer options](.agents/skills/viral-video-studio/references/renderers.md) · [Voice and sound](.agents/skills/viral-video-studio/references/audio.md)
 
+The `Makefile` wraps the same commands and ships **no channel or episode path** — it resolves what is on disk, then falls back to `.env`:
+
+```sh
+make status        # what channel, episode, and .env resolve to
+make init          # write .env from what is already on disk
+make assets        # what this channel needs, and what is optional
+make doctor        # ffmpeg, node, Chrome, Kokoro
+
+make validate EPISODE=episodes/my-episode/episode.json
+make preview  EPISODE=episodes/my-episode/episode.json
+make render   EPISODE=episodes/my-episode/episode.json
+```
+
+Resolution order for `CHANNEL` and `EPISODE`: command line, then `.env`, then discovery. Discovery picks the only channel folder that has a manifest, preferring `channel.json`; with several folders or several manifests it stops and tells you what to pass. Copy [.env.example](.env.example) to `.env` to pin a channel and episode to the machine — `.env` is ignored by git, so a fresh clone starts clean.
+
+Previews go to `output/<episode>-preview` and renders to `output/<episode>-v1` unless you pass `OUT=`. `make assets` prints the identity kit a render actually reads — cast models, scene libraries, voice profiles, Foley — and separates it from artwork, documentation, audition leftovers and older looks. Delete an optional group only when you mean it:
+
+```sh
+make prune-casting        # dry run
+make prune-casting APPLY=1
+```
+
+`make clean-cache` clears failed render staging, audio takes and `__pycache__`; `make clean-previews` removes preview packages. Rendered packages are never deleted automatically.
+
 Channel assets, episodes, research, and exports stay in your local project folders. Each new clone carries the reusable workflow and tools.

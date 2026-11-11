@@ -22,7 +22,8 @@ def options():
                             ("render", "render a production package")):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("episode", type=Path)
-        command.add_argument("--channel", required=True, type=Path)
+        command.add_argument("--channel", type=Path,
+                             help="channel manifest; discovered under channels/ when omitted")
         if name in {"audio", "render"}:
             command.add_argument("--out", required=True, type=Path)
         if name == "render":
@@ -92,6 +93,10 @@ def execute(args):
 
     from studio.core import load, new_package, validate_channel, validate_episode, write_json
 
+    if args.channel is None:
+        from studio.project import resolve_channel
+
+        args.channel = resolve_channel(Path(__file__).resolve().parent)
     channel = load(args.channel, "channel")
     validate_channel(channel, args.channel.parent)
     if args.command == "brand":
