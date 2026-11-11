@@ -4,37 +4,110 @@
 [![Animation: 2D, 2.5D, and 3D](https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e)](.agents/skills/viral-video-studio/references/renderers.md)
 [![Workflow: Research to MP4](https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb)](.agents/skills/viral-video-studio/SKILL.md)
 
-A reusable template for turning a video idea into an original channel and a finished episode. The built-in studio focuses on **animated Shorts** and supports animated videos up to **12 minutes**. You can reuse the research, scripting, and publishing steps for other genres with your own production tools.
+A reusable template for turning a video idea into an original channel and a finished episode. The built-in studio focuses on **animated Shorts**, including character comedy, visual gags, short stories, and explainers. It supports 2D, 2.5D, and 3D animation up to 12 minutes. You can reuse the research, scripting, and publishing steps for other genres with your own production tools.
 
-## ✨ What you can create
+## 🤖 Use any AI model
 
-- **An original channel.** Get a name, description, tags, logo, banner, and a brief that keeps the look, characters, voices, and episode format consistent.
-- **Animated episodes.** Make character comedy, visual gags, short stories, or animated explainers in 2D, 2.5D, or 3D. Get a timed script, a rough cut to review on your phone, and a finished MP4 with sound and captions where needed.
-- **A publishing package.** Get a thumbnail, YouTube title, description, and tags, plus a TikTok caption with hashtags. The finished files and copy are ready for you to review and publish.
+The workflow is written in Markdown and works with hosted or local models that can follow text instructions. Use ChatGPT, Claude, Codex, OpenCode, another coding assistant, or a model you run yourself. Model quality, available tools, and context size can affect the result and how much review it needs.
 
-## 🚀 Start from zero
+1. **If your assistant can access the repository**, open the folder and tell it to follow [SKILL.md](.agents/skills/viral-video-studio/SKILL.md). Run your assistant in the terminal if that is how you normally use it.
+2. **If you use a standalone chat or text-only model**, attach or paste [SKILL.md](.agents/skills/viral-video-studio/SKILL.md). Add [discovery and branding](.agents/skills/viral-video-studio/references/discovery.md) for channel work or [production](.agents/skills/viral-video-studio/references/production.md), [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md), and the [episode schema](studio/schema.json) for video work. If the model has limited context, share the guide for one stage at a time and carry the approved brief forward.
+3. **Match the work to the tools available.** For live research, give a model without browsing your reference links and verified notes. For rendering, have a model without terminal access return the editable manifests, assets or asset list, and the export command so you can run it locally.
 
-1. **Open the repository.** On GitHub, use **Code** to clone or download the repository. Open the folder in Codex, Claude Code, or an assistant that can access your workspace.
-2. **Tell the assistant where to start.** Use one of the prompts below. Add your audience, language, platform, genre, preferred length, or a reference link if you have one.
-3. **Pick a direction and a pilot.** The assistant builds the brand for your chosen direction and turns the episode into a rough cut. Review the opening and payoff on a phone before the full render.
+## 🚀 Start where you are
 
-| If you want to… | Ask the assistant |
+On GitHub, use **Code** to clone or download the repository. Open it in your assistant or share the files above.
+
+**Copy a prompt.** Use the copy icon in the top-right corner of a prompt box on GitHub when it appears. In other viewers, select the text inside the box. Paste it into your assistant and replace the bracketed fields you know. Leave the others open for the assistant to propose. Add any other preferences that matter, such as genre, language, or time budget.
+
+### 🔎 Find an original channel direction
+
+```text
+Help me choose a channel direction for [platform, country, audience].
+
+Compare five relevant channels using their strongest Shorts from the last
+seven days where reliable data is available. Include links, dates, views,
+and one technique I can adapt from each example.
+
+Give me three original directions. For each, show the audience promise,
+repeatable video format, animation style, runtime range, and a pilot idea.
+Let me choose a direction.
+```
+
+### 🎨 Build a channel from scratch
+
+```text
+Build an original channel around [idea or direction] for [platform] and
+[audience]. Propose a name, handle, tagline, description, and keywords.
+
+Design a logo that reads at avatar size and a banner that survives the
+platform crop. Define the colors, fonts, characters, voices, video format,
+and target runtime.
+
+Save the approved brand kit and give me three pilot ideas with estimated
+production effort for each.
+```
+
+### 🔄 Continue an existing channel
+
+```text
+Use my channel brief, assets, and recent videos [attach or link]. Keep the
+approved brand, character designs, voices, and episode format unless I ask
+for a change.
+
+If I share analytics, compare similar uploads at the same age and show
+what you can verify. Suggest three original episodes that fit the channel
+and one change worth testing.
+```
+
+### 🎞️ Make one episode
+
+```text
+Turn [idea] into an original [2D, 2.5D, or 3D] video for [platform]. Use
+[language], aim for [runtime], and follow my approved channel brief.
+
+Write a timed shot plan with positions, poses, camera, dialogue, captions,
+sound, and transitions. Make a phone-size rough cut. Check the opening and
+payoff with sound and muted.
+
+Deliver the MP4, editable source, timed script, SRT when needed, thumbnail,
+title, description, and platform tags or hashtags. Tell me which files
+are ready to use.
+```
+
+### 📅 Plan the first month
+
+```text
+Make a four-week posting plan for [platforms] in [country] with a budget
+of [hours per week]. Give me a realistic number of videos per week,
+posting days and times to test, and what to review each week. Use my
+audience's time zone and any channel data I share.
+
+Verify each platform's monetization rules and show my remaining milestones.
+Estimate time to eligibility only from stated assumptions or my own data.
+```
+
+## 🎯 Keep episodes consistent
+
+Save the approved identity, characters, voice references, subtitle style, thumbnail style, and repeatable episode format with the channel. Reuse those decisions while giving each episode a new premise, action, and payoff. Study references for staging, timing, and performance, then create your own characters, artwork, dialogue, and sound.
+
+Try a 15–30 second first cut for a single visual gag, then adjust the length to fit the beats and the platform. Review it on a phone. Check where the eye goes in the opening, whether the payoff reads when muted, and whether captions and effects line up in playback. Each render includes `publishing.md` with YouTube title, description, and tags, plus a TikTok caption with hashtags. [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md)
+
+## 📈 Posting and monetization
+
+**Start with a schedule you can keep.** For a new animated channel, try **one Short per posting day on two or three days a week** for the first four weeks. That’s a starter experiment. Pick two time slots in your audience’s time zone, compare posts at the same age, and review watch time, completion, and shares where available. Move toward one a day only if your production time and quality can support it. Use your own audience activity to refine posting times as data comes in. [YouTube scheduling guidance](https://support.google.com/youtube/answer/13616979?co=YOUTUBE._YTVideoType%3Dshorts&hl=en) · [YouTube audience analytics](https://support.google.com/youtube/answer/9314416?hl=en)
+
+**Plan for eligibility, review, and then earnings.** The 30- and 90-day windows measure recent performance. Time to qualify depends on the channel’s growth and the rules for its country and account. Check the platform dashboard before planning around revenue. Rules below were checked November 10, 2026.
+
+| Platform | What to plan for |
 | --- | --- |
-| 🔎 **Find a direction** | “Use this repository’s workflow. Show me at least five relevant channels with strong Shorts from the last seven days, where reliable data is available. Then give me three original channel ideas.” |
-| 🧭 **Start a channel** | “Help me start an original animated comedy channel. Give me three directions with an audience, a repeatable episode format, and a first video idea. Build the brand kit after I pick one.” |
-| 🎞️ **Make a video** | “Use my channel brief. Give me three episode ideas with a hook and payoff. After I choose, make a rough cut and carry it through the final video and publishing package.” |
+| **YouTube Shorts** | Shorts can run up to **3 minutes**. The Shorts route to ad sharing requires **1,000 subscribers** and **10 million qualified public Shorts views in the last 90 days**. YouTube says Partner Program review typically takes about **one month after applying**. In eligible countries, some fan-funding and shopping features may be available at **500 subscribers**, plus **3 valid public uploads and 3 million qualified Shorts views in the last 90 days**. [Shorts format](https://support.google.com/youtube/answer/12921536) · [Partner Program](https://support.google.com/youtube/answer/72851?hl=en) · [Expanded program](https://support.google.com/youtube/answer/13429240?hl=en) |
+| **TikTok Creator Rewards** | Where available, the program requires an eligible personal account with **10,000 followers** and **100,000 video views in the last 30 days**. TikTok gives **about three days** for an application response through TikTok Studio. An eligible original video must run **at least one minute**, be posted after joining, and reach **1,000 qualified For You feed views** to start earning. [TikTok Creator Rewards requirements](https://www.tiktok.com/support/faq_detail?id=7581821550694013452&category=web_account) |
 
-**Already have an idea?** Give it to the assistant and start there. Use references to study timing, staging, and payoff, then develop your own characters, settings, artwork, and dialogue. Use audience response after publishing to decide what to test next.
-
-## 🤖 Use it with your assistant
-
-- **Codex or Claude Code.** Open the repository and ask the assistant to follow the [production workflow](.agents/skills/viral-video-studio/SKILL.md). In Codex, you can also invoke `$viral-video-studio`.
-- **ChatGPT.** Attach [SKILL.md](.agents/skills/viral-video-studio/SKILL.md). For channel ideas, also attach [discovery and branding](.agents/skills/viral-video-studio/references/discovery.md). For an episode, attach [production](.agents/skills/viral-video-studio/references/production.md), [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md), and the [episode schema](studio/schema.json). If the chat can’t run the renderer, ask for the editable files and render locally.
+YouTube also lists a **February 1, 2027** change that requires **10 million qualified Shorts views over its specified 90-day window** for monthly Shorts Creator Pool and Premium revenue. Check the policy when planning a Shorts-first channel. [YouTube Shorts monetization policies](https://support.google.com/youtube/answer/12504220?hl=en)
 
 ## 🛠️ Render locally
 
-Install Python 3.10+ and FFmpeg with FFprobe. From the repository folder, install the Python packages with `python -m pip install -r requirements.txt`, then run `python video.py doctor` to check your setup. For SVG or 3D projects, install Node.js 22+ and Chrome or Chromium, then run `npm ci --ignore-scripts`.
+Install Python 3.10+ and FFmpeg with FFprobe. From the repository folder, run `python -m pip install -r requirements.txt` and `python video.py doctor`. For SVG or 3D projects, install Node.js 22+ and Chrome or Chromium, then run `npm ci --ignore-scripts`. Follow the export command your assistant provides. [Renderer options](.agents/skills/viral-video-studio/references/renderers.md) · [Voice and sound](.agents/skills/viral-video-studio/references/audio.md)
 
-Once the assistant has saved the channel and episode files, use the export command it provides. The default animation workflow uses [HyperFrames with GSAP/SVG and optional Three.js](.agents/skills/viral-video-studio/references/renderers.md). Recorded dialogue and local voice options are covered in the [audio guide](.agents/skills/viral-video-studio/references/audio.md).
-
-Channel assets, episodes, research, and exports stay in your local project folders. The repository carries the reusable workflow and tools into each new clone.
+Channel assets, episodes, research, and exports stay in your local project folders. Each new clone carries the reusable workflow and tools.
