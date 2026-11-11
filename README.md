@@ -1,8 +1,11 @@
-# 🎬 Viral Short Videos
+<h1 align="center">🎬 Viral Short Videos AI</h1>
 
-[![Format: Animated Shorts](https://img.shields.io/badge/Format-Animated%20Shorts-6d4aff)](.agents/skills/viral-video-studio/references/shorts.md)
-[![Animation: 2D, 2.5D, and 3D](https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e)](.agents/skills/viral-video-studio/references/renderers.md)
-[![Workflow: Research to MP4](https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb)](.agents/skills/viral-video-studio/SKILL.md)
+<p align="center">
+  <a href=".agents/skills/viral-video-studio/references/shorts.md"><img alt="Format: Animated Shorts" src="https://img.shields.io/badge/Format-Animated%20Shorts-6d4aff"></a>
+  <a href=".agents/skills/viral-video-studio/references/renderers.md"><img alt="Animation: 2D, 2.5D, and 3D" src="https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e"></a>
+  <a href=".agents/skills/viral-video-studio/SKILL.md"><img alt="Workflow: Research to MP4" src="https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e"></a>
+</p>
 
 A reusable template for turning a video idea into an original channel and a finished episode. The built-in studio focuses on **animated Shorts**, including character comedy, visual gags, short stories, and explainers. It supports 2D, 2.5D, and 3D animation up to 12 minutes. You can reuse the research, scripting, and publishing steps for other genres with your own production tools.
 
