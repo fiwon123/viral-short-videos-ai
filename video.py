@@ -37,6 +37,8 @@ def options():
     reference.add_argument("video", type=Path)
     reference.add_argument("--out", required=True, type=Path)
     reference.add_argument("--threshold", type=float, default=0.34, help="scene change threshold from 0 to 1")
+    reference.add_argument("--focus-shorts", action="store_true",
+                           help="sample the first and last two seconds more closely")
     discover = commands.add_parser("discover", help="sample top recent YouTube videos using YOUTUBE_API_KEY")
     discover.add_argument("--query", action="append", required=True, help="repeat for distinct search terms")
     discover.add_argument("--region", required=True, help="two-letter country code")
@@ -86,7 +88,7 @@ def execute(args):
             raise ValueError("Threshold must be between 0 and 1")
         if not args.video.is_file():
             raise ValueError("Provide a local reference video file")
-        return reference(args.video.resolve(), args.out, args.threshold), 0
+        return reference(args.video.resolve(), args.out, args.threshold, focus_shorts=args.focus_shorts), 0
 
     from studio.core import load, new_package, validate_channel, validate_episode, write_json
 

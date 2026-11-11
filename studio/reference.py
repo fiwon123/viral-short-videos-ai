@@ -10,7 +10,7 @@ from .core import ffmpeg, new_package, probe, require, run, write_json
 from .design import get_font
 
 
-def reference(path, target, threshold):
+def reference(path, target, threshold, *, focus_shorts=False):
     require("ffmpeg")
     require("ffprobe")
     data = probe(path)
@@ -30,7 +30,15 @@ def reference(path, target, threshold):
     cuts = [seconds for seconds in cuts if 0 < seconds < duration]
     uniform = [max(0, (duration - 0.15) * fraction / 10) for fraction in range(11)]
     selected = cuts if len(cuts) <= 13 else [cuts[i * (len(cuts) - 1) // 12] for i in range(13)]
-    times = sorted({round(time, 3) for time in uniform + selected})
+    samples = uniform + selected
+    method = "Uniform and scene-change samples."
+    if focus_shorts:
+        for offset in (0.25, 0.5, 1.0, 2.0):
+            if offset < duration:
+                samples.extend((offset, duration - offset))
+        method += " Extra samples within the opening and closing two seconds."
+    method += " Seek times and scene changes are candidates for review."
+    times = sorted({round(time, 3) for time in samples})
     with new_package(target) as out:
         frames = out / "frames"
         frames.mkdir()
@@ -64,6 +72,6 @@ def reference(path, target, threshold):
         report = {"source": path.name, "duration_seconds": duration, "video": video,
                   "candidate_cuts_seconds": cuts, "candidate_cut_threshold": threshold,
                   "frames": thumbs, "audio_extracted": has_audio, "embedded_text_captions": captions,
-                  "method": "Uniform and scene-change samples. Seek times and scene changes are candidates for review."}
+                  "method": method}
         write_json(out / "reference.json", report)
     return {"frames": len(thumbs), "candidate_cuts": len(cuts), "audio_extracted": has_audio}
