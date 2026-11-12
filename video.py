@@ -25,9 +25,11 @@ def options():
         command.add_argument("--channel", type=Path,
                              help="channel manifest; discovered under channels/ when omitted")
         if name in {"audio", "render"}:
-            command.add_argument("--out", required=True, type=Path)
+            command.add_argument("--out", type=Path, help="package directory (defaults to output/<channel>/<episode>-<suffix>)")
         if name == "render":
-            command.add_argument("--preview", action="store_true", help="use half-size resolution")
+            preview = command.add_mutually_exclusive_group()
+            preview.add_argument("--preview", action="store_true", help="export a half-size preview")
+            preview.add_argument("--full-size-preview", action="store_true", help="export a preview at full resolution")
             command.add_argument("--renderer", choices=("python", "remotion", "hyperframes"), default="python",
                                  help="select the visual renderer")
             command.add_argument("--no-burn", action="store_true", help="export captions as a separate SRT only")
@@ -114,6 +116,13 @@ def execute(args):
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
+    if args.command in {"audio", "render"} and args.out is None:
+        suffix = "audio" if args.command == "audio" else "v1"
+        if args.command == "render" and (args.preview or args.full_size_preview):
+            suffix = "preview"
+        channel_dir = Path(os.path.abspath(args.channel)).parent.name or args.channel.stem
+        episode_dir = Path(os.path.abspath(args.episode)).parent.name or args.episode.stem
+        args.out = Path("output") / channel_dir / f"{episode_dir}-{suffix}"
     if args.command == "audio":
         from studio.audio import audio_summary, prepare_audio
         from studio.render import export_srt

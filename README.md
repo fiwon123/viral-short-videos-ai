@@ -130,7 +130,9 @@ make render   EPISODE=episodes/my-episode/episode.json
 
 Resolution order for `CHANNEL` and `EPISODE`: command line, then `.env`, then discovery. Discovery picks the only channel folder that has a manifest, preferring `channel.json`; with several folders or several manifests it stops and tells you what to pass. Copy [.env.example](.env.example) to `.env` to pin a channel and episode to the machine — `.env` is ignored by git, so a fresh clone starts clean.
 
-Previews go to `output/<episode>-preview` and renders to `output/<episode>-v1` unless you pass `OUT=`. `make assets` prints the identity kit a render actually reads — cast models, scene libraries, voice profiles, Foley — and separates it from artwork, documentation, audition leftovers and older looks. Delete an optional group only when you mean it:
+Episode packages go under `output/<channel-slug>/`, using the selected channel manifest’s folder name. For example, rendering `episodes/my-episode/episode.json` with `CHANNEL=channels/my-channel/channel.json` writes `output/my-channel/my-episode-v1/video.mp4` alongside its publishing guide and other exports. Preview and audio packages use the suffixes `-preview` and `-audio`. Pass `OUT=<dir>` with Make or `--out <dir>` with `video.py` to choose a different path, including for a new render of the same episode.
+
+`make assets` prints the identity kit a render actually reads — cast models, scene libraries, voice profiles, Foley — and separates it from artwork, documentation, audition leftovers and older looks. Delete an optional group only when you mean it:
 
 ```sh
 make prune-casting        # dry run

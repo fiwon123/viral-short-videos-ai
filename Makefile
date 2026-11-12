@@ -18,9 +18,7 @@ RENDERER := $(strip $(RENDERER))
 RENDERER := $(if $(RENDERER),$(RENDERER),hyperframes)
 
 PREVIEW_FLAG ?= --preview
-SLUG := $(notdir $(patsubst %/,%,$(dir $(EPISODE))))
-PREVIEW_OUT = output/$(SLUG)-preview
-RENDER_OUT = output/$(SLUG)-v1
+OUT_ARG = $(if $(OUT),--out "$(OUT)",)
 CHANNEL_ARG = $(if $(CHANNEL),--channel $(CHANNEL),)
 CHANNEL_DIR = $(patsubst %/,%,$(dir $(CHANNEL)))
 LIBRARY ?= audio/cast-v2.json
@@ -55,7 +53,7 @@ help:
 	@echo "             OUT=<dir> PREVIEW_FLAG= PYTHON=<interpreter>"
 	@echo
 	@echo "  make clean-cache            drop failed render staging, audio takes, __pycache__"
-	@echo "  make clean-previews         drop output/*-preview packages"
+	@echo "  make clean-previews         drop preview packages in output/ and channel folders"
 	@echo
 	@echo "  make prune-<group>          dry run; add APPLY=1 to delete"
 	@echo "    prune-duplicates          duplicate channel manifests"
@@ -95,30 +93,30 @@ check:
 
 audio:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=episodes/<slug>/episode.json"; exit 1; }
-	@$(PYTHON) video.py audio $(EPISODE) $(CHANNEL_ARG) --out $(if $(OUT),$(OUT),output/$(SLUG)-audio)
+	@$(PYTHON) video.py audio $(EPISODE) $(CHANNEL_ARG) $(OUT_ARG)
 
 preview:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=episodes/<slug>/episode.json"; exit 1; }
 	@$(PYTHON) video.py render $(EPISODE) $(CHANNEL_ARG) --renderer $(RENDERER) \
-		--out $(if $(OUT),$(OUT),$(PREVIEW_OUT)) $(PREVIEW_FLAG)
+		$(OUT_ARG) $(if $(PREVIEW_FLAG),$(PREVIEW_FLAG),--full-size-preview)
 
 render:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=episodes/<slug>/episode.json"; exit 1; }
-	@$(PYTHON) video.py render $(EPISODE) $(CHANNEL_ARG) --renderer $(RENDERER) \
-		--out $(if $(OUT),$(OUT),$(RENDER_OUT))
+	@$(PYTHON) video.py render $(EPISODE) $(CHANNEL_ARG) --renderer $(RENDERER) $(OUT_ARG)
 
 list:
 	@echo "channels:"; ls -1 channels 2>/dev/null | sed 's/^/  /' || true
 	@echo "episodes:"; ls -1 episodes 2>/dev/null | sed 's/^/  /' || true
 
 clean-cache:
-	@find output -maxdepth 1 -name '.studio-*' -type d -print -exec rm -rf {} + 2>/dev/null || true
+	@find output -mindepth 1 -maxdepth 2 -name '.studio-*' -type d -prune -print -exec rm -rf {} + 2>/dev/null || true
 	@find episodes -maxdepth 2 -name '.audio-takes' -type d -print -exec rm -rf {} + 2>/dev/null || true
 	@find . -maxdepth 3 -name '__pycache__' -type d -prune -print -exec rm -rf {} + 2>/dev/null || true
 	@echo "cache cleaned"
 
 clean-previews:
-	@find output -maxdepth 1 -name '*-preview' -type d -print -exec rm -rf {} + 2>/dev/null || true
+	@find output -mindepth 1 -maxdepth 2 -name '*-preview' -type d \
+		-exec test -f {}/qa.json \; -exec test -f {}/video.mp4 \; -prune -print -exec rm -rf {} + 2>/dev/null || true
 	@echo "previews cleaned"
 
 prune-duplicates:

@@ -61,7 +61,7 @@ Run the audio-only mix with the same episode manifest used for the final video.
 
 ```sh
 python video.py audio episodes/my-episode/episode.json \
-  --channel channels/my-channel/channel.json --out output/my-episode-audio
+  --channel channels/my-channel/channel.json
 ```
 
 Listen to `mix.wav` and review `timeline.json` and `audio-qa.json`. Check that the speakers sound distinct, breaths and pauses serve the line, the same performer carries across cuts, and the material and contact frame match the sound. Listen on headphones and a phone speaker. The QA report counts eSpeak lines and stock preset effects, which are useful to flag in a review. Keep the dialogue forward and give impacts space around key words.
