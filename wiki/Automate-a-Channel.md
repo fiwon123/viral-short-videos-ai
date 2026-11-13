@@ -109,7 +109,7 @@ Change one variable per week. Keep a note in `research/` with the hypothesis and
 - Publishing a render that failed QA
 - Ignoring platform policy or music rights
 
-## Next
+## 🔗 Related guides
 
 - [Make Shorts Travel](Make-Shorts-Travel)
 - [YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization)

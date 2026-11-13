@@ -5,7 +5,7 @@
 </p>
 
 > [!IMPORTANT]
-> Checked **November 13, 2026**. Programs, countries, thresholds and revenue rules change. Confirm in YouTube Studio and TikTok Studio before planning income.
+> Eligibility depends on your region, account, and content. Check YouTube Studio → Earn and TikTok Studio → Monetization for the requirements that apply to you.
 
 ## ▶️ YouTube Partner Program
 
@@ -13,9 +13,9 @@
 
 | Path | Requirements | What it unlocks |
 | --- | --- | --- |
-| **Expanded YPP / fan funding** | 500 subscribers + 3 valid public uploads in 90 days + 3,000 qualified watch hours/12 months **or** 3M qualified Shorts views/90 days | Fan funding and Shopping features in eligible countries |
-| **Full YPP ads + Premium** | 1,000 subscribers + 4,000 qualified watch hours/12 months **or** 10M qualified Shorts views/90 days | Ads and YouTube Premium revenue |
-| **New YPP entry from Feb 1, 2027** | For new creators: 1,000 subscribers + 8,000 qualified watch hours/365 days **or** 20M qualified Shorts views/90 days | Ads and Premium entry under the updated terms |
+| **Expanded YPP / fan funding** | 500 subscribers and 3 valid public uploads in 90 days, plus either 3,000 qualified watch hours in 12 months or 3M qualified Shorts views in 90 days | Fan funding and Shopping features in eligible countries |
+| **Full YPP ads + Premium** | 1,000 subscribers and either 4,000 qualified watch hours in 12 months or 10M qualified Shorts views in 90 days | Ads and YouTube Premium revenue |
+| **New YPP entry from Feb 1, 2027** | 1,000 subscribers and either 8,000 qualified watch hours in 365 days or 20M qualified Shorts views in 90 days | Ads and Premium entry under the updated terms |
 
 Also required:
 
@@ -34,7 +34,7 @@ Review typically takes **about one month**. If rejected, you can appeal within 2
 - Shorts ad revenue is pooled from ads between Shorts, allocated to creators based on engaged views, and the creator keeps **45%** of their allocation.
 - Music affects the pool calculation because YouTube allocates part of the revenue to music licensing.
 - Only original, advertiser-friendly, engaged views count. Reuploads, compilations and artificial views are not a safe path.
-- From **February 1, 2027**, earning from the Shorts Creator Pool each month requires **10M qualified Shorts views in the last 90 days**. Missing it does not remove you from YPP or affect long-form earnings.
+- From **February 1, 2027**, earning from the Shorts Creator Pool each month requires **10M qualified Shorts views in YouTube’s 90-day measurement window**. The window ends on the 15th of the month before the earnings month. [Shorts monetization policy](https://support.google.com/youtube/answer/12504220)
 - Shorts up to 3 minutes can use the Shorts revenue model. Shorts over one minute with claimed content can be blocked, so music rights matter.
 
 ### YouTube practical checklist
@@ -55,12 +55,12 @@ Review typically takes **about one month**. If rejected, you can appeal within 2
 
 | Requirement | Detail |
 | --- | --- |
-| Age | 18+ |
+| Age | 18+ (19+ in South Korea) |
 | Account | Personal account in good standing |
 | Country | Eligible region |
 | Followers | 10,000 |
 | Views | 100,000 video views in the last 30 days |
-| Content | Original, eligible content |
+| Content | Original, eligible videos posted after joining |
 | Length | Videos at least **1 minute** |
 | Start earning | 1,000 qualified For You feed views on eligible videos |
 
@@ -68,20 +68,11 @@ Other TikTok monetization paths — LIVE gifts, subscriptions, TikTok Shop and a
 
 ### What “original” means
 
-Safe:
-
-- Your own animation, footage, voice and edit
-- Original characters and scripts
-- Licensed music with the right usage
-- Transformative commentary or reaction with real added value
-
-Risky or ineligible:
-
-- Reuploads of other creators
-- Unedited film/TV clips
-- Compilations with no original contribution
-- Artificial views or engagement
-- Content that violates advertiser-friendly or community rules
+| ✅ Start with | ❌ Exclude from Creator Rewards planning |
+| --- | --- |
+| Animation, characters, scripts, and edits you create | Reuploads, clips with minor edits, or compilations of other creators’ material |
+| Original audio or music you have the rights to use | Duets, Stitches, and sponsored posts |
+| Eligible videos posted after joining | Artificial, paid, or otherwise unqualified views |
 
 ## 📊 Revenue reality
 
@@ -141,10 +132,10 @@ Do not promise a RPM. Model low, medium and high cases, and separate platform re
 - [Expanded YouTube Partner Program](https://support.google.com/youtube/answer/13429240)
 - [YouTube Shorts monetization policies](https://support.google.com/youtube/answer/12504220)
 - [Changes to the YouTube Partner Program](https://support.google.com/youtube/answer/12843009)
-- [TikTok Creator Rewards Program](https://support.tiktok.com/en/business-and-creator/creator-rewards-program)
+- [TikTok Creator Rewards Program](https://support.tiktok.com/en/business-and-creator/creator-rewards-program/creator-rewards-program)
 - [TikTok Creator Academy: Creator Rewards](https://www.tiktok.com/creator-academy/article/creator-rewards-program)
 
-## Next
+## 🔗 Related guides
 
 - [Make Shorts Travel](Make-Shorts-Travel)
 - [Automate a Channel](Automate-a-Channel)

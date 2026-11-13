@@ -1,5 +1,14 @@
 # 🧰 Troubleshooting
 
+Start with `python video.py doctor` for environment issues and `make status` for channel or episode selection.
+
+| What you see | What to check first |
+| --- | --- |
+| ❌ Several channels or episodes found | Pass explicit `CHANNEL=` and `EPISODE=` paths. |
+| ❌ SVG or Three.js renderer error | Choose HyperFrames or Remotion and check Chrome. |
+| ⚠️ Missing voice or sound | Check the speaker or cue in the channel’s audio library. |
+| ❌ Output already exists | Pick a new output path for the next version. |
+
 ## Several channels or episodes found
 
 Discovery stops when more than one candidate exists. Pass the path explicitly:
@@ -85,7 +94,7 @@ The inventory path now supports channels without 3D. If you see this on an old c
 
 The GitHub Wiki is edited in the repository's Wiki tab. The `wiki/` folder is a versioned mirror; copy the page there when the live wiki changes.
 
-## Next
+## 🔗 Related guides
 
 - [Quick Start](Quick-Start)
 - [Workspace Layout](Workspace-Layout)

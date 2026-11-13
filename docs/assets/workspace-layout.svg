@@ -1,34 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
-  <title id="title">Workspace layout</title>
-  <desc id="desc">One channel folder with channel, episodes, research and renders.</desc>
-  <rect width="1000" height="520" rx="28" fill="#0B1020"/>
-  <text x="52" y="58" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">One channel = one workspace</text>
-  <text x="52" y="88" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="16">Inputs, research and generated packages stay together.</text>
-
-  <g font-family="Menlo, Consolas, monospace" font-size="16">
-    <rect x="52" y="118" width="896" height="356" rx="18" fill="#111A2E" stroke="#24344F"/>
-    <text x="80" y="154" fill="#7DD3FC">workspace/</text>
-    <text x="104" y="184" fill="#FDE68A">my-channel/</text>
-    <text x="128" y="214" fill="#6EE7B7">channel/</text>
-    <text x="152" y="240" fill="#CBD5E1">channel.json</text>
-    <text x="152" y="264" fill="#CBD5E1">channel.md</text>
-    <text x="152" y="288" fill="#CBD5E1">brief.md</text>
-    <text x="152" y="312" fill="#CBD5E1">brand/ · art/ · audio/ · vfx/</text>
-    <text x="128" y="342" fill="#FF9F68">episodes/</text>
-    <text x="152" y="366" fill="#CBD5E1">my-first-episode/episode.json</text>
-    <text x="128" y="396" fill="#C4B5FD">research/</text>
-    <text x="152" y="420" fill="#CBD5E1">notes.md</text>
-    <text x="128" y="450" fill="#F472B6">renders/</text>
-    <text x="152" y="474" fill="#CBD5E1">my-first-episode-v1/ → video.mp4, thumbnail, captions, publishing.md</text>
-  </g>
-
-  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#94A3B8">
-    <text x="680" y="154">machine-readable</text>
-    <text x="680" y="178">copy/paste identity</text>
-    <text x="680" y="202">creative rules</text>
-    <text x="680" y="226">shareable assets</text>
-    <text x="680" y="274">timed source</text>
-    <text x="680" y="322">why it worked</text>
-    <text x="680" y="370">upload package</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="352" viewBox="0 0 760 352" role="img" aria-labelledby="title desc">
+  <title id="title">One workspace per channel</title>
+  <desc id="desc">Under workspace/channel-slug, keep channel identity, episode sources, research, and rendered files in separate folders.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1">
+      <stop stop-color="#111127"/>
+      <stop offset="1" stop-color="#101D33"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="758" height="350" rx="22" fill="url(#background)" stroke="#364664" stroke-width="2"/>
+  <g font-family="system-ui, Arial, sans-serif">
+    <text x="30" y="59" fill="#F8FAFC" font-size="34" font-weight="700">One workspace per channel</text>
+    <g transform="translate(30 85)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#C4B5FD"/>
+      <text x="30" y="33" fill="#C4B5FD" font-size="24" font-weight="700">channel/</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Identity, brand art,</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">voices and assets</text>
+    </g>
+    <g transform="translate(390 85)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#93C5FD"/>
+      <text x="30" y="33" fill="#93C5FD" font-size="24" font-weight="700">episodes/</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">One source folder</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">per video</text>
+    </g>
+    <g transform="translate(30 206)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#5EEAD4"/>
+      <text x="30" y="33" fill="#5EEAD4" font-size="24" font-weight="700">research/</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Audience notes, references</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">and format tests</text>
+    </g>
+    <g transform="translate(390 206)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#FDE68A"/>
+      <text x="30" y="33" fill="#FDE68A" font-size="24" font-weight="700">renders/</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Video packages, captions</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">and publishing guides</text>
+    </g>
   </g>
 </svg>

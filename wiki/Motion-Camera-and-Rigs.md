@@ -97,7 +97,7 @@ The Python renderer accumulates subframes. The browser renderer blends the previ
 - Watch muted: the action should still read.
 - Watch with sound: the contact should land on the sound.
 
-## Next
+## 🔗 Related guides
 
 - [VFX and Post](VFX-and-Post)
 - [Captions and Typography](Captions-and-Typography)

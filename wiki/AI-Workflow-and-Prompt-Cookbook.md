@@ -1,6 +1,6 @@
 # 🤖 AI Workflow and Prompt Cookbook
 
-The repository is written for an AI assistant that can read files and run commands. It is also usable from a chat-only model: attach the episode manifest and ask for the next file.
+Open the project in an assistant that can read files and run commands. In a chat-only model, attach the studio skill and the relevant manifest, then ask for the next file or command.
 
 ## 🧭 Entry points
 
@@ -68,14 +68,13 @@ story or readability, then fix them and re-render.
 
 ## ✅ Delivery checklist
 
-- MP4, thumbnail, SRT, `publishing.md`
-- `channel.md` updated
-- Loudness report inside −14 LUFS target
-- No over-limit platform copy
-- Preview checked on a phone
-- Editable manifests kept
+- [ ] MP4, thumbnail, and `publishing.md` are present. Include SRT when the video uses captions.
+- [ ] The phone preview passes with sound and muted.
+- [ ] The mix meets the loudness target for the episode.
+- [ ] Platform copy fits each field’s limit.
+- [ ] Editable manifests and assets are saved in the channel workspace.
 
-## Next
+## 🔗 Related guides
 
 - [Examples](Examples)
 - [QA, Export and Publishing](QA-Export-and-Publishing)

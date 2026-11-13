@@ -102,7 +102,7 @@ Post can be set on the channel, episode or shot. Shot values win.
 > [!TIP]
 > Review a clean frame and a finished frame at the same moment. Grain and bloom should support the silhouette, not hide it.
 
-## Next
+## 🔗 Related guides
 
 - [Captions and Typography](Captions-and-Typography)
 - [3D and Renderers](3D-and-Renderers)

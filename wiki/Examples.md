@@ -1,48 +1,69 @@
 # 🧪 Examples
 
-Three complete, original workspaces live in [`examples/`](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples). They are small public previews, not full-resolution masters.
+Explore three original channel workspaces in [the example gallery](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples). Each includes a playable preview and its editable source.
 
 ## 🎬 Orbit Workshop
 
-Path: [`examples/orbit-workshop`](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/orbit-workshop)
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/thumbnail.png" width="170" alt="Orbit Workshop preview thumbnail"></a>
+
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/orbit-workshop)
 
 - 2D/2.5D robot micro-story
 - Karaoke captions
 - Layered Foley and a mastered mix
-- Preview rendered with the Python renderer
+
+<details>
+<summary>Render a fresh preview</summary>
 
 ```sh
 python video.py render examples/orbit-workshop/episodes/the-robot-who-unplugged-the-moon/episode.json \
-  --channel examples/orbit-workshop/channel/channel.json --renderer python --preview
+  --channel examples/orbit-workshop/channel/channel.json \
+  --renderer python --preview --out output/example-previews/orbit-workshop
 ```
+
+</details>
 
 ## 🕊️ Paper Crane Post
 
-Path: [`examples/paper-crane`](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/paper-crane)
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/paper-crane/renders/one-letter-home-preview/thumbnail.png" width="170" alt=" Paper Crane Post preview thumbnail"></a>
+
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/paper-crane)
 
 - Parented paper-crane rig with a pivot
-- Camera push-in
-- Karaoke caption with slide animation
-- Whip transition and post grain/vignette
+- Camera push-in and animated captions
+- Whip transition, grain, and vignette
+
+<details>
+<summary>Render a fresh preview</summary>
 
 ```sh
 python video.py render examples/paper-crane/episodes/one-letter-home/episode.json \
-  --channel examples/paper-crane/channel/channel.json --renderer python --preview
+  --channel examples/paper-crane/channel/channel.json \
+  --renderer python --preview --out output/example-previews/paper-crane
 ```
+
+</details>
 
 ## 📡 Tiny Signal
 
-Path: [`examples/tiny-signal`](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/tiny-signal)
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/tiny-signal/renders/one-small-signal-preview/thumbnail.png" width="170" alt="Tiny Signal preview thumbnail"></a>
 
-- Three.js scene library
-- PBR and emissive materials
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/tiny-signal)
+
+- Three.js scene with emissive materials
 - Camera move and expanding rings
-- HyperFrames preview
+- HyperFrames rendering
+
+<details>
+<summary>Render a fresh preview</summary>
 
 ```sh
 python video.py render examples/tiny-signal/episodes/one-small-signal/episode.json \
-  --channel examples/tiny-signal/channel/channel.json --renderer hyperframes --preview
+  --channel examples/tiny-signal/channel/channel.json \
+  --renderer hyperframes --preview --out output/example-previews/tiny-signal
 ```
+
+</details>
 
 ## 🗂️ What each example contains
 
@@ -73,7 +94,7 @@ python video.py render examples/tiny-signal/episodes/one-small-signal/episode.js
 > [!TIP]
 > Do not copy the example characters or copy verbatim. Use the structure and build an original world.
 
-## Next
+## 🔗 Related guides
 
 - [Workspace Layout](Workspace-Layout)
 - [Core Concepts](Core-Concepts)

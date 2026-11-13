@@ -57,7 +57,7 @@ python video.py validate examples/paper-crane/episodes/one-letter-home/episode.j
 
 ## 📝 Documentation
 
-- README stays short: pitch, quick start, commands, examples and wiki links.
+- Lead the README with creator workflows, example outputs, and monetization. Keep installation and reference links below them.
 - Deep detail belongs in `wiki/`.
 - Use emoji section headings, tables, badges and callouts.
 - Keep code blocks copy-ready.
@@ -75,7 +75,7 @@ make preview EPISODE=... CHANNEL=...
 
 Include the rendered preview or a link to it when the change affects the picture.
 
-## Next
+## 🔗 Related guides
 
 - [Manifest Reference](Manifest-Reference)
 - [QA, Export and Publishing](QA-Export-and-Publishing)

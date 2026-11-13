@@ -1,21 +1,23 @@
 # 🚀 Quick Start
 
-Get from a clean clone to a reviewed MP4 in five steps.
+Run a first local render, then open the MP4 and its publishing package.
 
 > [!TIP]
-> This is the minimal technical start. For the AI-first creator path, read **[Create a Channel](Create-a-Channel)** and **[Create Videos with Prompts](Create-Videos-with-Prompts)**.
+> To build with an AI assistant, start with **[Create a Channel](Create-a-Channel)** and **[Create Videos with Prompts](Create-Videos-with-Prompts)**.
 
 ## 1. Install
+
+Install Python 3.10+ and FFmpeg with FFprobe first.
 
 ```sh
 git clone https://github.com/fiwon123/viral-short-videos-ai.git
 cd viral-short-videos-ai
 python -m pip install -r requirements.txt
-npm ci --ignore-scripts
+npm ci --ignore-scripts   # SVG and 3D renderers
 python video.py doctor
 ```
 
-For SVG or 3D renders, install Node.js 22+ and Chrome or Chromium. For local neural voices, use Python 3.10–3.13 and install `requirements-voice.txt`, then add `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin` under `audio-models/`.
+Install Node.js 22+ and Chrome or Chromium before running the browser renderer setup. For local neural voices, use Python 3.10–3.13 and install `requirements-voice.txt`, then add `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin` under `audio-models/`.
 
 > [!NOTE]
 > `python video.py doctor` reports FFmpeg, Node, Chrome, Kokoro, and the H.264 encoder. Fix anything marked missing before rendering.
@@ -59,12 +61,12 @@ This writes `brand/logo.png`, `brand/banner.png`, `brand/banner-safe-preview.png
 mkdir -p workspace/my-channel/episodes/my-first-episode
 ```
 
-Start with a five-second episode:
+Save this four-second episode as `workspace/my-channel/episodes/my-first-episode/episode.json`.
 
 ```json
 {
   "title": "My First Episode",
-  "description": "A five-second test.",
+  "description": "A four-second test.",
   "tags": ["animated short"],
   "width": 540,
   "height": 960,
@@ -92,7 +94,7 @@ python video.py validate workspace/my-channel/episodes/my-first-episode/episode.
 
 python video.py render workspace/my-channel/episodes/my-first-episode/episode.json \
   --channel workspace/my-channel/channel/channel.json \
-  --renderer hyperframes --preview
+  --renderer python --preview
 ```
 
 The package appears under `workspace/my-channel/renders/my-first-episode-preview/`.
@@ -104,23 +106,25 @@ Open `video.mp4` on a phone, with sound and muted. Check the hook, caption timin
 ```sh
 python video.py render workspace/my-channel/episodes/my-first-episode/episode.json \
   --channel workspace/my-channel/channel/channel.json \
-  --renderer hyperframes
+  --renderer python
 ```
 
-## 🧰 Shortcuts
+## 🧰 Make shortcuts
+
+If you use the same Python environment as above, add `PYTHON=python` to the Make commands. Run these in place of the equivalent CLI commands or pass a fresh `OUT=<dir>` when repeating a render.
 
 ```sh
 make status
 make assets
 make audio EPISODE=workspace/my-channel/episodes/my-first-episode/episode.json
-make preview EPISODE=workspace/my-channel/episodes/my-first-episode/episode.json
-make render EPISODE=workspace/my-channel/episodes/my-first-episode/episode.json
+make preview RENDERER=python EPISODE=workspace/my-channel/episodes/my-first-episode/episode.json
+make render RENDERER=python EPISODE=workspace/my-channel/episodes/my-first-episode/episode.json
 ```
 
 > [!TIP]
 > If discovery finds several channels or episodes, pass `CHANNEL=` and `EPISODE=` explicitly or pin them in `.env`.
 
-## Next
+## 🔗 Related guides
 
 - [Workspace Layout](Workspace-Layout)
 - [Manifest Reference](Manifest-Reference)

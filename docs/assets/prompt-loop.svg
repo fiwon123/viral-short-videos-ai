@@ -1,35 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" role="img" aria-labelledby="title desc">
-  <title id="title">AI episode prompt loop</title>
-  <desc id="desc">Brief, manifest, audio preview, visual preview, fix and master.</desc>
-  <rect width="1000" height="300" rx="24" fill="#0B1020"/>
-  <text x="46" y="52" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">The AI episode loop</text>
-  <g font-family="Arial, Helvetica, sans-serif" font-size="14">
-    <rect x="46" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#7DD3FC"/>
-    <text x="111" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Brief</text>
-    <text x="111" y="156" text-anchor="middle" fill="#94A3B8">hook + payoff</text>
-    <rect x="206" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#C4B5FD"/>
-    <text x="271" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Manifest</text>
-    <text x="271" y="156" text-anchor="middle" fill="#94A3B8">layers + keys</text>
-    <rect x="366" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#FF9F68"/>
-    <text x="431" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Audio</text>
-    <text x="431" y="156" text-anchor="middle" fill="#94A3B8">voice + SFX</text>
-    <rect x="526" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#FDE68A"/>
-    <text x="591" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Preview</text>
-    <text x="591" y="156" text-anchor="middle" fill="#94A3B8">picture + sound</text>
-    <rect x="686" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#F472B6"/>
-    <text x="751" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Fix</text>
-    <text x="751" y="156" text-anchor="middle" fill="#94A3B8">story + timing</text>
-    <rect x="846" y="100" width="108" height="86" rx="14" fill="#16213A" stroke="#6EE7B7"/>
-    <text x="900" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Master</text>
-    <text x="900" y="156" text-anchor="middle" fill="#94A3B8">QA + package</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="473" viewBox="0 0 760 473" role="img" aria-labelledby="title desc">
+  <title id="title">Make an episode with prompts</title>
+  <desc id="desc">Write a brief, review the beat sheet and audio, then check the preview before exporting.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1">
+      <stop stop-color="#111127"/>
+      <stop offset="1" stop-color="#101D33"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="758" height="471" rx="22" fill="url(#background)" stroke="#364664" stroke-width="2"/>
+  <g font-family="system-ui, Arial, sans-serif">
+    <text x="30" y="59" fill="#F8FAFC" font-size="34" font-weight="700">Make an episode with prompts</text>
+    <g transform="translate(30 85)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#C4B5FD"/>
+      <text x="30" y="33" fill="#C4B5FD" font-size="24" font-weight="700">1. Brief</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Set the audience, length</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">and channel style</text>
+    </g>
+    <g transform="translate(390 85)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#93C5FD"/>
+      <text x="30" y="33" fill="#93C5FD" font-size="24" font-weight="700">2. Beat sheet</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Approve the hook,</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">turn and payoff</text>
+    </g>
+    <g transform="translate(30 206)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#5EEAD4"/>
+      <text x="30" y="33" fill="#5EEAD4" font-size="24" font-weight="700">3. Audio pass</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Listen for clear voices,</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">timing and sound effects</text>
+    </g>
+    <g transform="translate(390 206)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#FDE68A"/>
+      <text x="30" y="33" fill="#FDE68A" font-size="24" font-weight="700">4. Video preview</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Check the action and</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">captions on a phone</text>
+    </g>
+    <g transform="translate(30 327)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#F9A8D4"/>
+      <text x="30" y="33" fill="#F9A8D4" font-size="24" font-weight="700">5. Revise</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Describe the change</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">and where it happens</text>
+    </g>
+    <g transform="translate(390 327)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#86EFAC"/>
+      <text x="30" y="33" fill="#86EFAC" font-size="24" font-weight="700">6. Export</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Collect the master and</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">platform upload copy</text>
+    </g>
   </g>
-  <g stroke="#334155" stroke-width="4" fill="none" marker-end="url(#a)">
-    <path d="M176 143 H200"/>
-    <path d="M336 143 H360"/>
-    <path d="M496 143 H520"/>
-    <path d="M656 143 H680"/>
-    <path d="M816 143 H840"/>
-  </g>
-  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#64748B"/></marker></defs>
-  <text x="46" y="242" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="15">Always review the audio package before locking the picture. Fix the input, not the encoded MP4.</text>
 </svg>

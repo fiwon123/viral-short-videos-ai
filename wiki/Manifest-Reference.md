@@ -215,7 +215,7 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `cast_shadow`, `receive_shadow` | boolean | Shadows |
 | `variant_group`, `visible` | text/boolean | Pose swaps |
 
-## Next
+## 🔗 Related guides
 
 - [Creative Controls](Creative-Controls)
 - [Audio and Sound Design](Audio-and-Sound-Design)

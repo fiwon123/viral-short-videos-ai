@@ -95,7 +95,7 @@ Optional GLB animation clips:
 - Check the camera target never equals its position.
 - Check a 2D/3D cut for scale and light continuity.
 
-## Next
+## 🔗 Related guides
 
 - [Motion, Camera and Rigs](Motion-Camera-and-Rigs)
 - [VFX and Post](VFX-and-Post)

@@ -149,7 +149,7 @@ that carries the story.
 | Change camera and motion | [Motion, Camera and Rigs](Motion-Camera-and-Rigs) |
 | Change effects and grade | [VFX and Post](VFX-and-Post) |
 
-## Next
+## 🔗 Related guides
 
 - [Make Shorts Travel](Make-Shorts-Travel)
 - [YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization)

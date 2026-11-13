@@ -128,7 +128,7 @@ Compare uploads at the same age, not raw lifetime views. Look at:
 
 Use references to learn structure. Build original characters, jokes, voices and art. Reuploads, compilations and unedited third-party clips are risky for policy and monetization.
 
-## Next
+## 🔗 Related guides
 
 - [YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization)
 - [Automate a Channel](Automate-a-Channel)

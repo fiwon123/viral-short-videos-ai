@@ -1,6 +1,12 @@
 # ✅ QA, Export and Publishing
 
-A render is not finished when the MP4 appears. It is finished when the picture, sound, captions and copy are all checked.
+Use the preview and the export reports together before uploading.
+
+| ✅ Ready | ❌ Revise |
+| --- | --- |
+| Hook and payoff are clear on a phone. | The key action is hidden or only understandable with sound. |
+| Captions and sound land on the intended beats. | Captions cover the action or sound cues arrive early. |
+| The final MP4 plays and the upload copy fits. | Export checks fail or a platform field is over its limit. |
 
 ## 🔍 Validate
 
@@ -98,7 +104,7 @@ make prune-legacy
 
 Prune commands are dry runs. Add `APPLY=1` only after reading the list. Never prune an asset a manifest still points at.
 
-## Next
+## 🔗 Related guides
 
 - [Troubleshooting](Troubleshooting)
 - [Contributing](Contributing)

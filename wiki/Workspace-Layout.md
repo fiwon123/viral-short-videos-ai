@@ -107,7 +107,7 @@ It contains:
 > [!TIP]
 > Keep `channel.json` as the source of truth. Regenerate `channel.md` after editing the JSON; do not maintain both by hand.
 
-## Next
+## 🔗 Related guides
 
 - [Core Concepts](Core-Concepts)
 - [QA, Export and Publishing](QA-Export-and-Publishing)

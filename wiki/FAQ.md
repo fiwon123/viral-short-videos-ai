@@ -52,7 +52,7 @@ Use the GitHub Wiki tab directly. The `wiki/` folder in the repository is there 
 
 The code and structure are MIT. The example characters and art are original showcase material; build your own world rather than copying them.
 
-## Next
+## 🔗 Related guides
 
 - [Quick Start](Quick-Start)
 - [Contributing](Contributing)

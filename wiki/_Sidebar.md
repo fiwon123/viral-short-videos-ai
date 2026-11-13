@@ -1,30 +1,35 @@
-### 🎬 Viral Short Videos AI
+**[🏠 Studio Wiki](Home)** · [Repository](https://github.com/fiwon123/viral-short-videos-ai)
 
-**Creator path**
+**🎬 Create with AI**
 
-- [🏠 Home](Home)
-- [🚀 Quick Start](Quick-Start)
-- [🎨 Create a Channel](Create-a-Channel)
-- [💡 Find Ideas](Find-Ideas)
-- [🎬 Create Videos with Prompts](Create-Videos-with-Prompts)
-- [📈 Make Shorts Travel](Make-Shorts-Travel)
-- [💰 YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization)
-- [⚙️ Automate a Channel](Automate-a-Channel)
+- [Create a channel](Create-a-Channel)
+- [Find episode ideas](Find-Ideas)
+- [Make videos with prompts](Create-Videos-with-Prompts)
+- [Prompt cookbook](AI-Workflow-and-Prompt-Cookbook)
+- [Watch examples](Examples)
 
-**Reference**
+**📈 Publish and grow**
 
-- [🗂️ Workspace Layout](Workspace-Layout)
-- [🧠 Core Concepts](Core-Concepts)
-- [📘 Manifest Reference](Manifest-Reference)
-- [🎛️ Creative Controls](Creative-Controls)
-- [🎧 Audio and Sound Design](Audio-and-Sound-Design)
-- [🎥 Motion, Camera and Rigs](Motion-Camera-and-Rigs)
-- [✨ VFX and Post](VFX-and-Post)
-- [💬 Captions and Typography](Captions-and-Typography)
-- [🧊 3D and Renderers](3D-and-Renderers)
-- [🤖 AI Workflow](AI-Workflow-and-Prompt-Cookbook)
-- [🧪 Examples](Examples)
-- [✅ QA, Export and Publishing](QA-Export-and-Publishing)
-- [🧰 Troubleshooting](Troubleshooting)
-- [🛠️ Contributing](Contributing)
-- [❓ FAQ](FAQ)
+- [Review and export](QA-Export-and-Publishing)
+- [Make Shorts travel](Make-Shorts-Travel)
+- [Monetization](YouTube-and-TikTok-Monetization)
+- [Batch production](Automate-a-Channel)
+
+**🛠️ Setup and reference**
+
+- [Quick start](Quick-Start)
+- [Workspace layout](Workspace-Layout)
+- [Core concepts](Core-Concepts)
+- [Manifest reference](Manifest-Reference)
+- [Creative controls](Creative-Controls)
+- [Motion, camera and rigs](Motion-Camera-and-Rigs)
+- [Audio and sound design](Audio-and-Sound-Design)
+- [Captions and typography](Captions-and-Typography)
+- [VFX and post](VFX-and-Post)
+- [3D and renderers](3D-and-Renderers)
+
+**💬 Help**
+
+- [Troubleshooting](Troubleshooting)
+- [FAQ](FAQ)
+- [Contributing](Contributing)

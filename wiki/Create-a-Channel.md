@@ -152,7 +152,7 @@ Why three: it tests whether the format has legs, not just one joke.
 - [ ] First pilot is under 45 seconds
 - [ ] No unlicensed character, music or footage
 
-## Next
+## 🔗 Related guides
 
 - [Find Ideas](Find-Ideas)
 - [Create Videos with Prompts](Create-Videos-with-Prompts)

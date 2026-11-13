@@ -121,7 +121,7 @@ Every render writes a self-contained package:
 | `qa.json` | Runtime, codecs, loudness and caption checks |
 | `visual-qa.json` | Layer, contact and continuity checks |
 
-## Next
+## 🔗 Related guides
 
 - [Manifest Reference](Manifest-Reference)
 - [Motion, Camera and Rigs](Motion-Camera-and-Rigs)

@@ -111,7 +111,7 @@ Generate a new SVG:
 make effect CHANNEL=workspace/my-channel/channel/channel.json RECIPE=vfx/custom-ring.json
 ```
 
-## Next
+## 🔗 Related guides
 
 - [Manifest Reference](Manifest-Reference)
 - [Audio and Sound Design](Audio-and-Sound-Design)

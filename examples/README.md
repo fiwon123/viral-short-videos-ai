@@ -34,7 +34,7 @@ Render one again:
 ```sh
 python video.py render examples/orbit-workshop/episodes/the-robot-who-unplugged-the-moon/episode.json \
   --channel examples/orbit-workshop/channel/channel.json \
-  --renderer python --preview
+  --renderer python --preview --out output/example-previews/orbit-workshop
 ```
 
 The `renders/` folders are small previews, not full-resolution masters. They

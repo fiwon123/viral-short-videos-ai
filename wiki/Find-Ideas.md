@@ -110,7 +110,7 @@ If the poster frame is boring, the Short will probably be boring.
 | Rule of three | Two failures, one surprising success |
 | Loop | The ending creates the beginning |
 
-## Next
+## 🔗 Related guides
 
 - [Create Videos with Prompts](Create-Videos-with-Prompts)
 - [Make Shorts Travel](Make-Shorts-Travel)

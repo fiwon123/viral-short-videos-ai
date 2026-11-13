@@ -106,7 +106,7 @@ Supported layer types: `tone`, `sweep`, `noise`, `grain`.
 
 `make sfx CHANNEL=...` writes 32 families, including impact, liquid, destruction, comedy, wind, heartbeat, footsteps, glass, metal and sparkle.
 
-## Next
+## 🔗 Related guides
 
 - [Motion, Camera and Rigs](Motion-Camera-and-Rigs)
 - [Captions and Typography](Captions-and-Typography)

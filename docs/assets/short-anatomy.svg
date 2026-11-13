@@ -1,39 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
-  <title id="title">Anatomy of a strong Short</title>
-  <desc id="desc">Hook, setup, escalation, payoff and loop across a thirty second timeline.</desc>
-  <rect width="1200" height="360" rx="28" fill="#0B1020"/>
-  <text x="58" y="58" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">A Short is one question, one change, one payoff</text>
-  <text x="58" y="88" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="16">Keep one dominant point of attention. Make the poster frame and the first second carry the question.</text>
-
-  <g font-family="Arial, Helvetica, sans-serif">
-    <rect x="58" y="132" width="1084" height="58" rx="14" fill="#111A2E" stroke="#24344F"/>
-    <rect x="70" y="144" width="110" height="34" rx="10" fill="#FF9F68"/>
-    <text x="125" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">HOOK</text>
-    <rect x="186" y="144" width="170" height="34" rx="10" fill="#7DD3FC"/>
-    <text x="271" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">SETUP</text>
-    <rect x="362" y="144" width="360" height="34" rx="10" fill="#C4B5FD"/>
-    <text x="542" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">ESCALATION</text>
-    <rect x="728" y="144" width="230" height="34" rx="10" fill="#6EE7B7"/>
-    <text x="843" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">PAYOFF</text>
-    <rect x="964" y="144" width="166" height="34" rx="10" fill="#F472B6"/>
-    <text x="1047" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">LOOP</text>
-
-    <text x="70" y="226" fill="#F8FAFC" font-size="15" font-weight="700">0–2 s</text>
-    <text x="70" y="248" fill="#94A3B8" font-size="13">face, prop or action</text>
-    <text x="186" y="226" fill="#F8FAFC" font-size="15" font-weight="700">2–6 s</text>
-    <text x="186" y="248" fill="#94A3B8" font-size="13">stakes in one line</text>
-    <text x="362" y="226" fill="#F8FAFC" font-size="15" font-weight="700">6–18 s</text>
-    <text x="362" y="248" fill="#94A3B8" font-size="13">escalate with visible changes</text>
-    <text x="728" y="226" fill="#F8FAFC" font-size="15" font-weight="700">18–26 s</text>
-    <text x="728" y="248" fill="#94A3B8" font-size="13">pay the title and thumbnail off</text>
-    <text x="964" y="226" fill="#F8FAFC" font-size="15" font-weight="700">26–30 s</text>
-    <text x="964" y="248" fill="#94A3B8" font-size="13">last frame links to first</text>
-  </g>
-
-  <g font-family="Arial, Helvetica, sans-serif" font-size="14">
-    <text x="58" y="308" fill="#6EE7B7" font-weight="700">Muted test</text>
-    <text x="164" y="308" fill="#CBD5E1">Can a viewer understand the action with sound off?</text>
-    <text x="58" y="334" fill="#FF9F68" font-weight="700">Phone test</text>
-    <text x="164" y="334" fill="#CBD5E1">Does the face, prop and caption read at small size?</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="352" viewBox="0 0 760 352" role="img" aria-labelledby="title desc">
+  <title id="title">Four beats of a Short</title>
+  <desc id="desc">Start with a question, show a visible change, deliver the payoff, then end cleanly or loop.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1">
+      <stop stop-color="#111127"/>
+      <stop offset="1" stop-color="#101D33"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="758" height="350" rx="22" fill="url(#background)" stroke="#364664" stroke-width="2"/>
+  <g font-family="system-ui, Arial, sans-serif">
+    <text x="30" y="59" fill="#F8FAFC" font-size="34" font-weight="700">Four beats of a Short</text>
+    <g transform="translate(30 85)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#C4B5FD"/>
+      <text x="30" y="33" fill="#C4B5FD" font-size="24" font-weight="700">1. Hook</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Show the problem or</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">surprise in the first frame</text>
+    </g>
+    <g transform="translate(390 85)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#93C5FD"/>
+      <text x="30" y="33" fill="#93C5FD" font-size="24" font-weight="700">2. Escalation</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Change what the viewer</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">can see or hear</text>
+    </g>
+    <g transform="translate(30 206)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#5EEAD4"/>
+      <text x="30" y="33" fill="#5EEAD4" font-size="24" font-weight="700">3. Payoff</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">Resolve the question</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">raised by the opening</text>
+    </g>
+    <g transform="translate(390 206)">
+      <rect width="340" height="101" rx="12" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="12" y="14" width="4" height="73" rx="2" fill="#FDE68A"/>
+      <text x="30" y="33" fill="#FDE68A" font-size="24" font-weight="700">4. Exit or loop</text>
+      <text x="30" y="61" fill="#F1F5F9" font-size="21">End on the payoff or</text>
+      <text x="30" y="85" fill="#CBD5E1" font-size="21">lead back into the hook</text>
+    </g>
   </g>
 </svg>

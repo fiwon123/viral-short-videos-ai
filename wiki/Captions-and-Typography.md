@@ -60,7 +60,7 @@ Keep captions at `bottom`, `center` or `top`. The default bottom position leaves
 - Check that no caption covers the payoff.
 - Keep line length short. Prefer 3–5 words per line for Shorts.
 
-## Next
+## 🔗 Related guides
 
 - [Audio and Sound Design](Audio-and-Sound-Design)
 - [QA, Export and Publishing](QA-Export-and-Publishing)
