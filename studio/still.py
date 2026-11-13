@@ -122,9 +122,11 @@ def render_still(episode, channel, episode_dir, channel_dir, target, *, shot_id=
             return {"still": str(target), "shot": shot_id, "frame": absolute,
                     "at": round(local / timeline["fps"], 3), "renderer": "python"}
 
+        from .renderers import get
+
         require("node")
         modules = ENTRY.parent.parent / "node_modules"
-        required = "@remotion/renderer" if renderer == "remotion" else "hyperframes"
+        required = get(renderer).package
         if not (modules / required).is_dir():
             raise ValueError("Install browser renderer dependencies with npm ci from the repository root")
         stage_visuals(episode, channel, timeline, levels, canvas, font, episode_dir, channel_dir,

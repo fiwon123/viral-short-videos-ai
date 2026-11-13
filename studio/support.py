@@ -5,7 +5,7 @@ Remotion both cover the full browser path. Anything outside that contract is
 listed here so the studio never silently pretends two renderers match.
 """
 
-RENDERERS = ("python", "hyperframes", "remotion")
+from .renderers import RENDERER_NAMES as RENDERERS
 
 SUPPORT = {
     "layers.rect": {"python": True, "hyperframes": True, "remotion": True},
@@ -27,6 +27,7 @@ SUPPORT = {
     "layers.stroke": {"python": True, "hyperframes": True, "remotion": True},
     "layers.shadow_glow": {"python": True, "hyperframes": True, "remotion": True},
     "layers.tint": {"python": True, "hyperframes": True, "remotion": True},
+    "layers.motion_blur": {"python": True, "hyperframes": True, "remotion": True},
     "layers.trail": {"python": True, "hyperframes": True, "remotion": True},
     "layers.use": {"python": True, "hyperframes": True, "remotion": True},
     "text.fonts": {"python": True, "hyperframes": True, "remotion": True},

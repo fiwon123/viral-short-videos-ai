@@ -439,6 +439,7 @@
         },
         "blend": {"enum": ["normal", "add", "screen", "multiply", "overlay", "soft-light"]},
         "blur": {"$ref": "#/$defs/unit"},
+        "motion_blur": {"$ref": "#/$defs/unit"},
         "parallax": {"type": "number", "minimum": 0, "maximum": 2},
         "mask": {"$ref": "#/$defs/mask"},
         "viseme_for": {"$ref": "#/$defs/text"},

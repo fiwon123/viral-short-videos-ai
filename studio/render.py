@@ -287,8 +287,11 @@ def verify(path, timeline, canvas, limit):
             "caption_cues": len(timeline["captions"])}
 
 
-def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="python", library=None,
+def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="auto", library=None,
            audio_library=None, options=None):
+    from .renderers import choose
+
+    backend = choose(episode, backend)
     config = render_config(channel, episode)
     if options:
         config.update({key: value for key, value in options.items() if value is not None})

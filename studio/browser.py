@@ -107,6 +107,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                           "parent": layer.get("parent"), "variant_group": layer.get("variant_group"),
                           "pivot": layer.get("pivot", [0.5, 0.5]),
                           "blend": layer.get("blend", "normal"), "blur": layer.get("blur", 0),
+                          "motion_blur": layer.get("motion_blur", 0),
                           "parallax": layer.get("parallax", 1), "mask": mask,
                           "shadow": layer.get("shadow"), "glow": layer.get("glow"),
                           "tint": layer.get("tint"),
@@ -217,8 +218,10 @@ def render_browser(backend, episode, channel, timeline, levels, canvas, font, ba
     from .render import encoder
 
     require("node")
+    from .renderers import get
+
     modules = ENTRY.parent.parent / "node_modules"
-    required = "@remotion/renderer" if backend == "remotion" else "hyperframes"
+    required = get(backend).package
     if not (modules / required).is_dir():
         raise ValueError("Install browser renderer dependencies with npm ci from the repository root")
     config = config or {}

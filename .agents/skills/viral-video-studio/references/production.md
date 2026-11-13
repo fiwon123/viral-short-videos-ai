@@ -40,7 +40,7 @@ Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D s
 - Add `reveal: {"mode": "word"}` (or `line` / `character`) to a static text layer for a timed title reveal. `start`, `stagger`, and `fade` live in the 0..1 shot clock.
 - Give the channel `fonts` roles and use per-layer `font`, `align`, `line_height`, `letter_spacing`, `max_lines`, `uppercase`, `stroke` and `shadow` instead of rasterized titles.
 - Use `palette` extras for a wider brand kit. `fill` accepts a gradient; `stroke`, `shadow`, `glow`, `tint` and `trail` are per-layer controls. Animate `tint_opacity` for a colour wash or mood shift.
-- Use `scale_x`/`scale_y` for squash and stretch, `skew_x`/`skew_y` for lean, and `ease_props` when one property needs a different curve. `ease` accepts cubic-bezier and spring objects; `auto` smooths long moves.
+- Use `scale_x`/`scale_y` for squash and stretch, `skew_x`/`skew_y` for lean, `motion_blur` for a directional smear, and `ease_props` when one property needs a different curve. `ease` accepts cubic-bezier and spring objects; `auto` smooths long moves.
 - `make motion MOTION=impact` emits keyframes for `pop`, `impact`, `anticipate`, `settle`, `float`, `breathe`, `enter` and `exit`.
 - Add named `thumbnails` for A/B covers. Variants share the primary shot and time so Python and browser renderers write the same files.
 - Track a batch in `season.json` and run `python video.py batch season.json --dry-run` first, then `--validate-only`, then a preview or full render. Use `--status` and `--only` to focus on approved episodes.

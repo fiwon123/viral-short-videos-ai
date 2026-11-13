@@ -530,6 +530,7 @@ class Composition:
                 "pivot": layer.get("pivot", [0.5, 0.5]),
                 "blend": layer.get("blend", "normal"),
                 "blur": layer.get("blur", 0),
+                "motion_blur": layer.get("motion_blur", 0),
                 "parallax": layer.get("parallax", 1),
                 "plane": layer.get("plane", "foreground"),
                 "mask": layer.get("mask"),
@@ -726,6 +727,23 @@ class Composition:
                 ).convert("RGBA")
                 tinted.putalpha(placed.getchannel("A"))
                 placed = Image.blend(placed, tinted, tint_opacity)
+            motion = float(layer.get("motion_blur", 0) or 0)
+            if motion > 0:
+                future = pose_at(layer["points"], min(1.0, progress + 0.05))
+                shift_x = (future["x"] - state["x"]) * width * motion
+                shift_y = (future["y"] - state["y"]) * height * motion
+                samples = 5 if motion >= 0.5 else 3
+                for index in range(samples):
+                    factor = (index - (samples - 1) / 2) / max(1, samples - 1)
+                    sample = placed.copy()
+                    sample.putalpha(placed.getchannel("A").point(lambda value: round(value / samples)))
+                    sample_left = left + round(shift_x * factor)
+                    sample_top = top + round(shift_y * factor)
+                    if layer["blend"] == "normal":
+                        image = _paste(image, sample, sample_left, sample_top)
+                    else:
+                        image = _blend_at(image, sample, sample_left, sample_top, layer["blend"])
+                continue
             if layer.get("shadow"):
                 shadow, dx, dy = _effect_patch(placed, layer["shadow"], "background", self.palette,
                                                width, height, default_opacity=0.55)

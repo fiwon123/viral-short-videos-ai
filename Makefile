@@ -64,7 +64,7 @@ help:
 	@echo
 	@echo "  CHANNEL and EPISODE are discovered when unambiguous, else set them,"
 	@echo "  pass them per call, or put them in .env (see .env.example)."
-	@echo "  Overrides: CHANNEL=<manifest> RENDERER=<python|remotion|hyperframes>"
+	@echo "  Overrides: CHANNEL=<manifest> RENDERER=<auto|python|remotion|hyperframes>"
 	@echo "             OUT=<dir> PREVIEW_FLAG= PYTHON=<interpreter>"
 	@echo
 	@echo "  make clean-cache            drop failed render staging, audio takes, __pycache__"

@@ -11,6 +11,8 @@ import shutil
 import sys
 from tempfile import TemporaryDirectory
 
+from studio.renderers import RENDERER_NAMES
+
 
 def options():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -31,7 +33,7 @@ def options():
             preview = command.add_mutually_exclusive_group()
             preview.add_argument("--preview", action="store_true", help="export a half-size preview")
             preview.add_argument("--full-size-preview", action="store_true", help="export a preview at full resolution")
-            command.add_argument("--renderer", choices=("python", "remotion", "hyperframes"), default="python",
+            command.add_argument("--renderer", choices=("auto", *RENDERER_NAMES), default="auto",
                                  help="select the visual renderer")
             captions = command.add_mutually_exclusive_group()
             captions.add_argument("--no-burn", action="store_true", help="export captions as a separate SRT only")
@@ -50,7 +52,7 @@ def options():
     still.add_argument("--at", type=float, default=0.0, help="seconds from the shot start")
     still.add_argument("--progress", type=float, help="0 to 1 through the shot")
     still.add_argument("--scale", type=float, default=1.0)
-    still.add_argument("--renderer", choices=("auto", "python", "remotion", "hyperframes"), default="auto")
+    still.add_argument("--renderer", choices=("auto", *RENDERER_NAMES), default="auto")
     still.add_argument("--out", type=Path)
     still.add_argument("--sheet", type=int, help="render this many evenly spaced frames as a contact sheet")
     still.add_argument("--times", help="comma separated seconds for a contact sheet")
@@ -97,7 +99,7 @@ def options():
     batch.add_argument("season", type=Path)
     batch.add_argument("--only", action="append", default=[], help="episode ID; repeatable")
     batch.add_argument("--status", help="only entries with this status")
-    batch.add_argument("--renderer", choices=("python", "hyperframes", "remotion"))
+    batch.add_argument("--renderer", choices=RENDERER_NAMES)
     batch.add_argument("--preview", action="store_true", default=None)
     batch.add_argument("--jobs", type=int, default=1)
     batch.add_argument("--validate-only", action="store_true")
@@ -371,6 +373,7 @@ def execute(args):
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
     if args.command == "still":
+        from studio.renderers import choose
         from studio.scenes import load_library, validate_three
         from studio.still import contact_sheet, render_still
         from studio.visual import validate_visual
@@ -388,9 +391,7 @@ def execute(args):
             names = ", ".join(shot["id"] for scene in episode["scenes"] for shot in scene["shots"])
             raise ValueError(f"Unknown shot: {shot_id}. Available: {names}")
         needs_browser = "three" in target or any(layer["kind"] == "svg" for layer in target["layers"])
-        renderer = args.renderer
-        if renderer == "auto":
-            renderer = "hyperframes" if needs_browser else "python"
+        renderer = choose(episode, args.renderer, shots=[target])
         if renderer == "python" and needs_browser:
             raise ValueError("SVG and 3D stills need --renderer hyperframes or remotion")
         folder = default_output(args.episode, args.channel, "stills")
@@ -478,8 +479,11 @@ def execute(args):
         options["audio_bitrate"] = args.audio_bitrate
     if args.scale is not None:
         options["scale"] = args.scale
+    from studio.renderers import choose
+
+    renderer = choose(episode, args.renderer)
     report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview,
-                    not (args.no_burn or args.no_captions), backend=args.renderer, library=library,
+                    not (args.no_burn or args.no_captions), backend=renderer, library=library,
                     audio_library=audio_library, options=options)
     return {**report, "package": str(args.out.resolve())}, 0
 

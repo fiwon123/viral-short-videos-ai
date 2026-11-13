@@ -21,6 +21,7 @@
 | `layers.stroke` | ✅ | ✅ | ✅ |
 | `layers.shadow_glow` | ✅ | ✅ | ✅ |
 | `layers.tint` | ✅ | ✅ | ✅ |
+| `layers.motion_blur` | ✅ | ✅ | ✅ |
 | `layers.trail` | ✅ | ✅ | ✅ |
 | `layers.use` | ✅ | ✅ | ✅ |
 | `text.fonts` | ✅ | ✅ | ✅ |

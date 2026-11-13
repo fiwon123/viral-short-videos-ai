@@ -376,6 +376,26 @@ export async function createPainter(canvas, data, urlFor) {
       if (layer.kind === "group" || alpha <= 0) continue;
       const masks = maskSpecsFor(layer, byId);
       if (!masks.length) {
+        const motion = Number(layer.motion_blur ?? 0);
+        if (motion > 0) {
+          const future = poseAt(layer.poses, Math.min(1, progress + 0.05));
+          const shiftX = (future.x - pose.x) * width * motion;
+          const shiftY = (future.y - pose.y) * height * motion;
+          const samples = motion >= 0.5 ? 5 : 3;
+          for (let index = 0; index < samples; index += 1) {
+            const factor = (index - (samples - 1) / 2) / Math.max(1, samples - 1);
+            target.save();
+            target.setTransform(...matrix);
+            target.translate(shiftX * factor, shiftY * factor);
+            target.globalAlpha = alpha / samples;
+            target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
+            target.filter = blur
+              ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
+            target.drawImage(drawTile, 0, 0, layer.width, layer.height);
+            target.restore();
+          }
+          continue;
+        }
         target.save();
         target.setTransform(...matrix);
         target.globalAlpha = alpha;

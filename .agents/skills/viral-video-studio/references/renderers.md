@@ -54,7 +54,7 @@ Use a `sheet` layer for frame-by-frame animation. Set `columns`, `rows`, `count`
 
 ## Finish the frame
 
-Use a shot `camera` for push-ins, pans and rotations instead of moving every layer by hand. Camera `x` and `y` are canvas-fraction offsets, `zoom` is a multiplier, and keyframes use the same easings as layers. Give background layers a lower `parallax` so they move less.
+Use layer `motion_blur` for a cheap directional smear on fast props or text; it samples the layer's own velocity and is separate from the shot-level motion blur. Use a shot `camera` for push-ins, pans and rotations instead of moving every layer by hand. Camera `x` and `y` are canvas-fraction offsets, `zoom` is a multiplier, and keyframes use the same easings as layers. Give background layers a lower `parallax` so they move less.
 
 Use layer `pivot` at human joints and `parent` for cutout rigs. A child's `x` and `y` are offsets from the parent's pivot, and it inherits the parent's scale, rotation and opacity. Keep the parent first in the layer list or rely on the renderer's parent-first ordering.
 

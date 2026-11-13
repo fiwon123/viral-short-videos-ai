@@ -264,6 +264,13 @@ multi-key move through its neighbours:
  "ease_props": {"scale_x": "linear"}}
 ```
 
+`motion_blur` adds a directional smear from the layer's own velocity. Keep it
+modest on text and check the still:
+
+```json
+{"motion_blur": 0.35}
+```
+
 `trail` adds delayed echoes without new renderer code:
 
 ```json
