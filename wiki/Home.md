@@ -1,4 +1,10 @@
-# 🎬 Viral Short Videos AI
+<h1 align="center">🎬 Viral Short Videos AI</h1>
+
+<p align="center">
+  <strong>An AI-ready, manifest-driven studio for original animated Shorts.</strong><br>
+  Research a style, build a channel, write a timed episode, generate audio and effects,<br>
+  render a verified MP4, and package the publishing copy.
+</p>
 
 <p align="center">
   <img alt="Workflow" src="https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb?style=flat-square">
@@ -6,8 +12,6 @@
   <img alt="Audio" src="https://img.shields.io/badge/Audio-Mastered%20Stereo-8b5cf6?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square">
 </p>
-
-An AI-ready, manifest-driven studio for original animated Shorts. Research a style, build a channel, write a timed episode, generate audio and effects, render a verified MP4, and package the publishing copy.
 
 > [!TIP]
 > New here? Start with **[Quick Start](Quick-Start)**, then open the **[Examples](Examples)** folder and render one.
