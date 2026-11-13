@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
+  <title id="title">Workspace layout</title>
+  <desc id="desc">One channel folder with channel, episodes, research and renders.</desc>
+  <rect width="1000" height="520" rx="28" fill="#0B1020"/>
+  <text x="52" y="58" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">One channel = one workspace</text>
+  <text x="52" y="88" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="16">Inputs, research and generated packages stay together.</text>
+
+  <g font-family="Menlo, Consolas, monospace" font-size="16">
+    <rect x="52" y="118" width="896" height="356" rx="18" fill="#111A2E" stroke="#24344F"/>
+    <text x="80" y="154" fill="#7DD3FC">workspace/</text>
+    <text x="104" y="184" fill="#FDE68A">my-channel/</text>
+    <text x="128" y="214" fill="#6EE7B7">channel/</text>
+    <text x="152" y="240" fill="#CBD5E1">channel.json</text>
+    <text x="152" y="264" fill="#CBD5E1">channel.md</text>
+    <text x="152" y="288" fill="#CBD5E1">brief.md</text>
+    <text x="152" y="312" fill="#CBD5E1">brand/ · art/ · audio/ · vfx/</text>
+    <text x="128" y="342" fill="#FF9F68">episodes/</text>
+    <text x="152" y="366" fill="#CBD5E1">my-first-episode/episode.json</text>
+    <text x="128" y="396" fill="#C4B5FD">research/</text>
+    <text x="152" y="420" fill="#CBD5E1">notes.md</text>
+    <text x="128" y="450" fill="#F472B6">renders/</text>
+    <text x="152" y="474" fill="#CBD5E1">my-first-episode-v1/ → video.mp4, thumbnail, captions, publishing.md</text>
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#94A3B8">
+    <text x="680" y="154">machine-readable</text>
+    <text x="680" y="178">copy/paste identity</text>
+    <text x="680" y="202">creative rules</text>
+    <text x="680" y="226">shareable assets</text>
+    <text x="680" y="274">timed source</text>
+    <text x="680" y="322">why it worked</text>
+    <text x="680" y="370">upload package</text>
+  </g>
+</svg>

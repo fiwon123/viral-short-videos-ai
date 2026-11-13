@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Anatomy of a strong Short</title>
+  <desc id="desc">Hook, setup, escalation, payoff and loop across a thirty second timeline.</desc>
+  <rect width="1200" height="360" rx="28" fill="#0B1020"/>
+  <text x="58" y="58" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">A Short is one question, one change, one payoff</text>
+  <text x="58" y="88" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="16">Keep one dominant point of attention. Make the poster frame and the first second carry the question.</text>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="58" y="132" width="1084" height="58" rx="14" fill="#111A2E" stroke="#24344F"/>
+    <rect x="70" y="144" width="110" height="34" rx="10" fill="#FF9F68"/>
+    <text x="125" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">HOOK</text>
+    <rect x="186" y="144" width="170" height="34" rx="10" fill="#7DD3FC"/>
+    <text x="271" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">SETUP</text>
+    <rect x="362" y="144" width="360" height="34" rx="10" fill="#C4B5FD"/>
+    <text x="542" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">ESCALATION</text>
+    <rect x="728" y="144" width="230" height="34" rx="10" fill="#6EE7B7"/>
+    <text x="843" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">PAYOFF</text>
+    <rect x="964" y="144" width="166" height="34" rx="10" fill="#F472B6"/>
+    <text x="1047" y="166" text-anchor="middle" fill="#0B1020" font-size="14" font-weight="700">LOOP</text>
+
+    <text x="70" y="226" fill="#F8FAFC" font-size="15" font-weight="700">0–2 s</text>
+    <text x="70" y="248" fill="#94A3B8" font-size="13">face, prop or action</text>
+    <text x="186" y="226" fill="#F8FAFC" font-size="15" font-weight="700">2–6 s</text>
+    <text x="186" y="248" fill="#94A3B8" font-size="13">stakes in one line</text>
+    <text x="362" y="226" fill="#F8FAFC" font-size="15" font-weight="700">6–18 s</text>
+    <text x="362" y="248" fill="#94A3B8" font-size="13">escalate with visible changes</text>
+    <text x="728" y="226" fill="#F8FAFC" font-size="15" font-weight="700">18–26 s</text>
+    <text x="728" y="248" fill="#94A3B8" font-size="13">pay the title and thumbnail off</text>
+    <text x="964" y="226" fill="#F8FAFC" font-size="15" font-weight="700">26–30 s</text>
+    <text x="964" y="248" fill="#94A3B8" font-size="13">last frame links to first</text>
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14">
+    <text x="58" y="308" fill="#6EE7B7" font-weight="700">Muted test</text>
+    <text x="164" y="308" fill="#CBD5E1">Can a viewer understand the action with sound off?</text>
+    <text x="58" y="334" fill="#FF9F68" font-weight="700">Phone test</text>
+    <text x="164" y="334" fill="#CBD5E1">Does the face, prop and caption read at small size?</text>
+  </g>
+</svg>

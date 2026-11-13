@@ -2,6 +2,9 @@
 
 Get from a clean clone to a reviewed MP4 in five steps.
 
+> [!TIP]
+> This is the minimal technical start. For the AI-first creator path, read **[Create a Channel](Create-a-Channel)** and **[Create Videos with Prompts](Create-Videos-with-Prompts)**.
+
 ## 1. Install
 
 ```sh

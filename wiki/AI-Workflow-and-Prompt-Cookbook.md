@@ -12,6 +12,8 @@ The repository is written for an AI assistant that can read files and run comman
 | `README.md` | Commands and quick links |
 | `wiki/` | Deep dives |
 
+**Creator path:** [Create a Channel](Create-a-Channel) → [Find Ideas](Find-Ideas) → [Create Videos with Prompts](Create-Videos-with-Prompts) → [Make Shorts Travel](Make-Shorts-Travel) → [Monetization](YouTube-and-TikTok-Monetization) → [Automate a Channel](Automate-a-Channel).
+
 ## 🎬 Concept prompt
 
 ```text

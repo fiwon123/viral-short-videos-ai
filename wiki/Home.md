@@ -1,9 +1,13 @@
 <h1 align="center">🎬 Viral Short Videos AI</h1>
 
 <p align="center">
-  <strong>An AI-ready, manifest-driven studio for original animated Shorts.</strong><br>
-  Research a style, build a channel, write a timed episode, generate audio and effects,<br>
-  render a verified MP4, and package the publishing copy.
+  <strong>An AI-first studio for original animated Shorts.</strong><br>
+  Research a niche, build a channel, generate ideas, write timed episodes,<br>
+  create audio and VFX, render a verified MP4, and package the upload.
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/docs/assets/ai-channel-flow.svg" alt="From idea to AI-run channel" width="920">
 </p>
 
 <p align="center">
@@ -16,11 +20,28 @@
 > [!TIP]
 > New here? Start with **[Quick Start](Quick-Start)**, then open the **[Examples](Examples)** folder and render one.
 
+## 🛤️ Choose your path
+
+| 🎬 Creator path | 🧰 Technical reference |
+| --- | --- |
+| [Create a Channel](Create-a-Channel) | [Manifest Reference](Manifest-Reference) |
+| [Find Ideas](Find-Ideas) | [Audio and Sound Design](Audio-and-Sound-Design) |
+| [Create Videos with Prompts](Create-Videos-with-Prompts) | [Motion, Camera and Rigs](Motion-Camera-and-Rigs) |
+| [Make Shorts Travel](Make-Shorts-Travel) | [VFX and Post](VFX-and-Post) |
+| [YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization) | [Captions and Typography](Captions-and-Typography) |
+| [Automate a Channel](Automate-a-Channel) | [3D and Renderers](3D-and-Renderers) |
+
 ## 🚦 Start here
 
 | I want to… | Go to |
 | --- | --- |
 | Make my first video in 5 minutes | [Quick Start](Quick-Start) |
+| Create and fill a channel | [Create a Channel](Create-a-Channel) |
+| Get ideas that fit a series | [Find Ideas](Find-Ideas) |
+| Make a video with prompts | [Create Videos with Prompts](Create-Videos-with-Prompts) |
+| Understand why Shorts travel | [Make Shorts Travel](Make-Shorts-Travel) |
+| Plan YouTube and TikTok income | [YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization) |
+| Turn one video into a system | [Automate a Channel](Automate-a-Channel) |
 | Understand the folder layout | [Workspace Layout](Workspace-Layout) |
 | Learn the manifest model | [Core Concepts](Core-Concepts) |
 | Look up a field | [Manifest Reference](Manifest-Reference) |
@@ -54,6 +75,7 @@ flowchart LR
 | `browser/` | HyperFrames and Remotion painters |
 | `presets/` | Style, camera and finishing presets |
 | `examples/` | Three complete public example workspaces |
+| `docs/assets/` | Diagrams used by the README and wiki |
 | `wiki/` | Source for this wiki |
 | `workspace/<channel>/` | Your private channel, episodes, research and renders |
 | `channels/`, `episodes/`, `output/` | Legacy local layout, still supported |

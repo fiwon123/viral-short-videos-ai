@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">AI channel workflow</title>
+  <desc id="desc">Six steps from choosing a niche to publishing and learning, with AI producing manifests and renders.</desc>
+  <rect width="1200" height="430" rx="28" fill="#0B1020"/>
+  <text x="60" y="64" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">From raw idea to AI-run channel</text>
+  <text x="60" y="96" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="17">The AI writes the manifests, generates audio and effects, and runs the render loop. You approve the direction.</text>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <g>
+      <rect x="60" y="145" width="160" height="120" rx="18" fill="#16213A" stroke="#6EE7B7" stroke-width="2"/>
+      <circle cx="92" cy="178" r="17" fill="#6EE7B7"/>
+      <text x="92" y="184" text-anchor="middle" fill="#0B1020" font-size="16" font-weight="700">1</text>
+      <text x="140" y="184" fill="#F8FAFC" font-size="18" font-weight="700">Pick a niche</text>
+      <text x="84" y="218" fill="#94A3B8" font-size="14">Audience + format</text>
+      <text x="84" y="240" fill="#94A3B8" font-size="14">one repeatable promise</text>
+    </g>
+
+    <g>
+      <rect x="260" y="145" width="160" height="120" rx="18" fill="#16213A" stroke="#7DD3FC" stroke-width="2"/>
+      <circle cx="292" cy="178" r="17" fill="#7DD3FC"/>
+      <text x="292" y="184" text-anchor="middle" fill="#0B1020" font-size="16" font-weight="700">2</text>
+      <text x="340" y="184" fill="#F8FAFC" font-size="18" font-weight="700">Build identity</text>
+      <text x="284" y="218" fill="#94A3B8" font-size="14">name, palette, voice</text>
+      <text x="284" y="240" fill="#94A3B8" font-size="14">logo, banner, channel.md</text>
+    </g>
+
+    <g>
+      <rect x="460" y="145" width="160" height="120" rx="18" fill="#16213A" stroke="#FF9F68" stroke-width="2"/>
+      <circle cx="492" cy="178" r="17" fill="#FF9F68"/>
+      <text x="492" y="184" text-anchor="middle" fill="#0B1020" font-size="16" font-weight="700">3</text>
+      <text x="540" y="184" fill="#F8FAFC" font-size="18" font-weight="700">Find ideas</text>
+      <text x="484" y="218" fill="#94A3B8" font-size="14">research + hooks</text>
+      <text x="484" y="240" fill="#94A3B8" font-size="14">series, not one-offs</text>
+    </g>
+
+    <g>
+      <rect x="660" y="145" width="160" height="120" rx="18" fill="#16213A" stroke="#C4B5FD" stroke-width="2"/>
+      <circle cx="692" cy="178" r="17" fill="#C4B5FD"/>
+      <text x="692" y="184" text-anchor="middle" fill="#0B1020" font-size="16" font-weight="700">4</text>
+      <text x="740" y="184" fill="#F8FAFC" font-size="18" font-weight="700">Prompt episode</text>
+      <text x="684" y="218" fill="#94A3B8" font-size="14">manifest + assets</text>
+      <text x="684" y="240" fill="#94A3B8" font-size="14">audio, camera, VFX</text>
+    </g>
+
+    <g>
+      <rect x="860" y="145" width="160" height="120" rx="18" fill="#16213A" stroke="#FDE68A" stroke-width="2"/>
+      <circle cx="892" cy="178" r="17" fill="#FDE68A"/>
+      <text x="892" y="184" text-anchor="middle" fill="#0B1020" font-size="16" font-weight="700">5</text>
+      <text x="940" y="184" fill="#F8FAFC" font-size="18" font-weight="700">Render + review</text>
+      <text x="884" y="218" fill="#94A3B8" font-size="14">preview, fix, master</text>
+      <text x="884" y="240" fill="#94A3B8" font-size="14">QA and loudness</text>
+    </g>
+
+    <g>
+      <rect x="1060" y="145" width="80" height="120" rx="18" fill="#16213A" stroke="#F472B6" stroke-width="2"/>
+      <circle cx="1084" cy="178" r="17" fill="#F472B6"/>
+      <text x="1084" y="184" text-anchor="middle" fill="#0B1020" font-size="16" font-weight="700">6</text>
+      <text x="1076" y="218" fill="#F8FAFC" font-size="16" font-weight="700">Publish</text>
+      <text x="1076" y="240" fill="#94A3B8" font-size="14">&amp; learn</text>
+    </g>
+  </g>
+
+  <g stroke="#334155" stroke-width="3" fill="none" marker-end="url(#arrow)">
+    <path d="M220 205 H252"/>
+    <path d="M420 205 H452"/>
+    <path d="M620 205 H652"/>
+    <path d="M820 205 H852"/>
+    <path d="M1020 205 H1052"/>
+  </g>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <rect x="60" y="316" width="1080" height="62" rx="16" fill="#111A2E"/>
+  <text x="84" y="344" fill="#6EE7B7" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">AI owns</text>
+  <text x="164" y="344" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">research synthesis · manifests · asset generation · audio mix · render loop · QA</text>
+  <text x="84" y="366" fill="#FF9F68" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">You approve</text>
+  <text x="184" y="366" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">niche · identity · story taste · final publish</text>
+</svg>

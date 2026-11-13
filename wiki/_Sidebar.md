@@ -1,7 +1,18 @@
 ### 🎬 Viral Short Videos AI
 
+**Creator path**
+
 - [🏠 Home](Home)
 - [🚀 Quick Start](Quick-Start)
+- [🎨 Create a Channel](Create-a-Channel)
+- [💡 Find Ideas](Find-Ideas)
+- [🎬 Create Videos with Prompts](Create-Videos-with-Prompts)
+- [📈 Make Shorts Travel](Make-Shorts-Travel)
+- [💰 YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization)
+- [⚙️ Automate a Channel](Automate-a-Channel)
+
+**Reference**
+
 - [🗂️ Workspace Layout](Workspace-Layout)
 - [🧠 Core Concepts](Core-Concepts)
 - [📘 Manifest Reference](Manifest-Reference)

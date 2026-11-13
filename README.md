@@ -1,17 +1,35 @@
 <h1 align="center">🎬 Viral Short Videos AI</h1>
 
 <p align="center">
-  <a href=".agents/skills/viral-video-studio/SKILL.md"><img alt="Workflow: Research to MP4" src="https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb?style=flat-square"></a>
-  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/Motion-Camera-and-Rigs"><img alt="Animation: 2D, 2.5D and 3D" src="https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e?style=flat-square"></a>
-  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/Audio-and-Sound-Design"><img alt="Audio: mastered stereo" src="https://img.shields.io/badge/Audio-Mastered%20Stereo-8b5cf6?style=flat-square"></a>
+  <strong>An AI-first studio for building an original animated channel and shipping Shorts.</strong><br>
+  Research a niche, define a channel, generate ideas, write timed episodes, create audio and VFX, render a verified MP4, and package the upload.
+</p>
+
+<p align="center">
+  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start"><img alt="Quick Start" src="https://img.shields.io/badge/Start-Quick%20Start-2563eb?style=flat-square"></a>
+  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook"><img alt="AI Workflow" src="https://img.shields.io/badge/AI-Prompt%20Cookbook-8b5cf6?style=flat-square"></a>
+  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/Motion-Camera-and-Rigs"><img alt="2D 2.5D 3D" src="https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e?style=flat-square"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square"></a>
 </p>
 
-Turn a video idea into an original animated channel and a finished Short. The studio is manifest-driven: an AI or a person writes JSON, imports original assets, previews, and renders a verified MP4 with captions and publishing copy.
+![From idea to AI-run channel](docs/assets/ai-channel-flow.svg)
 
-It supports 2D vector, 2.5D layered and 3D animation up to 12 minutes, with AI-controlled camera moves, transitions, sound design, captions, VFX and audio mastering.
+## 🤖 AI-first, not manual
 
-## 🚀 Quick start
+This repository is designed for an AI assistant to do the production work. You make the creative decisions; the AI writes the manifests, generates assets, runs the audio and visual checks, renders, and fixes routine issues.
+
+| AI does | You approve |
+| --- | --- |
+| Niche research and channel positioning | The direction and audience promise |
+| Channel identity, palette, logo and copy | Name, look and voice |
+| Idea lists, hooks and scripts | Which story is worth making |
+| Episode manifests, layers, keys, camera and captions | The final story taste |
+| Voice, Foley, music, mix and master | Whether it sounds right |
+| Render previews, QA reports and publishing copy | The final upload |
+
+**No manual animation is required.** You can also edit the JSON directly, but the intended path is: describe the outcome, let the AI build the manifest and assets, review the preview, ask for changes.
+
+## 🚀 Start in five minutes
 
 ```sh
 git clone https://github.com/fiwon123/viral-short-videos-ai.git
@@ -21,54 +39,74 @@ npm ci --ignore-scripts
 python video.py doctor
 ```
 
-For Kokoro voices, use Python 3.10–3.13 and install `requirements-voice.txt`, then add the local model files under `audio-models/`. See [Quick Start](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start).
+Then paste this into your AI assistant:
 
-## 📁 One channel = one workspace
+```text
+Read AGENTS.md and .agents/skills/viral-video-studio/SKILL.md.
+I want to build an AI-run animated Shorts channel for [audience] on [YouTube/TikTok].
+First propose three original channel directions with a repeatable format.
+After I choose one, create workspace/<channel>/channel/channel.json,
+generate the brand kit and channel.md, and give me three pilot episodes.
+```
+
+The full path is in **[Quick Start](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start)**.
+
+## 🗂️ One channel = one workspace
+
+![Workspace layout](docs/assets/workspace-layout.svg)
 
 ```text
 workspace/<channel>/
-├── channel/
-│   ├── channel.json      # machine-readable identity
-│   ├── channel.md        # generated copy/paste page
-│   ├── brief.md
-│   ├── brand/
-│   ├── art/
-│   ├── audio/
-│   └── vfx/
-├── episodes/<episode>/episode.json
-├── research/
-└── renders/<episode>-v1/
-    ├── video.mp4
-    ├── thumbnail.png
-    ├── captions.srt
-    └── publishing.md
+├── channel/          # identity, brand, audio, art, scene library, VFX
+├── episodes/         # one manifest + assets per video
+├── research/         # why the format works
+└── renders/          # MP4, thumbnail, SRT, publishing.md, QA
 ```
 
-The older `channels/`, `episodes/`, `research/` and `output/` layout still works. Migrate one channel when ready:
+The old `channels/`, `episodes/`, `research/` and `output/` layout still works. Consolidate one channel with `make migrate` when ready.
 
 ```sh
 make migrate CHANNEL=channels/my-channel/channel.json EPISODE=episodes/my-episode/episode.json
 make migrate CHANNEL=channels/my-channel/channel.json EPISODE=episodes/my-episode/episode.json APPLY=1
 ```
 
-## ▶️ The five commands you need
+## 📈 Monetization at a glance
 
-```sh
-make status       # resolved channel, episode and layout
-make validate     # schema and asset checks
-make audio        # listen to the mastered mix before animation
-make preview      # fast review render
-make render       # final package
-```
+![YouTube and TikTok monetization ladder](docs/assets/monetization-ladder.svg)
 
-Pass `EPISODE=...` and `CHANNEL=...` when discovery is ambiguous. `make help` lists the rest, including `sfx`, `vfx`, `sound`, `effect`, `channel-doc` and `assets`.
+| Platform | Current milestone | What it unlocks |
+| --- | --- | --- |
+| **YouTube** | 500 subscribers + 3 public uploads/90 days + 3,000 watch hours/12 months **or** 3M Shorts views/90 days | Fan funding and Shopping features (eligible countries) |
+| **YouTube** | 1,000 subscribers + 4,000 watch hours/12 months **or** 10M Shorts views/90 days | Full YPP ads and Premium |
+| **YouTube from Feb 1, 2027** | New YPP creators: 1,000 subscribers + 8,000 watch hours/12 months **or** 20M Shorts views/90 days | Ads and Premium entry |
+| **YouTube Shorts pool from Feb 1, 2027** | 10M qualified Shorts views in the last 90 days | Monthly Shorts Creator Pool and Premium revenue |
+| **TikTok Creator Rewards** | 18+ · eligible country · 10,000 followers · 100,000 views/30 days | Rewards on original videos **1+ minute**, after 1,000 qualified For You views |
+
+Rules are country-specific and change. Full breakdown, sources and payment notes: **[YouTube and TikTok Monetization](https://github.com/fiwon123/viral-short-videos-ai/wiki/YouTube-and-TikTok-Monetization)**.
+
+## 🎯 Focus a Short so it can travel
+
+![Anatomy of a strong Short](docs/assets/short-anatomy.svg)
+
+| Rule | What to do |
+| --- | --- |
+| **One question** | The first frame should make the viewer ask one specific thing |
+| **First second** | Start on the face, prop or action that raises the question |
+| **One change** | Escalate with visible changes, not explanation |
+| **One payoff** | Pay off the title and thumbnail, then get out |
+| **Loop** | End on a frame that naturally leads back to the start |
+| **Phone test** | Face, prop and caption read at small size |
+| **Muted test** | The action still makes sense with sound off |
+| **Series** | Repeat a recognizable promise, not the same joke |
+
+Deep dive: **[How to Make Shorts Travel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Make-Shorts-Travel)**.
 
 ## 🎨 Creative controls
 
 ```json
 {
   "style": {"preset": "cinematic"},
-  "camera": {"preset": "push-in"},
+  "camera": {"preset": "push-in", "shake": {"amplitude": 0.008}},
   "motion_blur": 0.3,
   "post": {"grain": 0.12, "vignette": 0.2, "bloom": 0.24},
   "captions": {"style": "karaoke", "animation": "pop"},
@@ -76,34 +114,34 @@ Pass `EPISODE=...` and `CHANNEL=...` when discovery is ambiguous. `make help` li
 }
 ```
 
-Layer-level rigs, blend modes, camera shake, procedural transitions, Sound Lab recipes and Effect Lab SVGs are documented in the wiki.
+AI can also create its own audio and effects:
+
+```sh
+make sound CHANNEL=workspace/my-channel/channel/channel.json RECIPE=presets/audio/custom-impact.json
+make effect CHANNEL=workspace/my-channel/channel/channel.json RECIPE=presets/vfx/custom-burst.json
+```
 
 ## 🧪 Complete examples
 
-Three complete, original examples show the full input-to-output flow:
-
 | Example | Shows |
 | --- | --- |
-| [Orbit Workshop](examples/orbit-workshop) | 2D/2.5D layers, karaoke captions, Foley and a finished package |
-| [Paper Crane Post](examples/paper-crane) | Parented rig, camera push-in, slide caption, whip transition and post |
-| [Tiny Signal](examples/tiny-signal) | Three.js scene library, PBR/emissive materials, camera move and mastered mix |
+| [Orbit Workshop](examples/orbit-workshop) | 2D/2.5D layers, karaoke, Foley, finished package |
+| [Paper Crane Post](examples/paper-crane) | Parented rig, camera push-in, slide caption, whip transition |
+| [Tiny Signal](examples/tiny-signal) | 3D scene, PBR/emissive materials, camera move |
 
-Each example contains a channel identity, episode source, research note, generated `channel.md`, rendered preview and publishing package. See [examples/README.md](examples/README.md).
+Each example contains a channel identity, episode source, research note, generated `channel.md`, preview MP4 and publishing package. See [examples/README.md](examples/README.md).
 
-## 📚 Documentation
+## 🧭 Build the channel
 
-| I want to… | Read |
+| Step | Read |
 | --- | --- |
-| Understand the big picture | [Core Concepts](https://github.com/fiwon123/viral-short-videos-ai/wiki/Core-Concepts) |
-| Look up every field | [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) |
-| Make audio and sound design | [Audio and Sound Design](https://github.com/fiwon123/viral-short-videos-ai/wiki/Audio-and-Sound-Design) |
-| Move the camera and rig a character | [Motion, Camera and Rigs](https://github.com/fiwon123/viral-short-videos-ai/wiki/Motion-Camera-and-Rigs) |
-| Make effects and transitions | [VFX and Post](https://github.com/fiwon123/viral-short-videos-ai/wiki/VFX-and-Post) |
-| Style captions | [Captions and Typography](https://github.com/fiwon123/viral-short-videos-ai/wiki/Captions-and-Typography) |
-| Build 3D scenes | [3D and Renderers](https://github.com/fiwon123/viral-short-videos-ai/wiki/3D-and-Renderers) |
-| Use AI to make a video | [AI Workflow and Prompt Cookbook](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook) |
+| Choose a niche and promise | [Create a Channel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Create-a-Channel) |
+| Fill `channel.json` without mistakes | [Create a Channel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Create-a-Channel#fill-the-channel-fields) |
+| Generate ideas and a series | [Find Ideas](https://github.com/fiwon123/viral-short-videos-ai/wiki/Find-Ideas) |
+| Make an episode with prompts | [Create Videos with Prompts](https://github.com/fiwon123/viral-short-videos-ai/wiki/Create-Videos-with-Prompts) |
+| Turn one-off work into a system | [Automate a Channel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Automate-a-Channel) |
+| Understand a technical field | [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) |
 | Publish and troubleshoot | [QA, Export and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
-| Edit the docs source | [wiki/](wiki/) |
 
 ## 🛠️ Requirements
 

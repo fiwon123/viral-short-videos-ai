@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">YouTube and TikTok monetization ladder</title>
+  <desc id="desc">Current monetization milestones for YouTube and TikTok, with a note that rules change by country.</desc>
+  <rect width="1200" height="500" rx="28" fill="#0B1020"/>
+  <text x="58" y="58" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Monetization milestones</text>
+  <text x="58" y="88" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="16">Checked November 2026. Programs, countries and thresholds can change. Verify in the platform dashboard.</text>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="58" y="122" width="520" height="330" rx="20" fill="#111A2E" stroke="#FF9F68" stroke-width="2"/>
+    <text x="82" y="160" fill="#FF9F68" font-size="22" font-weight="700">▶ YouTube</text>
+    <text x="82" y="190" fill="#F8FAFC" font-size="16" font-weight="700">Fan funding tier · 500 subs</text>
+    <text x="82" y="214" fill="#CBD5E1" font-size="14">500 subscribers + 3 public uploads in 90 days + 3,000 watch hours/12 months OR 3M Shorts views/90 days.</text>
+    <text x="82" y="250" fill="#F8FAFC" font-size="16" font-weight="700">Full ads + Premium tier · 1,000 subs</text>
+    <text x="82" y="274" fill="#CBD5E1" font-size="14">1,000 subscribers + 4,000 watch hours/12 months OR 10M Shorts views/90 days.</text>
+    <text x="82" y="310" fill="#FDE68A" font-size="15" font-weight="700">From Feb 1, 2027 for new YPP creators</text>
+    <text x="82" y="332" fill="#CBD5E1" font-size="14">1,000 subscribers + 8,000 watch hours/12 months OR 20M Shorts views/90 days.</text>
+    <text x="82" y="368" fill="#FDE68A" font-size="15" font-weight="700">Monthly Shorts pool</text>
+    <text x="82" y="390" fill="#CBD5E1" font-size="14">From Feb 1, 2027: 10M qualified Shorts views per 90 days to earn from the Shorts Creator Pool that month.</text>
+    <text x="82" y="424" fill="#94A3B8" font-size="13">Reviews often take about a month. Original content and policy compliance matter.</text>
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="622" y="122" width="520" height="330" rx="20" fill="#111A2E" stroke="#6EE7B7" stroke-width="2"/>
+    <text x="646" y="160" fill="#6EE7B7" font-size="22" font-weight="700">♪ TikTok</text>
+    <text x="646" y="190" fill="#F8FAFC" font-size="16" font-weight="700">Creator Rewards</text>
+    <text x="646" y="214" fill="#CBD5E1" font-size="14">18+ · personal account in good standing · eligible country · 10,000 followers · 100,000 video views/30 days.</text>
+    <text x="646" y="238" fill="#CBD5E1" font-size="14">Original videos at least 1 minute long. 1,000 qualified For You views needed to start earning.</text>
+    <text x="646" y="274" fill="#FDE68A" font-size="15" font-weight="700">Other paths</text>
+    <text x="646" y="296" fill="#CBD5E1" font-size="14">LIVE gifts, subscriptions, TikTok Shop and affiliate programs have separate eligibility by region.</text>
+    <text x="646" y="332" fill="#F8FAFC" font-size="16" font-weight="700">What “original” means</text>
+    <text x="646" y="354" fill="#CBD5E1" font-size="14">Your own footage, animation, voice and edit. Reuploads, compilations and unedited third-party clips are not a safe path.</text>
+    <text x="646" y="394" fill="#94A3B8" font-size="13">Check TikTok Studio for current country availability and program terms.</text>
+  </g>
+
+  <text x="58" y="484" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="13">Sources: YouTube Help “YouTube Partner Program overview &amp; eligibility”, “YouTube Shorts monetization policies”, “Changes to the YouTube Partner Program”; TikTok Support “Creator Rewards Program”.</text>
+</svg>

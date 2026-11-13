@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" role="img" aria-labelledby="title desc">
+  <title id="title">AI episode prompt loop</title>
+  <desc id="desc">Brief, manifest, audio preview, visual preview, fix and master.</desc>
+  <rect width="1000" height="300" rx="24" fill="#0B1020"/>
+  <text x="46" y="52" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">The AI episode loop</text>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14">
+    <rect x="46" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#7DD3FC"/>
+    <text x="111" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Brief</text>
+    <text x="111" y="156" text-anchor="middle" fill="#94A3B8">hook + payoff</text>
+    <rect x="206" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#C4B5FD"/>
+    <text x="271" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Manifest</text>
+    <text x="271" y="156" text-anchor="middle" fill="#94A3B8">layers + keys</text>
+    <rect x="366" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#FF9F68"/>
+    <text x="431" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Audio</text>
+    <text x="431" y="156" text-anchor="middle" fill="#94A3B8">voice + SFX</text>
+    <rect x="526" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#FDE68A"/>
+    <text x="591" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Preview</text>
+    <text x="591" y="156" text-anchor="middle" fill="#94A3B8">picture + sound</text>
+    <rect x="686" y="100" width="130" height="86" rx="14" fill="#16213A" stroke="#F472B6"/>
+    <text x="751" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Fix</text>
+    <text x="751" y="156" text-anchor="middle" fill="#94A3B8">story + timing</text>
+    <rect x="846" y="100" width="108" height="86" rx="14" fill="#16213A" stroke="#6EE7B7"/>
+    <text x="900" y="132" text-anchor="middle" fill="#F8FAFC" font-weight="700">Master</text>
+    <text x="900" y="156" text-anchor="middle" fill="#94A3B8">QA + package</text>
+  </g>
+  <g stroke="#334155" stroke-width="4" fill="none" marker-end="url(#a)">
+    <path d="M176 143 H200"/>
+    <path d="M336 143 H360"/>
+    <path d="M496 143 H520"/>
+    <path d="M656 143 H680"/>
+    <path d="M816 143 H840"/>
+  </g>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#64748B"/></marker></defs>
+  <text x="46" y="242" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="15">Always review the audio package before locking the picture. Fix the input, not the encoded MP4.</text>
+</svg>
