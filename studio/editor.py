@@ -21,6 +21,7 @@ from .markers import expand as expand_markers
 from .particles import expand as expand_particles
 from .presets import apply_style
 from .reveal import expand as expand_reveal
+from .rigs import load_rigs
 from .trails import expand as expand_trails
 
 EDITOR = Path(__file__).resolve().parents[1] / "editor"
@@ -81,7 +82,7 @@ class Handler(BaseHTTPRequestHandler):
         channel_dir = self.channel_path.parent
         import copy
 
-        episode = expand_defs(copy.deepcopy(self.episode))
+        episode = expand_defs(copy.deepcopy(self.episode), load_rigs(self.channel, channel_dir))
         episode = apply_style(episode, self.channel, channel_dir)
         episode = expand_particles(expand_trails(expand_markers(episode, channel_dir)))
         episode = expand_reveal(episode, self.channel, channel_dir)

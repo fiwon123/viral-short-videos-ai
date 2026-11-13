@@ -252,7 +252,8 @@ def execute(args):
 
         args.out.mkdir(parents=True, exist_ok=True)
         written = []
-        for kind in ("episode", "channel", "audio_library", "library", "style_preset", "shot", "season"):
+        for kind in ("episode", "channel", "audio_library", "library", "rig_library",
+                     "style_preset", "shot", "season"):
             path = args.out / f"{kind}.schema.json"
             write_json(path, {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -308,8 +309,9 @@ def execute(args):
 
         episode = load(args.episode, "episode")
         from studio.expand import expand as expand_defs
+        from studio.rigs import load_rigs
 
-        episode = expand_defs(episode)
+        episode = expand_defs(episode, load_rigs(channel, args.channel.parent))
         episode = apply_style(episode, channel, args.channel.parent)
         from studio.markers import expand as expand_markers
         from studio.particles import expand as expand_particles
@@ -352,8 +354,9 @@ def execute(args):
 
     episode = load(args.episode, "episode")
     from studio.expand import expand as expand_defs
+    from studio.rigs import load_rigs
 
-    episode = expand_defs(episode)
+    episode = expand_defs(episode, load_rigs(channel, args.channel.parent))
     episode = apply_style(episode, channel, args.channel.parent)
     from studio.markers import expand as expand_markers
     from studio.particles import expand as expand_particles

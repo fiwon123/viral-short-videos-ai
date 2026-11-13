@@ -30,8 +30,8 @@ def _clone(source, instance, local_ids, plane):
     return layer
 
 
-def expand(episode):
-    definitions = episode.get("defs") or {}
+def expand(episode, channel_rigs=None):
+    definitions = {**(channel_rigs or {}), **(episode.get("defs") or {})}
     if not definitions:
         return episode
     for scene in episode.get("scenes", []):

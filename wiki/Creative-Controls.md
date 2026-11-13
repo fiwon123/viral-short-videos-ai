@@ -222,6 +222,30 @@ The studio prefixes layer IDs, rewrites local parents and masks, and namespaces
 rig. Parts in one definition share that instance's `plane`; keep a rig on one
 plane, or split it into two definitions.
 
+## 🏛️ Channel rig library
+
+Keep recurring cast and props across episodes in `channel/rigs.json`:
+
+```json
+{"version": 1, "rigs": {"hero": [
+  {"id": "body", "kind": "ellipse", "x": 0, "y": 0, "width": 0.2, "height": 0.2},
+  {"id": "head", "kind": "ellipse", "x": 0, "y": -0.14, "width": 0.12, "height": 0.12, "parent": "body"}
+]}}
+```
+
+```json
+{"rig_library": "rigs.json"}
+```
+
+Then instance it from any episode:
+
+```json
+{"id": "hero-1", "kind": "use", "ref": "hero", "x": 0.5, "y": 0.6}
+```
+
+Episode `defs` override channel rigs with the same name, so a one-off variation
+does not fork the whole series.
+
 ## 🏃 Motion polish
 
 Use `scale_x` and `scale_y` for squash and stretch, and `skew_x` / `skew_y`

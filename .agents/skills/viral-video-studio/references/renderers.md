@@ -1,6 +1,6 @@
 # Reuse the same look across episodes
 
-Keep the approved palette, typography, logo, caption placement, characters, sets, and lighting with the channel brief. Store 3D assets and a versioned scene library next to the channel manifest. Point `channel.json` at that version with `scene_library`. Keep model filenames, object IDs, scale, materials, and default camera framing stable between episodes. Create a new library version for an intentional redesign. A render records the selected library and its version in `timeline.json`.
+Keep the approved palette, typography, logo, caption placement, characters, sets, and lighting with the channel brief. Store reusable 2D cast and props in `channel/rigs.json` and reference it with `channel.rig_library`. Store 3D assets and a versioned scene library next to the channel manifest. Point `channel.json` at that version with `scene_library`. Keep model filenames, object IDs, scale, materials, and default camera framing stable between episodes. Create a new library version for an intentional redesign. A render records the selected library and its version in `timeline.json`.
 
 ## Pick a renderer
 

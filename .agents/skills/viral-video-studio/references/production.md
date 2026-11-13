@@ -35,6 +35,7 @@ Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D s
 ## Use the adjustable finishing controls
 
 - Define recurring rigs, props and badges once under `episode.defs`, then instance them with `{"kind": "use", "ref": "..."}`. The studio prefixes IDs, parents and variant groups so several instances can share a shot.
+- Promote a rig that every episode needs into `channel/rigs.json` and point `channel.rig_library` at it. Episode `defs` override channel names, so a single episode can vary a rig without forking the series.
 - Use a `sheet` layer with `columns`, `rows`, `count` and keyframed `frame` for flipbooks, hand-drawn effects and frame-by-frame character poses. `frame` holds until the next key and works identically in all renderers.
 - Add `reveal: {"mode": "word"}` (or `line` / `character`) to a static text layer for a timed title reveal. `start`, `stagger`, and `fade` live in the 0..1 shot clock.
 - Give the channel `fonts` roles and use per-layer `font`, `align`, `line_height`, `letter_spacing`, `max_lines`, `uppercase`, `stroke` and `shadow` instead of rasterized titles.

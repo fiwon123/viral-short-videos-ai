@@ -332,6 +332,7 @@
           }
         },
         "scene_library": {"$ref": "#/$defs/path"},
+        "rig_library": {"$ref": "#/$defs/path"},
         "audio_library": {"$ref": "#/$defs/path"},
         "captions": {"$ref": "#/$defs/captions"},
         "style": {"$ref": "#/$defs/style"},
@@ -728,6 +729,19 @@
         "version": {"type": "integer", "minimum": 1},
         "scenes": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/three_scene"}},
         "lighting_rigs": {"type": "object", "additionalProperties": {"$ref": "#/$defs/lighting"}}
+      }
+    },
+    "rig_library": {
+      "type": "object", "required": ["version", "rigs"], "additionalProperties": false,
+      "properties": {
+        "version": {"type": "integer", "minimum": 1},
+        "rigs": {
+          "type": "object", "minProperties": 1,
+          "propertyNames": {"pattern": "^[A-Za-z0-9_-]+$"},
+          "additionalProperties": {
+            "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/layer"}
+          }
+        }
       }
     },
     "three_camera_key": {

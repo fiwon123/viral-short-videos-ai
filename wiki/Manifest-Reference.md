@@ -2,6 +2,16 @@
 
 The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/viral-short-videos-ai/blob/main/studio/schema.json). This page is the practical guide. Run `make schema` to write per-manifest wrappers under `schema/`; set `"$schema"` to the matching wrapper for editor completion and validation. `meta` is free-form space for AI notes, status, and provenance.
 
+## 🏛️ Rig library
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `version` | integer | Library version |
+| `rigs` | object | Named arrays of layer definitions |
+
+Referenced by `channel.rig_library`. Episode `defs` with the same name override
+the channel version.
+
 ## 📅 Season
 
 | Field | Type | Meaning |
@@ -29,6 +39,7 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `fonts` | object | Named font roles such as `display` and `body` |
 | `brand` | object | Logo shape, banner pattern, mark size |
 | `scene_library` | path | Optional 3D scene library |
+| `rig_library` | path | Optional reusable 2D layer library |
 | `audio_library` | path | Optional voice and Foley library |
 | `banner` | object | Width, height and safe area |
 | `captions` | object | Channel caption defaults |

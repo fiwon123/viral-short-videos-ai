@@ -13,6 +13,7 @@ from pathlib import Path
 
 from .audio_library import load_audio_library
 from .core import load
+from .rigs import load_rigs
 from .scenes import load_library
 
 # Groups no episode render reads. Each entry is a path relative to the channel folder.
@@ -76,6 +77,12 @@ def report(channel_path):
         required.add((base / path).resolve())
     if "scene_library" in channel:
         required.add((base / channel["scene_library"]).resolve())
+    if "rig_library" in channel:
+        required.add((base / channel["rig_library"]).resolve())
+    for rig in load_rigs(channel, base).values():
+        for layer in rig:
+            if "file" in layer:
+                required.add((base / layer["file"]).resolve())
     models = {}
     for scene_id, scene in scenes.items():
         for obj in scene["objects"]:

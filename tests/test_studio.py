@@ -131,6 +131,26 @@ class MotionTests(unittest.TestCase):
         self.assertEqual(pose_at(points, 0.5)["frame"], 1)
         self.assertEqual(pose_at(points, 1)["frame"], 2)
 
+    def test_channel_rigs_merge_with_episode_defs(self):
+        from studio.expand import expand as expand_defs
+
+        episode = {
+            "defs": {"local": [
+                {"id": "box", "kind": "rect", "x": 0, "y": 0, "width": 0.1, "height": 0.1},
+            ]},
+            "scenes": [{"shots": [{"id": "A", "layers": [
+                {"id": "a", "kind": "use", "ref": "shared", "x": 0.3, "y": 0.5},
+                {"id": "b", "kind": "use", "ref": "local", "x": 0.7, "y": 0.5},
+            ]}]}],
+        }
+        channel = {"shared": [
+            {"id": "dot", "kind": "ellipse", "x": 0, "y": 0, "width": 0.05, "height": 0.05},
+        ]}
+        expand_defs(episode, channel)
+        ids = [layer["id"] for layer in episode["scenes"][0]["shots"][0]["layers"]]
+        self.assertIn("a/dot", ids)
+        self.assertIn("b/box", ids)
+
     def test_trails_expand_to_layers(self):
         episode = {"scenes": [{"shots": [{
             "id": "A",

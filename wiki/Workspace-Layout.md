@@ -14,6 +14,7 @@ workspace/<channel>/
 │   ├── art/
 │   ├── audio/
 │   ├── scene-library/
+│   ├── rigs.json         # optional reusable 2D cast and props
 │   └── vfx/
 ├── episodes/
 │   └── <episode>/
