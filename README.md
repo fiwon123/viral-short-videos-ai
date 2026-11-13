@@ -131,6 +131,18 @@ make effect CHANNEL=workspace/my-channel/channel/channel.json RECIPE=presets/vfx
 
 Each example contains a channel identity, episode source, research note, generated `channel.md`, preview MP4 and publishing package. See [examples/README.md](examples/README.md).
 
+## 📶 Channel maturity ladder
+
+| Stage | You have | The AI does |
+| --- | --- | --- |
+| **1. Raw idea** | A niche and an audience | Research five comparable channels and propose three directions |
+| **2. First channel** | A chosen name, promise and palette | Generate `channel.json`, brand kit and `channel.md` |
+| **3. First five videos** | A repeatable format | Write beat sheets, manifests, audio, previews and fixes |
+| **4. Series system** | A locked cast, caption style and payoff families | Batch ideas, score them, build and review episodes |
+| **5. Automated channel** | A weekly review loop and analytics | Batch production, QA, packaging and one-variable tests |
+
+Move to the next stage only when the previous one passes the [quality gates](https://github.com/fiwon123/viral-short-videos-ai/wiki/Automate-a-Channel#-quality-gates).
+
 ## 🧭 Build the channel
 
 | Step | Read |
