@@ -145,10 +145,10 @@ render:
 	@$(PYTHON) video.py render $(EPISODE) $(CHANNEL_ARG) --renderer $(RENDERER) $(OUT_ARG)
 
 list:
-	@echo "channels:"; ls -1 channels 2>/dev/null | sed 's/^/  /' || true
-	@echo "workspace:"; ls -1 workspace 2>/dev/null | sed 's/^/  /' || true
-	@echo "episodes:"; ls -1 episodes 2>/dev/null | sed 's/^/  /' || true
-	@echo "examples:"; find examples -mindepth 1 -maxdepth 1 -type d -printf '  %f\n' 2>/dev/null | sort || true
+	@if [ -d channels ]; then echo "channels:"; ls -1 channels 2>/dev/null | sed 's/^/  /'; fi
+	@if [ -d workspace ]; then echo "workspace:"; ls -1 workspace 2>/dev/null | sed 's/^/  /'; fi
+	@if [ -d episodes ]; then echo "episodes:"; ls -1 episodes 2>/dev/null | sed 's/^/  /'; fi
+	@if [ -d examples ]; then echo "examples:"; find examples -mindepth 1 -maxdepth 1 -type d -printf '  %f\n' 2>/dev/null | sort; fi
 
 clean-cache:
 	@find output -mindepth 1 -maxdepth 2 -name '.studio-*' -type d -prune -print -exec rm -rf {} + 2>/dev/null || true
