@@ -35,11 +35,13 @@ Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D s
 ## Use the adjustable finishing controls
 
 - Define recurring rigs, props and badges once under `episode.defs`, then instance them with `{"kind": "use", "ref": "..."}`. The studio prefixes IDs, parents and variant groups so several instances can share a shot.
+- Use a `sheet` layer with `columns`, `rows`, `count` and keyframed `frame` for flipbooks, hand-drawn effects and frame-by-frame character poses. `frame` holds until the next key and works identically in all renderers.
 - Give the channel `fonts` roles and use per-layer `font`, `align`, `line_height`, `letter_spacing`, `max_lines`, `uppercase`, `stroke` and `shadow` instead of rasterized titles.
 - Use `palette` extras for a wider brand kit. `fill` accepts a gradient; `stroke`, `shadow`, `glow` and `trail` are per-layer controls.
 - Use `scale_x`/`scale_y` for squash and stretch, `skew_x`/`skew_y` for lean, and `ease_props` when one property needs a different curve. `ease` accepts cubic-bezier and spring objects; `auto` smooths long moves.
 - `make motion MOTION=impact` emits keyframes for `pop`, `impact`, `anticipate`, `settle`, `float`, `breathe`, `enter` and `exit`.
 - Add named `thumbnails` for A/B covers. Variants share the primary shot and time so Python and browser renderers write the same files.
+- Track a batch in `season.json` and run `python video.py batch season.json --dry-run` first, then `--validate-only`, then a preview or full render. Use `--status` and `--only` to focus on approved episodes.
 - Check `python video.py support` before promising a feature. The matrix is honest about Python versus browser coverage.
 
 ## Run and deliver

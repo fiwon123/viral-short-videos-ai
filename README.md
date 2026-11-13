@@ -121,6 +121,7 @@ make still EPISODE=workspace/<channel>/episodes/<episode>/episode.json SHOT=A PR
 make presets   # available style presets
 make motion MOTION=impact   # manifest-ready motion recipes
 make schema    # per-manifest schema wrappers for editor completion
+make batch SEASON=workspace/<channel>/season.json   # validate or render a season
 make editor EPISODE=workspace/<channel>/episodes/<episode>/episode.json
 ```
 

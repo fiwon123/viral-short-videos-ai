@@ -129,7 +129,8 @@ export async function createPainter(canvas, data, urlFor) {
   const {width, height, captions, shots, scenes, cover} = data;
   const names = new Set([
     ...shots.flatMap(({layers, transition}) => [
-      ...layers.flatMap((layer) => [layer.sprite, layer.mask?.sprite].filter(Boolean)),
+      ...layers.flatMap((layer) => [layer.sprite, ...(layer.frames ?? []),
+        layer.mask?.sprite].filter(Boolean)),
       ...(transition?.mask_sprite ? [transition.mask_sprite] : []),
     ]),
     ...captions.flatMap((cue) => cue.karaoke
@@ -145,7 +146,8 @@ export async function createPainter(canvas, data, urlFor) {
       const tile = images.get(layer.sprite);
       const fit = layer.box ? Math.min(layer.box[0] / tile.naturalWidth, layer.box[1] / tile.naturalHeight) : 1;
       const prepared = {
-        ...layer, tile, width: tile.naturalWidth * fit, height: tile.naturalHeight * fit,
+        ...layer, tile, frames: layer.frames?.map((name) => images.get(name)),
+        width: tile.naturalWidth * fit, height: tile.naturalHeight * fit,
         getPose: (progress) => poseAt(layer.poses, progress),
       };
       if (layer.box && layer.poses.length > 1) {
@@ -314,6 +316,9 @@ export async function createPainter(canvas, data, urlFor) {
       if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
       const pose = states.get(layer.id);
       if (!(pose.visible ?? true)) continue;
+      const tile = layer.frames?.length
+        ? layer.frames[Math.max(0, Math.min(layer.frames.length - 1, Math.round(pose.frame ?? 0)))]
+        : layer.tile;
       if (layer.viseme_for) {
         const shape = visemes[layer.viseme_for];
         if (shape && layer.viseme && layer.viseme !== shape) continue;
@@ -351,19 +356,19 @@ export async function createPainter(canvas, data, urlFor) {
           target.shadowOffsetX = (shadow.offset_x ?? 0) * width;
           target.shadowOffsetY = (shadow.offset_y ?? 0) * height;
           target.globalAlpha = (shadow.opacity ?? 0.55);
-          target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+          target.drawImage(tile, 0, 0, layer.width, layer.height);
           target.shadowColor = "transparent";
           target.shadowBlur = 0;
           target.shadowOffsetX = 0;
           target.shadowOffsetY = 0;
         }
         target.globalAlpha = alpha;
-        target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+        target.drawImage(tile, 0, 0, layer.width, layer.height);
         if (glow) {
           target.globalCompositeOperation = "screen";
           target.globalAlpha = alpha * (glow.opacity ?? 0.6);
           target.filter = `blur(${Math.max(1, Math.min(width, height) * (glow.size ?? 0.18) * 0.16)}px)`;
-          target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+          target.drawImage(tile, 0, 0, layer.width, layer.height);
         }
         target.restore();
         continue;
@@ -377,7 +382,7 @@ export async function createPainter(canvas, data, urlFor) {
       layerMaskCtx.globalAlpha = alpha;
       layerMaskCtx.filter = layer.blur
         ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
-      layerMaskCtx.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+      layerMaskCtx.drawImage(tile, 0, 0, layer.width, layer.height);
       layerMaskCtx.restore();
       layerMaskCtx.filter = "none";
       for (const spec of masks) {

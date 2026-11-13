@@ -154,6 +154,22 @@ The palette can carry extra named roles:
 `shadow` and `glow` work on shapes, text, images, and SVG layers. Captions and
 thumbnail colours can use the same palette roles.
 
+## 🎞️ Sprite-sheet animation
+
+Use a `sheet` layer for flipbook animation, hand-drawn effects or a character
+with frame-by-frame poses:
+
+```json
+{"kind": "sheet", "file": "art/flipbook.png", "asset_scope": "channel",
+ "columns": 4, "rows": 3, "count": 12,
+ "x": 0.5, "y": 0.5, "width": 0.4, "height": 0.4,
+ "keyframes": [{"at": 0, "frame": 0}, {"at": 0.5, "frame": 6}, {"at": 1, "frame": 11}]}
+```
+
+`frame` steps instead of interpolating, so each cell holds until the next key.
+The sheet is sliced once and both Python and browser renderers choose the same
+cell. Keep cell sizes equal and the count within `columns * rows`.
+
 ## 🧩 Reusable rigs with `defs`
 
 Define a character part, prop, or set once, then instance it:
@@ -221,6 +237,31 @@ emits keyframes you can paste into a layer.
 
 Styles are `banner`, `lower-third`, `center`, `minimal`, and `split`. Variants
 share the primary shot and time so every renderer writes the same set of files.
+
+## 📅 Batch a season
+
+Keep a season file beside the channel:
+
+```json
+{
+  "title": "Season 1",
+  "channel": "channel/channel.json",
+  "defaults": {"renderer": "hyperframes", "preview": true},
+  "episodes": [
+    {"id": "ep-01", "path": "episodes/ep-01/episode.json", "status": "approved"},
+    {"id": "ep-02", "path": "episodes/ep-02/episode.json", "status": "planned"}
+  ]
+}
+```
+
+```sh
+make batch SEASON=workspace/my-channel/season.json
+make batch SEASON=... VALIDATE_ONLY=1
+make batch SEASON=... STATUS=approved PREVIEW=1
+make batch SEASON=... ONLY=ep-01 JOBS=2
+```
+
+`DRY_RUN=1` shows the exact commands and output packages without rendering.
 
 ## 🧪 Sound and Effect Labs
 

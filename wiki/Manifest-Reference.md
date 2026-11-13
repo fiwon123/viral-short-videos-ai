@@ -2,6 +2,18 @@
 
 The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/viral-short-videos-ai/blob/main/studio/schema.json). This page is the practical guide. Run `make schema` to write per-manifest wrappers under `schema/`; set `"$schema"` to the matching wrapper for editor completion and validation. `meta` is free-form space for AI notes, status, and provenance.
 
+## 📅 Season
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `title` | text | Season label |
+| `channel` | path | Channel manifest, relative to the season file |
+| `defaults` | object | `renderer`, `preview`, and `status` defaults |
+| `episodes` | array | `id`, optional `path`, `title`, `status`, `notes` |
+| `meta` | object | Free-form AI notes and provenance |
+
+An episode without `path` defaults to `episodes/<id>/episode.json`.
+
 ## 🏷️ Channel
 
 | Field | Type | Meaning |
@@ -78,7 +90,7 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `id` | text | Unique within the shot |
-| `kind` | enum | `rect`, `ellipse`, `polygon`, `text`, `image`, `svg`, `group`, `particles`, `use` |
+| `kind` | enum | `rect`, `ellipse`, `polygon`, `text`, `image`, `svg`, `sheet`, `group`, `particles`, `use` |
 | `ref` | text | Definition name for a `use` layer |
 | `x`, `y` | number | Centre or parent-relative offset |
 | `width`, `height` | number | Box size in canvas fractions |
@@ -99,7 +111,10 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `max_lines`, `uppercase` | — | Text fitting and case |
 | `radius` | 0–1 | Rounded rectangle radius |
 | `text` | text | Text content |
-| `file` | path | Image or SVG |
+| `file` | path | Image, SVG or sprite sheet |
+| `columns`, `rows` | integer | Sprite-sheet grid |
+| `count` | integer | Number of sheet cells to use |
+| `frame` | integer | Animatable sheet cell; steps at each key |
 | `mouth_for` | text | Speaker whose audio drives mouth height |
 | `blend` | enum | `normal`, `add`, `screen`, `multiply`, `overlay`, `soft-light` |
 | `blur` | 0–1 | Layer blur |

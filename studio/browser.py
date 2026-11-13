@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 from .camera import resolve_camera
 from .core import asset, ffmpeg, require, run, svg_asset, write_json
 from .design import (_draw_tracked, caption_layout, color_alpha, draw_caption, layer_order, poses,
-                     resolve_color, resolve_font, sprite, thumbnail)
+                     resolve_color, resolve_font, sheet_tiles, sprite, thumbnail)
 
 ENTRY = Path(__file__).resolve().parents[1] / "browser" / "render.mjs"
 
@@ -118,6 +118,16 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                     visual["sprite"] = vectors[path]
                     visual["box"] = [max(1, round(layer.get("width", 0.55) * width)),
                                      max(1, round(layer.get("height", 0.2) * height))]
+                elif layer["kind"] == "sheet":
+                    frames = []
+                    for frame_index, tile in enumerate(sheet_tiles(layer, canvas, base, channel_base)):
+                        name = f"shot-{len(shots)}-layer-{index}-frame-{frame_index}.png"
+                        tile.save(assets / name)
+                        frames.append(name)
+                    if not frames:
+                        raise ValueError(f"Sprite sheet has no frames: {layer['id']}")
+                    visual["frames"] = frames
+                    visual["sprite"] = frames[0]
                 else:
                     name = f"shot-{len(shots)}-layer-{index}.png"
                     sprite(layer, canvas, channel, font, base, channel_base).save(assets / name)

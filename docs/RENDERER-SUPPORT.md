@@ -8,6 +8,7 @@
 | `layers.text` | ✅ | ✅ | ✅ |
 | `layers.image` | ✅ | ✅ | ✅ |
 | `layers.svg` | ❌ | ✅ | ✅ |
+| `layers.sheet` | ✅ | ✅ | ✅ |
 | `layers.group` | ✅ | ✅ | ✅ |
 | `layers.parent_pivot` | ✅ | ✅ | ✅ |
 | `layers.visible_variants` | ✅ | ✅ | ✅ |

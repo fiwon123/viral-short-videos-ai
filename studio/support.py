@@ -14,6 +14,7 @@ SUPPORT = {
     "layers.text": {"python": True, "hyperframes": True, "remotion": True},
     "layers.image": {"python": True, "hyperframes": True, "remotion": True},
     "layers.svg": {"python": False, "hyperframes": True, "remotion": True},
+    "layers.sheet": {"python": True, "hyperframes": True, "remotion": True},
     "layers.group": {"python": True, "hyperframes": True, "remotion": True},
     "layers.parent_pivot": {"python": True, "hyperframes": True, "remotion": True},
     "layers.visible_variants": {"python": True, "hyperframes": True, "remotion": True},

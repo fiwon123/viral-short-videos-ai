@@ -106,6 +106,17 @@ class MotionTests(unittest.TestCase):
         self.assertEqual(hand["parent"], "left/upper")
         self.assertEqual(hand["variant_group"], "left/grip")
 
+    def test_sprite_sheet_frame_step(self):
+        layer = self._layer([
+            {"at": 0, "frame": 0},
+            {"at": 0.5, "frame": 1},
+            {"at": 1, "frame": 2},
+        ])
+        points = poses(layer)
+        self.assertEqual(pose_at(points, 0.25)["frame"], 0)
+        self.assertEqual(pose_at(points, 0.5)["frame"], 1)
+        self.assertEqual(pose_at(points, 1)["frame"], 2)
+
     def test_trails_expand_to_layers(self):
         episode = {"scenes": [{"shots": [{
             "id": "A",
@@ -136,10 +147,49 @@ class StyleTests(unittest.TestCase):
         self.assertEqual(tile.mode, "RGBA")
         self.assertGreater(tile.getchannel("A").getbbox()[2], 0)
 
+    def test_sheet_tiles_slice_cells(self):
+        from tempfile import TemporaryDirectory
+        from PIL import Image
+        from studio.design import sheet_tiles
+
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "sheet.png"
+            Image.new("RGBA", (40, 20), "#FFFFFF").save(path)
+            layer = {"id": "sheet", "kind": "sheet", "file": "sheet.png",
+                     "columns": 2, "rows": 2, "count": 4,
+                     "x": 0.5, "y": 0.5, "width": 0.2, "height": 0.2}
+            tiles = sheet_tiles(layer, (100, 100), Path(temp))
+            self.assertEqual(len(tiles), 4)
+            self.assertEqual(tiles[0].size, tiles[3].size)
+
     def test_cubic_bezier_endpoints(self):
         curve = {"type": "cubic-bezier", "points": [0.4, 0, 0.2, 1]}
         self.assertAlmostEqual(ease(0, curve), 0)
         self.assertAlmostEqual(ease(1, curve), 1)
+
+
+class BatchTests(unittest.TestCase):
+    def test_season_selection_and_dry_run(self):
+        from tempfile import TemporaryDirectory
+        from studio.batch import run
+
+        with TemporaryDirectory() as temp:
+            season = Path(temp) / "season.json"
+            season.write_text(json.dumps({
+                "title": "Test Season",
+                "channel": str((ROOT / "tests/parity/channel.json").resolve()),
+                "episodes": [
+                    {"id": "one", "path": str((ROOT / "tests/parity/episode.json").resolve()),
+                     "status": "planned"},
+                    {"id": "two", "path": str((ROOT / "tests/parity/episode.json").resolve()),
+                     "status": "done"},
+                ],
+            }), encoding="utf-8")
+            report = run(season, status="planned", dry_run=True)
+            self.assertTrue(report["dry_run"])
+            self.assertEqual([item["id"] for item in report["episodes"]], ["one"])
+            report = run(season, only=["two"], dry_run=True, preview=True)
+            self.assertEqual([item["id"] for item in report["episodes"]], ["two"])
 
 
 class StillTests(unittest.TestCase):

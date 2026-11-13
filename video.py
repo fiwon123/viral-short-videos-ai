@@ -93,6 +93,16 @@ def options():
     editor.add_argument("--channel", type=Path)
     editor.add_argument("--port", type=int, default=8765)
     editor.add_argument("--no-open", action="store_true")
+    batch = commands.add_parser("batch", help="validate or render a season manifest")
+    batch.add_argument("season", type=Path)
+    batch.add_argument("--only", action="append", default=[], help="episode ID; repeatable")
+    batch.add_argument("--status", help="only entries with this status")
+    batch.add_argument("--renderer", choices=("python", "hyperframes", "remotion"))
+    batch.add_argument("--preview", action="store_true", default=None)
+    batch.add_argument("--jobs", type=int, default=1)
+    batch.add_argument("--validate-only", action="store_true")
+    batch.add_argument("--dry-run", action="store_true")
+    batch.add_argument("--out-root", type=Path)
     schema = commands.add_parser("schema", help="write per-manifest schema wrappers for editors")
     schema.add_argument("--out", type=Path, default=Path("schema"))
     support = commands.add_parser("support", help="show the renderer support matrix")
@@ -230,12 +240,19 @@ def execute(args):
         kwargs = {key: value for key, value in values.items() if key in available}
         keys = function(**kwargs)
         return {"recipe": args.recipe, "keyframes": keys}, 0
+    if args.command == "batch":
+        from studio.batch import run
+
+        report = run(args.season, only=args.only, status=args.status, renderer=args.renderer,
+                     preview=args.preview, jobs=args.jobs, validate_only=args.validate_only,
+                     dry_run=args.dry_run, out_root=args.out_root)
+        return report, 0 if report.get("ok", True) else 1
     if args.command == "schema":
         from studio.core import write_json
 
         args.out.mkdir(parents=True, exist_ok=True)
         written = []
-        for kind in ("episode", "channel", "audio_library", "library", "style_preset", "shot"):
+        for kind in ("episode", "channel", "audio_library", "library", "style_preset", "shot", "season"):
             path = args.out / f"{kind}.schema.json"
             write_json(path, {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",

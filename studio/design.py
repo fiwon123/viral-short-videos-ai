@@ -329,6 +329,7 @@ def poses(layer):
         "scale_y": layer.get("scale_y", scale),
         "skew_x": layer.get("skew_x", 0),
         "skew_y": layer.get("skew_y", 0),
+        "frame": layer.get("frame", 0),
         "rotate": layer.get("rotate", 0),
         "opacity": layer.get("opacity", 1),
         "visible": layer.get("visible", True),
@@ -371,7 +372,7 @@ def pose_at(points, progress):
         t = (progress - a) / (b - a) if b > a else 1.0
         result = {}
         for name, value in start.items():
-            if isinstance(value, bool):
+            if isinstance(value, bool) or name == "frame":
                 result[name] = end[name] if progress >= b else value
                 continue
             property_mode = ease_props.get(name, mode)
@@ -512,26 +513,30 @@ class Composition:
         self.camera_points = camera_points({**shot, "camera": self.camera}) if shot.get("camera") else None
         self.track = (self.camera or {}).get("track")
         layers = sorted(layer_order(shot["layers"]), key=lambda item: item.get("plane") != "background")
-        self.layers = [{
-            "id": layer["id"],
-            "kind": layer["kind"],
-            "tile": sprite(layer, canvas, channel, font, base, channel_base),
-            "points": poses(layer),
-            "mouth_for": layer.get("mouth_for"),
-            "parent": layer.get("parent"),
-            "variant_group": layer.get("variant_group"),
-            "pivot": layer.get("pivot", [0.5, 0.5]),
-            "blend": layer.get("blend", "normal"),
-            "blur": layer.get("blur", 0),
-            "parallax": layer.get("parallax", 1),
-            "plane": layer.get("plane", "foreground"),
-            "mask": layer.get("mask"),
-            "shadow": layer.get("shadow"),
-            "glow": layer.get("glow"),
-            "viseme_for": layer.get("viseme_for"),
-            "viseme": layer.get("viseme"),
-            "spec": layer,
-        } for layer in layers]
+        self.layers = []
+        for layer in layers:
+            tiles = sheet_tiles(layer, canvas, base, channel_base) if layer["kind"] == "sheet" else None
+            self.layers.append({
+                "id": layer["id"],
+                "kind": layer["kind"],
+                "tile": tiles[0] if tiles else sprite(layer, canvas, channel, font, base, channel_base),
+                "tiles": tiles,
+                "points": poses(layer),
+                "mouth_for": layer.get("mouth_for"),
+                "parent": layer.get("parent"),
+                "variant_group": layer.get("variant_group"),
+                "pivot": layer.get("pivot", [0.5, 0.5]),
+                "blend": layer.get("blend", "normal"),
+                "blur": layer.get("blur", 0),
+                "parallax": layer.get("parallax", 1),
+                "plane": layer.get("plane", "foreground"),
+                "mask": layer.get("mask"),
+                "shadow": layer.get("shadow"),
+                "glow": layer.get("glow"),
+                "viseme_for": layer.get("viseme_for"),
+                "viseme": layer.get("viseme"),
+                "spec": layer,
+            })
         self.layer_map = {layer["id"]: layer for layer in self.layers}
         self.masks = {}
         for layer in self.layers:
@@ -682,7 +687,11 @@ class Composition:
             parent_matrix = matrices.get(layer["parent"])
             parent_alpha = alphas.get(layer["parent"], 1.0)
             alpha = state["opacity"] * parent_alpha
-            tile = layer["tile"]
+            if layer.get("tiles"):
+                frame_index = max(0, min(len(layer["tiles"]) - 1, int(round(state.get("frame", 0)))))
+                tile = layer["tiles"][frame_index]
+            else:
+                tile = layer["tile"]
             if layer["mouth_for"]:
                 level = speaking.get(layer["mouth_for"], 0) if speaking else 0
                 mouth = 0.18 + 0.82 * level
@@ -751,6 +760,27 @@ def _effect_patch(placed, spec, default_color, palette, width, height, *, defaul
     dx = round(float(spec.get("offset_x", 0)) * width) - margin
     dy = round(float(spec.get("offset_y", 0)) * height) - margin
     return patch, dx, dy
+
+
+def sheet_tiles(layer, canvas, base, channel_base=None):
+    """Slice a sprite sheet and fit each frame inside the layer box."""
+    with Image.open(scoped_asset(layer, base, channel_base)) as source:
+        sheet = source.convert("RGBA")
+    columns, rows = int(layer["columns"]), int(layer["rows"])
+    count = int(layer.get("count", columns * rows))
+    if count > columns * rows:
+        raise ValueError(f"Sprite sheet has {columns * rows} cells but count is {count}: {layer['id']}")
+    cw, ch = canvas
+    width = max(1, round(layer.get("width", 0.55) * cw))
+    height = max(1, round(layer.get("height", 0.2) * ch))
+    frame_width, frame_height = sheet.width / columns, sheet.height / rows
+    tiles = []
+    for index in range(count):
+        column, row = index % columns, index // columns
+        frame = sheet.crop((round(column * frame_width), round(row * frame_height),
+                            round((column + 1) * frame_width), round((row + 1) * frame_height)))
+        tiles.append(ImageOps.contain(frame, (width, height)))
+    return tiles
 
 
 def sprite(layer, canvas, channel, font, base, channel_base=None):

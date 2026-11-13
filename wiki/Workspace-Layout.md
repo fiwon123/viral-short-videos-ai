@@ -19,6 +19,7 @@ workspace/<channel>/
 │   └── <episode>/
 │       ├── episode.json
 │       └── assets/
+├── season.json          # optional batch plan
 ├── research/
 │   └── notes.md
 └── renders/

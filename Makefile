@@ -26,7 +26,7 @@ VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
 .PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect motion \
-        still presets templates schema test support parity safearea editor \
+        still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -46,6 +46,7 @@ help:
 	@echo "  make presets                list style presets"
 	@echo "  make templates              list shot templates"
 	@echo "  make schema                 write per-manifest schema wrappers"
+	@echo "  make batch SEASON=...       validate or render a season manifest"
 	@echo "  make test                   run the local test suite"
 	@echo "  make channel-doc            write channel.md from channel.json"
 	@echo "  make support                write the renderer support matrix"
@@ -130,6 +131,18 @@ templates:
 
 schema:
 	@$(PYTHON) video.py schema
+
+batch:
+	@test -n "$(SEASON)" || { echo "Set SEASON=workspace/<slug>/season.json"; exit 1; }
+	@$(PYTHON) video.py batch $(SEASON) \
+		$(foreach id,$(ONLY),--only $(id),) \
+		$(if $(STATUS),--status $(STATUS),) \
+		$(if $(RENDERER),--renderer $(RENDERER),) \
+		$(if $(PREVIEW),--preview,) \
+		$(if $(JOBS),--jobs $(JOBS),) \
+		$(if $(VALIDATE_ONLY),--validate-only,) \
+		$(if $(DRY_RUN),--dry-run,) \
+		$(if $(OUT_ROOT),--out-root "$(OUT_ROOT)",)
 
 test:
 	@$(PYTHON) -m unittest discover -s tests -v

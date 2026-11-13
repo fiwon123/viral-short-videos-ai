@@ -95,7 +95,7 @@ export function poseAt(points, progress) {
     const t = end > start ? (progress - start) / (end - start) : 1;
     const result = {};
     for (const [key, value] of Object.entries(from)) {
-      if (typeof value === "boolean") {
+      if (typeof value === "boolean" || key === "frame") {
         result[key] = progress >= end ? to[key] : value;
         continue;
       }
