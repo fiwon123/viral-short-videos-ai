@@ -38,7 +38,7 @@ You can import images and SVG. Video layers are not part of the current manifest
 
 ### Where do my private channels live?
 
-`workspace/` is gitignored. The old `channels/`, `episodes/` and `output/` folders are also local. Only `examples/` is published.
+`workspace/` is gitignored. Only `examples/` is published.
 
 ### Why is there a `wiki/` folder if GitHub has a Wiki tab?
 

@@ -111,8 +111,7 @@ def status(root=ROOT):
     for folder, manifests in found_channels:
         canonical = folder / "channel.json"
         active = canonical if canonical in manifests else manifests[0]
-        layout = "workspace" if active.parent.parent.parent.name == "workspace" else "legacy"
-        lines.append(f"channel  {active.relative_to(root)}  [{layout}]")
+        lines.append(f"channel  {active.relative_to(root)}")
         alternates = [path.name for path in manifests if path != active]
         if alternates:
             lines.append(f"         alternates: {', '.join(alternates)}")
@@ -121,8 +120,7 @@ def status(root=ROOT):
         lines.append("episode  none")
     for folder, manifests in found_episodes:
         names = ", ".join(path.name for path in manifests)
-        layout = "workspace" if folder.parent.parent.parent.name == "workspace" else "legacy"
-        lines.append(f"episode  {folder.relative_to(root)} ({names})  [{layout}]")
+        lines.append(f"episode  {folder.relative_to(root)} ({names})")
     lines.append(f".env     {'found' if (root / '.env').is_file() else 'not found (optional; cp .env.example .env)'}")
     return "\n".join(lines)
 

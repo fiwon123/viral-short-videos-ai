@@ -42,7 +42,6 @@ help:
 	@echo "  make sound RECIPE=...       synthesize a custom Sound Lab recipe"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make channel-doc            write channel.md from channel.json"
-	@echo "  make migrate                dry-run a legacy channel move; APPLY=1 to move"
 	@echo "  make support                write the renderer support matrix"
 	@echo "  make parity                 render the shared renderer parity fixture"
 	@echo "  make safearea               write a platform safe-area guide"

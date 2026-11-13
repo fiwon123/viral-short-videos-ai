@@ -120,7 +120,7 @@ make parity    # shared visual fixture across renderers
 make editor EPISODE=workspace/<channel>/episodes/<episode>/episode.json
 ```
 
-Each channel has its own workspace. A finished episode goes to `workspace/<channel>/renders/<episode>-v1/` with the MP4, thumbnail, publishing guide, QA report, and captions when present. Existing projects using `channels/` and `episodes/` can continue exporting to `output/<channel>/`.
+Each channel has its own workspace. A finished episode goes to `workspace/<channel>/renders/<episode>-v1/` with the MP4, thumbnail, publishing guide, QA report, and captions when present.
 
 | Find | Guide |
 | --- | --- |

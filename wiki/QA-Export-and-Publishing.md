@@ -99,7 +99,6 @@ make clean-cache
 make clean-previews
 make prune-casting
 make prune-brand
-make prune-legacy
 ```
 
 Prune commands are dry runs. Add `APPLY=1` only after reading the list. Never prune an asset a manifest still points at.

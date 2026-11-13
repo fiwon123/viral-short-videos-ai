@@ -4,9 +4,9 @@ Explore three original channel workspaces in [the example gallery](https://githu
 
 ## 🎬 Orbit Workshop
 
-<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/thumbnail.png" width="170" alt="Orbit Workshop preview thumbnail"></a>
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2/thumbnail.png" width="170" alt="Orbit Workshop preview thumbnail"></a>
 
-[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/orbit-workshop)
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/orbit-workshop)
 
 - 2D/2.5D robot micro-story
 - Karaoke captions
@@ -18,16 +18,16 @@ Explore three original channel workspaces in [the example gallery](https://githu
 ```sh
 python video.py render examples/orbit-workshop/episodes/the-robot-who-unplugged-the-moon/episode.json \
   --channel examples/orbit-workshop/channel/channel.json \
-  --renderer python --preview --out output/example-previews/orbit-workshop
+  --renderer python --preview --out examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2
 ```
 
 </details>
 
 ## 🕊️ Paper Crane Post
 
-<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/paper-crane/renders/one-letter-home-preview/thumbnail.png" width="170" alt=" Paper Crane Post preview thumbnail"></a>
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview-v2/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/paper-crane/renders/one-letter-home-preview-v2/thumbnail.png" width="170" alt=" Paper Crane Post preview thumbnail"></a>
 
-[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/paper-crane)
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview-v2/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/paper-crane)
 
 - Parented paper-crane rig with a pivot
 - Camera push-in and animated captions
@@ -39,16 +39,16 @@ python video.py render examples/orbit-workshop/episodes/the-robot-who-unplugged-
 ```sh
 python video.py render examples/paper-crane/episodes/one-letter-home/episode.json \
   --channel examples/paper-crane/channel/channel.json \
-  --renderer python --preview --out output/example-previews/paper-crane
+  --renderer python --preview --out examples/paper-crane/renders/one-letter-home-preview-v2
 ```
 
 </details>
 
 ## 📡 Tiny Signal
 
-<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/tiny-signal/renders/one-small-signal-preview/thumbnail.png" width="170" alt="Tiny Signal preview thumbnail"></a>
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview-v2/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/tiny-signal/renders/one-small-signal-preview-v2/thumbnail.png" width="170" alt="Tiny Signal preview thumbnail"></a>
 
-[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/tiny-signal)
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview-v2/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/tiny-signal)
 
 - Three.js scene with emissive materials
 - Camera move and expanding rings
@@ -60,7 +60,7 @@ python video.py render examples/paper-crane/episodes/one-letter-home/episode.jso
 ```sh
 python video.py render examples/tiny-signal/episodes/one-small-signal/episode.json \
   --channel examples/tiny-signal/channel/channel.json \
-  --renderer hyperframes --preview --out output/example-previews/tiny-signal
+  --renderer hyperframes --preview --out examples/tiny-signal/renders/one-small-signal-preview-v2
 ```
 
 </details>

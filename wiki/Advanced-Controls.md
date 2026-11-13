@@ -1,6 +1,6 @@
 # 🧪 Advanced Controls
 
-These are the power features for AI-directed episodes. They are optional and backward compatible.
+These are the power features for AI-directed episodes. They are optional and fit the same workspace manifests.
 
 ## 🎭 Masks, mattes and groups
 

@@ -1,6 +1,6 @@
 # 🗂️ Workspace Layout
 
-The studio supports two layouts. **Workspace** is the preferred layout for new channels. **Legacy** remains readable so existing projects do not break.
+Every channel lives in one workspace folder. Inputs, research and generated renders stay together.
 
 ## ✅ Workspace layout
 
@@ -38,43 +38,11 @@ Why one folder per channel:
 - The channel brief, research and renders are in one place.
 - The public repo can show the same structure under `examples/` without exposing private work.
 
-## 🕰️ Legacy layout
+Shared research that applies to several channels lives in:
 
 ```text
-channels/<channel>/
-episodes/<episode>/
-research/
-output/<channel>/<episode>-v1/
+workspace/_shared/research/
 ```
-
-Discovery checks both layouts. `make status` labels each entry `[workspace]` or `[legacy]`.
-
-## 🚚 Migrate one channel
-
-Dry run:
-
-```sh
-make migrate CHANNEL=channels/my-channel/channel.json \
-  EPISODE=episodes/my-episode/episode.json
-```
-
-Apply:
-
-```sh
-make migrate CHANNEL=channels/my-channel/channel.json \
-  EPISODE=episodes/my-episode/episode.json APPLY=1
-```
-
-Research can be moved explicitly:
-
-```sh
-python -m studio.migrate channels/my-channel/channel.json \
-  --episode episodes/my-episode/episode.json \
-  --research research/my-channel-note.md --apply
-```
-
-> [!WARNING]
-> The migration never guesses which episode belongs to which channel. Pass `--episode` for each episode. If the target already exists, the migration stops instead of overwriting.
 
 ## 🧾 What is tracked
 
@@ -82,9 +50,8 @@ python -m studio.migrate channels/my-channel/channel.json \
 | --- | --- | --- |
 | `studio/`, `browser/`, `presets/`, `wiki/` | ✅ | Reusable studio, renderers and docs |
 | `examples/` | ✅ | Public, original showcase workspaces |
-| `workspace/`, `channels/`, `episodes/` | ❌ | Your private production data |
-| `research/`, `reference-media/` | ❌ | Private notes and source videos |
-| `output/` | ❌ | Legacy render packages |
+| `workspace/` | ❌ | Your private production data |
+| `reference-media/` | ❌ | Private source videos |
 | `.env`, `audio-models/` | ❌ | Machine-local defaults and models |
 
 ## 📝 Channel Markdown

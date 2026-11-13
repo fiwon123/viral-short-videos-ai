@@ -24,7 +24,7 @@ An episode is one video. It contains:
 - Speech, sound effects, music, captions and thumbnail
 - Optional camera, post, motion blur, render settings and style preset
 
-Machine-readable file: `episodes/<episode>/episode.json`.
+Machine-readable file: `workspace/<channel>/episodes/<episode>/episode.json`.
 
 ## 🎬 Scene
 
