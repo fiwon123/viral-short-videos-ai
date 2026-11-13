@@ -38,11 +38,12 @@ Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D s
 - Use a `sheet` layer with `columns`, `rows`, `count` and keyframed `frame` for flipbooks, hand-drawn effects and frame-by-frame character poses. `frame` holds until the next key and works identically in all renderers.
 - Add `reveal: {"mode": "word"}` (or `line` / `character`) to a static text layer for a timed title reveal. `start`, `stagger`, and `fade` live in the 0..1 shot clock.
 - Give the channel `fonts` roles and use per-layer `font`, `align`, `line_height`, `letter_spacing`, `max_lines`, `uppercase`, `stroke` and `shadow` instead of rasterized titles.
-- Use `palette` extras for a wider brand kit. `fill` accepts a gradient; `stroke`, `shadow`, `glow` and `trail` are per-layer controls.
+- Use `palette` extras for a wider brand kit. `fill` accepts a gradient; `stroke`, `shadow`, `glow`, `tint` and `trail` are per-layer controls. Animate `tint_opacity` for a colour wash or mood shift.
 - Use `scale_x`/`scale_y` for squash and stretch, `skew_x`/`skew_y` for lean, and `ease_props` when one property needs a different curve. `ease` accepts cubic-bezier and spring objects; `auto` smooths long moves.
 - `make motion MOTION=impact` emits keyframes for `pop`, `impact`, `anticipate`, `settle`, `float`, `breathe`, `enter` and `exit`.
 - Add named `thumbnails` for A/B covers. Variants share the primary shot and time so Python and browser renderers write the same files.
 - Track a batch in `season.json` and run `python video.py batch season.json --dry-run` first, then `--validate-only`, then a preview or full render. Use `--status` and `--only` to focus on approved episodes.
+- Use `three.bloom`, `three.bloom_radius` and `three.bloom_threshold` for glowing 3D props and signs. It combines with the existing focus pull.
 - Check `python video.py support` before promising a feature. The matrix is honest about Python versus browser coverage.
 
 ## Run and deliver

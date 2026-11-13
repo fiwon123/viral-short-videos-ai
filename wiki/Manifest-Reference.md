@@ -105,6 +105,7 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `fill` | paint/gradient | Hex, palette role, or gradient object |
 | `stroke` | object | `width` and `color`/palette role |
 | `shadow`, `glow` | object | Colour, blur/size, offset and opacity |
+| `tint`, `tint_opacity` | paint/unit | Colour wash; opacity is animatable |
 | `trail` | object | `count`, `spacing`, `opacity`, `scale_falloff` |
 | `reveal` | object | `mode` (`word`, `line`, `character`), `start`, `stagger`, `fade` |
 | `font` | role/path | Per-layer font role or channel-relative file |
@@ -122,7 +123,7 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `parallax` | 0–2 | Camera parallax amount |
 | `hitbox` | `[w,h]` | 2D QA box |
 | `points` | array | Polygon points |
-| `keyframes` | array | Pose keys; `ease`, `ease_props`, `auto`, `blur`, `frame` supported |
+| `keyframes` | array | Pose keys; `ease`, `ease_props`, `auto`, `blur`, `tint_opacity`, `frame` supported |
 
 ## 🎥 Camera
 
@@ -264,6 +265,9 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `camera.shakes` | array | Timed camera shakes |
 | `three.camera[].fov` | number | Keyframeable 3D field of view |
 | `three.focus[]` | array | 3D focus distance and aperture |
+| `three.bloom` | 0–1 | 3D bloom strength |
+| `three.bloom_radius` | 0–2 | Bloom spread |
+| `three.bloom_threshold` | 0–1 | Brightness threshold for bloom |
 | `three.animations[].weight` | 0–1 | Blend multiple GLB clips |
 | `speech.lead` | seconds | Start dialogue before the picture cut |
 | `speech.words` | arrays | Measured word timings |

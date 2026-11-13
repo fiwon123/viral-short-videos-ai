@@ -362,6 +362,7 @@
         "skew_y": {"type": "number", "minimum": -89, "maximum": 89},
         "frame": {"type": "integer", "minimum": 0, "maximum": 100000},
         "blur": {"$ref": "#/$defs/unit"},
+        "tint_opacity": {"$ref": "#/$defs/unit"},
         "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
         "opacity": {"$ref": "#/$defs/unit"},
         "visible": {"type": "boolean"}
@@ -377,7 +378,7 @@
         "ease_props": {
           "description": "Per-property easing overrides for this keyframe.",
           "type": "object",
-          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "rotate", "opacity"]},
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity"]},
           "additionalProperties": {"$ref": "#/$defs/ease"}
         }
       }
@@ -415,6 +416,8 @@
         "stroke": {"$ref": "#/$defs/stroke"},
         "shadow": {"$ref": "#/$defs/shadow"},
         "glow": {"$ref": "#/$defs/glow"},
+        "tint": {"$ref": "#/$defs/paint"},
+        "tint_opacity": {"$ref": "#/$defs/unit"},
         "reveal": {"$ref": "#/$defs/reveal"},
         "trail": {"$ref": "#/$defs/trail"},
         "font": {"$ref": "#/$defs/text"},
@@ -769,6 +772,9 @@
         "scene": {"$ref": "#/$defs/text"},
         "camera": {"type": "array", "items": {"$ref": "#/$defs/three_camera_key"}},
         "focus": {"type": "array", "items": {"$ref": "#/$defs/three_focus_key"}},
+        "bloom": {"$ref": "#/$defs/unit"},
+        "bloom_radius": {"type": "number", "minimum": 0, "maximum": 2},
+        "bloom_threshold": {"$ref": "#/$defs/unit"},
         "objects": {
           "type": "object",
           "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/three_object_key"}}

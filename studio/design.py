@@ -331,6 +331,7 @@ def poses(layer):
         "skew_y": layer.get("skew_y", 0),
         "frame": layer.get("frame", 0),
         "blur": layer.get("blur", 0),
+        "tint_opacity": layer.get("tint_opacity", 0),
         "rotate": layer.get("rotate", 0),
         "opacity": layer.get("opacity", 1),
         "visible": layer.get("visible", True),
@@ -534,6 +535,7 @@ class Composition:
                 "mask": layer.get("mask"),
                 "shadow": layer.get("shadow"),
                 "glow": layer.get("glow"),
+                "tint": layer.get("tint"),
                 "viseme_for": layer.get("viseme_for"),
                 "viseme": layer.get("viseme"),
                 "spec": layer,
@@ -716,6 +718,14 @@ class Composition:
                 placed.putalpha(placed.getchannel("A").point(lambda value: round(value * alpha)))
             placed = self._apply_masks(placed, left, top, self.masks.get(layer["id"], []),
                                        progress, camera, mask_cache)
+            tint_opacity = max(0.0, min(1.0, float(state.get("tint_opacity", 0) or 0)))
+            if layer.get("tint") and tint_opacity > 0:
+                tinted = ImageChops.multiply(
+                    placed.convert("RGB"),
+                    Image.new("RGB", placed.size, resolve_color(layer["tint"], self.palette)),
+                ).convert("RGBA")
+                tinted.putalpha(placed.getchannel("A"))
+                placed = Image.blend(placed, tinted, tint_opacity)
             if layer.get("shadow"):
                 shadow, dx, dy = _effect_patch(placed, layer["shadow"], "background", self.palette,
                                                width, height, default_opacity=0.55)

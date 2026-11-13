@@ -20,6 +20,7 @@
 | `layers.gradient` | ✅ | ✅ | ✅ |
 | `layers.stroke` | ✅ | ✅ | ✅ |
 | `layers.shadow_glow` | ✅ | ✅ | ✅ |
+| `layers.tint` | ✅ | ✅ | ✅ |
 | `layers.trail` | ✅ | ✅ | ✅ |
 | `layers.use` | ✅ | ✅ | ✅ |
 | `text.fonts` | ✅ | ✅ | ✅ |
@@ -61,6 +62,7 @@
 | `three.clip-blending` | ❌ | ✅ | ✅ |
 | `three.fov-keys` | ❌ | ✅ | ✅ |
 | `three.focus-pull` | ❌ | ✅ | ✅ |
+| `three.bloom` | ❌ | ✅ | ✅ |
 | `alignment.words` | ✅ | ✅ | ✅ |
 | `visemes` | ✅ | ✅ | ✅ |
 | `review.still` | ✅ | ✅ | ✅ |

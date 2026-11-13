@@ -106,6 +106,13 @@ class MotionTests(unittest.TestCase):
         self.assertEqual(hand["parent"], "left/upper")
         self.assertEqual(hand["variant_group"], "left/grip")
 
+    def test_animated_tint_opacity(self):
+        layer = self._layer([
+            {"at": 0, "tint_opacity": 0},
+            {"at": 1, "tint_opacity": 1, "ease": "sine"},
+        ])
+        self.assertAlmostEqual(pose_at(poses(layer), 0.5)["tint_opacity"], 0.5, places=3)
+
     def test_animated_blur(self):
         layer = self._layer([
             {"at": 0, "blur": 0},

@@ -109,6 +109,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                           "blend": layer.get("blend", "normal"), "blur": layer.get("blur", 0),
                           "parallax": layer.get("parallax", 1), "mask": mask,
                           "shadow": layer.get("shadow"), "glow": layer.get("glow"),
+                          "tint": layer.get("tint"),
                           "viseme_for": layer.get("viseme_for"), "viseme": layer.get("viseme")}
                 if layer["kind"] == "svg":
                     path = svg_asset(layer, base, channel_base)

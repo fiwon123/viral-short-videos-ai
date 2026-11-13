@@ -154,6 +154,18 @@ The palette can carry extra named roles:
 `shadow` and `glow` work on shapes, text, images, and SVG layers. Captions and
 thumbnail colours can use the same palette roles.
 
+Add a colour wash with an animatable amount:
+
+```json
+{"tint": "warm", "tint_opacity": 0,
+ "keyframes": [{"at": 0, "tint_opacity": 0},
+               {"at": 0.5, "tint_opacity": 0.8, "ease": "sine"},
+               {"at": 1, "tint_opacity": 0.2}]}
+```
+
+The tint multiplies the layer colour while preserving its alpha, so it works on
+shapes, text, images and SVG art.
+
 ## ✍️ Word, line and character reveal
 
 Reveal a static text layer without hand-keying every piece:

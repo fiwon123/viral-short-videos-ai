@@ -1,13 +1,14 @@
 import {
   ACESFilmicToneMapping, AmbientLight, AnimationMixer, BoxGeometry, Color, CylinderGeometry,
   DirectionalLight, Mesh, MeshStandardMaterial, PCFShadowMap, PerspectiveCamera, Scene,
-  SphereGeometry, SRGBColorSpace, TorusGeometry, WebGLRenderer,
+  SphereGeometry, SRGBColorSpace, TorusGeometry, Vector2, WebGLRenderer,
 } from "three";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {clone} from "three/addons/utils/SkeletonUtils.js";
 import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
 import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
 import {BokehPass} from "three/addons/postprocessing/BokehPass.js";
+import {UnrealBloomPass} from "three/addons/postprocessing/UnrealBloomPass.js";
 
 import {lightingFor} from "./lighting.mjs";
 import {objectTrack, poseAt, poseTrack} from "./pose.mjs";
@@ -96,13 +97,21 @@ export async function createThreeStage(specs, width, height, urlFor) {
       const duration = shot.duration ?? 1;
       const focusTrack = shot.focus?.length
         ? poseTrack({distance: 2, aperture: 1}, shot.focus) : null;
+      const bloom = Number(shot.bloom ?? 0);
       let composer = null;
       let bokeh = null;
-      if (focusTrack) {
+      if (focusTrack || bloom > 0) {
         composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
-        bokeh = new BokehPass(scene, camera, {focus: 2, aperture: 0.0001, maxblur: 0.01});
-        composer.addPass(bokeh);
+        if (focusTrack) {
+          bokeh = new BokehPass(scene, camera, {focus: 2, aperture: 0.0001, maxblur: 0.01});
+          composer.addPass(bokeh);
+        }
+        if (bloom > 0) {
+          composer.addPass(new UnrealBloomPass(
+            new Vector2(width, height), bloom, shot.bloom_radius ?? 0.35,
+            shot.bloom_threshold ?? 0.8));
+        }
       }
       const tracks = Array.from(objects, ([id, {node, spec, animations}]) => {
         const mixer = new AnimationMixer(node);
@@ -149,11 +158,13 @@ export async function createThreeStage(specs, width, height, urlFor) {
             mixer.update(0);
           }
         }
-        if (composer && bokeh) {
-          const focus = poseAt(focusTrack, progress);
-          bokeh.uniforms["focus"].value = focus.distance;
-          bokeh.uniforms["aperture"].value = focus.aperture * 0.0001;
-          bokeh.uniforms["maxblur"].value = 0.01;
+        if (composer) {
+          if (bokeh) {
+            const focus = poseAt(focusTrack, progress);
+            bokeh.uniforms["focus"].value = focus.distance;
+            bokeh.uniforms["aperture"].value = focus.aperture * 0.0001;
+            bokeh.uniforms["maxblur"].value = 0.01;
+          }
           composer.setSize(width, height);
           composer.render();
         } else {
