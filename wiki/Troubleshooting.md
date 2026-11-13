@@ -81,13 +81,9 @@ Use a new `OUT` path. The studio never overwrites a package.
 
 The inventory path now supports channels without 3D. If you see this on an old checkout, update the repository.
 
-## Wiki clone says repository not found
+## Wiki page is missing
 
-GitHub creates the wiki git repository only after the first page exists. Open the repo Wiki tab, create the `Home` page once, then run:
-
-```sh
-make wiki
-```
+The GitHub Wiki is edited in the repository's Wiki tab. The `wiki/` folder is a versioned mirror; copy the page there when the live wiki changes.
 
 ## Next
 

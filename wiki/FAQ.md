@@ -42,15 +42,11 @@ You can import images and SVG. Video layers are not part of the current manifest
 
 ### Why is there a `wiki/` folder if GitHub has a Wiki tab?
 
-`wiki/` is the versioned source. `make wiki` publishes it to the GitHub Wiki. This keeps documentation reviewable in the repository.
+`wiki/` is a versioned mirror of the documentation. The GitHub Wiki tab is the live copy. Keep the two in sync when a page changes.
 
-### How do I publish the wiki?
+### How do I edit the wiki?
 
-Create the first page in the GitHub Wiki tab once, then run:
-
-```sh
-make wiki
-```
+Use the GitHub Wiki tab directly. The `wiki/` folder in the repository is there so documentation changes can be reviewed and versioned with the code.
 
 ### Is the example content free to reuse?
 

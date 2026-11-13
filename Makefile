@@ -25,7 +25,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect wiki \
+.PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect \
         validate check audio preview render \
         clean clean-cache clean-previews \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -42,7 +42,6 @@ help:
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make channel-doc            write channel.md from channel.json"
 	@echo "  make migrate                dry-run a legacy channel move; APPLY=1 to move"
-	@echo "  make wiki                   publish wiki/ to the GitHub Wiki"
 	@echo "  make doctor                 check ffmpeg, node, Chrome, Kokoro"
 	@echo "  make list                   channel folders and episodes"
 	@echo
@@ -102,9 +101,6 @@ channel-doc:
 migrate:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
 	@$(PYTHON) -m studio.migrate $(CHANNEL) $(if $(EPISODE),--episode $(EPISODE),) $(if $(APPLY),--apply,)
-
-wiki:
-	@./scripts/publish-wiki.sh
 
 doctor:
 	@$(PYTHON) video.py doctor

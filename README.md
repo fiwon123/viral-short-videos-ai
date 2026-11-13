@@ -103,7 +103,7 @@ Each example contains a channel identity, episode source, research note, generat
 | Build 3D scenes | [3D and Renderers](https://github.com/fiwon123/viral-short-videos-ai/wiki/3D-and-Renderers) |
 | Use AI to make a video | [AI Workflow and Prompt Cookbook](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook) |
 | Publish and troubleshoot | [QA, Export and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
-| Edit the docs source | [wiki/](wiki/) · publish with `make wiki` |
+| Edit the docs source | [wiki/](wiki/) |
 
 ## 🛠️ Requirements
 
