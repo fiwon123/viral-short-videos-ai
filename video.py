@@ -313,9 +313,11 @@ def execute(args):
         episode = apply_style(episode, channel, args.channel.parent)
         from studio.markers import expand as expand_markers
         from studio.particles import expand as expand_particles
+        from studio.reveal import expand as expand_reveal
         from studio.trails import expand as expand_trails
 
         episode = expand_particles(expand_trails(expand_markers(episode, args.channel.parent)))
+        episode = expand_reveal(episode, channel, args.channel.parent)
         data = resolved_config(episode, channel)
         if args.json:
             return data, 0
@@ -355,11 +357,13 @@ def execute(args):
     episode = apply_style(episode, channel, args.channel.parent)
     from studio.markers import expand as expand_markers
     from studio.particles import expand as expand_particles
+    from studio.reveal import expand as expand_reveal
     from studio.trails import expand as expand_trails
 
     episode = expand_markers(episode, args.channel.parent)
     episode = expand_trails(episode)
     episode = expand_particles(episode)
+    episode = expand_reveal(episode, channel, args.channel.parent)
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)

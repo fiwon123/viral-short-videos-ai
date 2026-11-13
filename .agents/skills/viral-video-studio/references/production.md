@@ -36,6 +36,7 @@ Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D s
 
 - Define recurring rigs, props and badges once under `episode.defs`, then instance them with `{"kind": "use", "ref": "..."}`. The studio prefixes IDs, parents and variant groups so several instances can share a shot.
 - Use a `sheet` layer with `columns`, `rows`, `count` and keyframed `frame` for flipbooks, hand-drawn effects and frame-by-frame character poses. `frame` holds until the next key and works identically in all renderers.
+- Add `reveal: {"mode": "word"}` (or `line` / `character`) to a static text layer for a timed title reveal. `start`, `stagger`, and `fade` live in the 0..1 shot clock.
 - Give the channel `fonts` roles and use per-layer `font`, `align`, `line_height`, `letter_spacing`, `max_lines`, `uppercase`, `stroke` and `shadow` instead of rasterized titles.
 - Use `palette` extras for a wider brand kit. `fill` accepts a gradient; `stroke`, `shadow`, `glow` and `trail` are per-layer controls.
 - Use `scale_x`/`scale_y` for squash and stretch, `skew_x`/`skew_y` for lean, and `ease_props` when one property needs a different curve. `ease` accepts cubic-bezier and spring objects; `auto` smooths long moves.

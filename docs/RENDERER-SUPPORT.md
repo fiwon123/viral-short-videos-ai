@@ -24,6 +24,7 @@
 | `layers.use` | ✅ | ✅ | ✅ |
 | `text.fonts` | ✅ | ✅ | ✅ |
 | `text.typography` | ✅ | ✅ | ✅ |
+| `text.reveal` | ✅ | ✅ | ✅ |
 | `easings` | ✅ | ✅ | ✅ |
 | `easings.cubic-bezier` | ✅ | ✅ | ✅ |
 | `easings.spring-object` | ✅ | ✅ | ✅ |

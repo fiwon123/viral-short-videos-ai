@@ -168,6 +168,27 @@ class StyleTests(unittest.TestCase):
         self.assertAlmostEqual(ease(1, curve), 1)
 
 
+class RevealTests(unittest.TestCase):
+    def test_word_reveal_expands_to_pieces(self):
+        from studio.reveal import expand as expand_reveal
+
+        episode = {
+            "width": 540, "height": 960,
+            "scenes": [{"shots": [{"id": "A", "layers": [
+                {"id": "title", "kind": "text", "x": 0.5, "y": 0.4,
+                 "width": 0.8, "height": 0.2, "text": "ONE SMALL GUST",
+                 "reveal": {"mode": "word", "start": 0.1, "stagger": 0.1}},
+            ]}]}],
+        }
+        channel = {"palette": {"background": "#000000", "foreground": "#FFFFFF",
+                               "accent": "#22D3EE", "secondary": "#334155"}}
+        expand_reveal(episode, channel, ROOT)
+        layers = episode["scenes"][0]["shots"][0]["layers"]
+        self.assertEqual(len(layers), 3)
+        self.assertTrue(all(layer["kind"] == "text" for layer in layers))
+        self.assertGreater(layers[-1]["keyframes"][-1]["at"], layers[0]["keyframes"][-1]["at"])
+
+
 class BatchTests(unittest.TestCase):
     def test_season_selection_and_dry_run(self):
         from tempfile import TemporaryDirectory

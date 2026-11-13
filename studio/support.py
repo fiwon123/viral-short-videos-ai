@@ -30,6 +30,7 @@ SUPPORT = {
     "layers.use": {"python": True, "hyperframes": True, "remotion": True},
     "text.fonts": {"python": True, "hyperframes": True, "remotion": True},
     "text.typography": {"python": True, "hyperframes": True, "remotion": True},
+    "text.reveal": {"python": True, "hyperframes": True, "remotion": True},
     "easings": {"python": True, "hyperframes": True, "remotion": True},
     "easings.cubic-bezier": {"python": True, "hyperframes": True, "remotion": True},
     "easings.spring-object": {"python": True, "hyperframes": True, "remotion": True},

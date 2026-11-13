@@ -73,6 +73,15 @@
         "opacity": {"$ref": "#/$defs/unit"}
       }
     },
+    "reveal": {
+      "type": "object", "required": ["mode"], "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["word", "line", "character"]},
+        "start": {"$ref": "#/$defs/unit"},
+        "stagger": {"type": "number", "minimum": 0, "maximum": 0.2},
+        "fade": {"type": "boolean"}
+      }
+    },
     "trail": {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -405,6 +414,7 @@
         "stroke": {"$ref": "#/$defs/stroke"},
         "shadow": {"$ref": "#/$defs/shadow"},
         "glow": {"$ref": "#/$defs/glow"},
+        "reveal": {"$ref": "#/$defs/reveal"},
         "trail": {"$ref": "#/$defs/trail"},
         "font": {"$ref": "#/$defs/text"},
         "align": {"enum": ["left", "center", "right"]},

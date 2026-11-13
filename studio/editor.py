@@ -20,6 +20,7 @@ from .expand import expand as expand_defs
 from .markers import expand as expand_markers
 from .particles import expand as expand_particles
 from .presets import apply_style
+from .reveal import expand as expand_reveal
 from .trails import expand as expand_trails
 
 EDITOR = Path(__file__).resolve().parents[1] / "editor"
@@ -83,6 +84,7 @@ class Handler(BaseHTTPRequestHandler):
         episode = expand_defs(copy.deepcopy(self.episode))
         episode = apply_style(episode, self.channel, channel_dir)
         episode = expand_particles(expand_trails(expand_markers(episode, channel_dir)))
+        episode = expand_reveal(episode, self.channel, channel_dir)
         styled = next((item for scene in episode["scenes"] for item in scene["shots"]
                        if item["id"] == shot_id), shot)
         font = resolve_font(self.channel, channel_dir)

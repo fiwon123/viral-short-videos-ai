@@ -154,6 +154,20 @@ The palette can carry extra named roles:
 `shadow` and `glow` work on shapes, text, images, and SVG layers. Captions and
 thumbnail colours can use the same palette roles.
 
+## ✍️ Word, line and character reveal
+
+Reveal a static text layer without hand-keying every piece:
+
+```json
+{"kind": "text", "x": 0.5, "y": 0.42, "width": 0.8, "height": 0.18,
+ "text": "ONE SMALL GUST", "reveal": {"mode": "word", "start": 0.1, "stagger": 0.12}}
+```
+
+Modes are `word`, `line`, and `character`. `start` and `stagger` use the 0..1
+shot clock. With `fade: false` each piece pops in; the default fades it in.
+Reveal needs a static, unparented, unrotated text layer; animate the pieces or
+the whole shot after expanding.
+
 ## 🎞️ Sprite-sheet animation
 
 Use a `sheet` layer for flipbook animation, hand-drawn effects or a character

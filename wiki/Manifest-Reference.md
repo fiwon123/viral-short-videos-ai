@@ -106,6 +106,7 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `stroke` | object | `width` and `color`/palette role |
 | `shadow`, `glow` | object | Colour, blur/size, offset and opacity |
 | `trail` | object | `count`, `spacing`, `opacity`, `scale_falloff` |
+| `reveal` | object | `mode` (`word`, `line`, `character`), `start`, `stagger`, `fade` |
 | `font` | role/path | Per-layer font role or channel-relative file |
 | `align`, `line_height`, `letter_spacing` | — | Text layout |
 | `max_lines`, `uppercase` | — | Text fitting and case |
