@@ -5,6 +5,7 @@ import shutil
 
 from PIL import Image, ImageDraw
 
+from .camera import resolve_camera
 from .core import asset, ffmpeg, require, run, svg_asset, write_json
 from .design import caption_layout, draw_caption, layer_order, poses, sprite, thumbnail
 
@@ -33,7 +34,8 @@ def _save_caption_tile(tile, assets, name):
     return {"sprite": name, "x": box[0], "y": box[1]}
 
 
-def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channel_base, library, work, burn):
+def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channel_base, library, work, burn,
+                  config=None):
     assets = work / "assets"
     assets.mkdir()
     shots, scenes = [], {}
@@ -56,10 +58,11 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             prepared = {"start": start, "end": end, "duration": duration,
                         "transition": resolved.get("transition"),
                         "background": shot.get("background", channel["palette"]["background"]),
-                        "camera": shot.get("camera"),
+                        "camera": resolve_camera(shot) if shot.get("camera") else None,
                         "post": {**(channel.get("post") or {}), **(episode.get("post") or {}),
                                  **(shot.get("post") or {})},
-                        "motion_blur": shot.get("motion_blur", episode.get("motion_blur", 0)),
+                        "motion_blur": shot.get("motion_blur",
+                                                (config or {}).get("motion_blur", episode.get("motion_blur", 0))),
                         "layers": [], "speech": [(a, b, speaker, values.tolist())
                                                  for a, b, speaker, values in levels[shot["id"]]]}
             if three := shot.get("three"):
@@ -82,7 +85,8 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             for index, layer in enumerate(ordered):
                 visual = {"id": layer["id"], "poses": poses(layer), "mouth": layer.get("mouth_for"),
                           "plane": layer.get("plane", "foreground"),
-                          "parent": layer.get("parent"), "pivot": layer.get("pivot", [0.5, 0.5]),
+                          "parent": layer.get("parent"), "variant_group": layer.get("variant_group"),
+                          "pivot": layer.get("pivot", [0.5, 0.5]),
                           "blend": layer.get("blend", "normal"), "blur": layer.get("blur", 0),
                           "parallax": layer.get("parallax", 1)}
                 if layer["kind"] == "svg":
@@ -117,8 +121,9 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                 right = round(width / 2 + width * 0.43) + pad_x
                 top = rows[0][0]["box"][1] + offset - pad_y if rows else 0
                 bottom = rows[-1][0]["box"][3] + offset + pad_y if rows else 0
-                draw.rounded_rectangle((left, top, right, bottom), radius=max(2, round(size * 0.45)),
-                                       fill=channel["palette"]["background"])
+                draw.rounded_rectangle((left, top, right, bottom),
+                                       radius=max(2, round(size * float(caption_config.get("radius", 0.45)))),
+                                       fill=caption_config.get("background", channel["palette"]["background"]))
                 background = _save_caption_tile(background, assets, f"caption-{len(data['captions'])}-bg.png")
                 words = []
                 index = 0
@@ -129,9 +134,11 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                         normal = Image.new("RGBA", canvas)
                         active = Image.new("RGBA", canvas)
                         ImageDraw.Draw(normal).text((box[0], box[1]), word["text"], font=caption_font,
-                                                    fill=channel["palette"]["foreground"])
+                                                    fill=caption_config.get("foreground",
+                                                                            channel["palette"]["foreground"]))
                         ImageDraw.Draw(active).text((box[0], box[1]), word["text"], font=caption_font,
-                                                    fill=channel["palette"]["background"])
+                                                    fill=caption_config.get("background",
+                                                                            channel["palette"]["background"]))
                         normal = _save_caption_tile(normal, assets, f"caption-{len(data['captions'])}-w{index}.png")
                         active = _save_caption_tile(active, assets, f"caption-{len(data['captions'])}-a{index}.png")
                         timing = cue.get("words", [])
@@ -143,7 +150,8 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                         })
                         index += 1
                 data["captions"].append({"start": cue["start"], "end": cue["end"],
-                                         "background": background, "words": words, "karaoke": True})
+                                         "background": background, "words": words, "karaoke": True,
+                                         "animation": caption_config.get("animation", "none")})
             else:
                 text = cue["text"]
                 if caption_config.get("uppercase"):
@@ -151,12 +159,13 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                 tile = Image.new("RGBA", canvas)
                 draw_caption(tile, {**cue, "text": text}, channel, font, config=caption_config)
                 caption_sprite = _save_caption_tile(tile, assets, f"caption-{len(data['captions'])}.png")
-                data["captions"].append({"start": cue["start"], "end": cue["end"], **caption_sprite})
+                data["captions"].append({"start": cue["start"], "end": cue["end"], **caption_sprite,
+                                         "animation": caption_config.get("animation", "none")})
     write_json(work / "visual-plan.json", data)
 
 
 def render_browser(backend, episode, channel, timeline, levels, canvas, font, base, channel_base,
-                   library, work, out, burn, preview):
+                   library, work, out, burn, preview, config=None):
     from .render import encoder
 
     require("node")
@@ -164,22 +173,31 @@ def render_browser(backend, episode, channel, timeline, levels, canvas, font, ba
     required = "@remotion/renderer" if backend == "remotion" else "hyperframes"
     if not (modules / required).is_dir():
         raise ValueError("Install browser renderer dependencies with npm ci from the repository root")
-    scale = max(1, int(episode.get("supersample", 1)))
+    config = config or {}
+    caption_font = (episode.get("captions") or {}).get("font") or (channel.get("captions") or {}).get("font")
+    if caption_font:
+        from .core import asset as resolve_asset
+
+        font = str(resolve_asset(channel_base, caption_font))
+    scale = max(1, int(config.get("supersample", episode.get("supersample", 1))))
     visual_canvas = (canvas[0] * scale, canvas[1] * scale)
-    stage_visuals(episode, channel, timeline, levels, visual_canvas, font, base, channel_base, library, work, burn)
+    stage_visuals(episode, channel, timeline, levels, visual_canvas, font, base, channel_base, library, work, burn,
+                  config=config)
     video_options = ["-c:v", "copy"]
     if scale > 1:
-        video_options = [*encoder(canvas[0], canvas[1], timeline["fps"]), "-pix_fmt", "yuv420p"]
+        video_options = [*encoder(canvas[0], canvas[1], timeline["fps"], config), "-pix_fmt", "yuv420p"]
     picture_format = "mp4"
     if backend == "hyperframes":
-        available_encoder = encoder(*canvas, timeline["fps"])
+        available_encoder = encoder(*canvas, timeline["fps"], config)
         if "libx264" not in available_encoder:
             picture_format = "webm"
             video_options = [*available_encoder, "-pix_fmt", "yuv420p"]
     run("node", str(ENTRY), backend, str(work), picture_format, "preview" if preview else "final")
-    with Image.open(work / "cover.png") as cover:
-        thumbnail(cover.convert("RGB"), episode["thumbnail"]["text"], channel, font).save(out / "thumbnail.png")
+    if config.get("thumbnail", True):
+        with Image.open(work / "cover.png") as cover:
+            thumbnail(cover.convert("RGB"), episode["thumbnail"]["text"], channel, font).save(out / "thumbnail.png")
     picture_filter = (["-vf", f"scale={canvas[0]}:{canvas[1]}:flags=lanczos"] if scale > 1 else [])
+    audio_bitrate = int(config.get("audio_bitrate", 192))
     ffmpeg("-i", str(work / f"picture.{picture_format}"), "-i", str(work / "mix.wav"), "-map", "0:v:0", "-map", "1:a:0",
-           *picture_filter, *video_options, "-c:a", "aac", "-b:a", "192k", "-ac", "2",
+           *picture_filter, *video_options, "-c:a", "aac", "-b:a", f"{audio_bitrate}k", "-ac", "2",
            "-movflags", "+faststart", str(out / "video.mp4"))

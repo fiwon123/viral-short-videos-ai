@@ -1,0 +1,273 @@
+{
+  "fps": 24,
+  "duration_frames": 340,
+  "scenes": [
+    {
+      "id": "S01",
+      "purpose": "Cold open with a warning and an immediately legible mistake.",
+      "start": 0,
+      "shots": [
+        {
+          "id": "S01-A",
+          "start": 0,
+          "end": 104,
+          "speech": [
+            {
+              "speaker": "Robot",
+              "text": "They told me not to press the yellow one.",
+              "source": "eSpeak NG (en-us)",
+              "start": 11,
+              "end": 68,
+              "engine": "espeak"
+            }
+          ],
+          "sfx": [
+            {
+              "start": 2,
+              "end": 6,
+              "gain": 0.14,
+              "kind": "preset",
+              "source": "pop"
+            }
+          ]
+        }
+      ],
+      "end": 104
+    },
+    {
+      "id": "S02",
+      "purpose": "Show the consequence by taking away the only bright object.",
+      "start": 104,
+      "shots": [
+        {
+          "id": "S02-A",
+          "start": 104,
+          "end": 212,
+          "speech": [
+            {
+              "speaker": "Robot",
+              "text": "Oh. That was the moon.",
+              "source": "eSpeak NG (en-us)",
+              "start": 148,
+              "end": 189,
+              "engine": "espeak"
+            }
+          ],
+          "sfx": [
+            {
+              "start": 140,
+              "end": 149,
+              "gain": 0.22,
+              "kind": "preset",
+              "source": "whoosh"
+            },
+            {
+              "start": 153,
+              "end": 157,
+              "gain": 0.13,
+              "kind": "preset",
+              "source": "pop"
+            }
+          ],
+          "transition": {
+            "type": "wipe-left",
+            "start": 104,
+            "end": 110
+          }
+        }
+      ],
+      "end": 212
+    },
+    {
+      "id": "S03",
+      "purpose": "Restore the moon and land the reversal as a visual and spoken joke.",
+      "start": 212,
+      "shots": [
+        {
+          "id": "S03-A",
+          "start": 212,
+          "end": 340,
+          "speech": [
+            {
+              "speaker": "Robot",
+              "text": "Have you tried turning the sky off and on again?",
+              "source": "eSpeak NG (en-us)",
+              "start": 225,
+              "end": 296,
+              "engine": "espeak"
+            }
+          ],
+          "sfx": [
+            {
+              "start": 218,
+              "end": 230,
+              "gain": 0.24,
+              "kind": "preset",
+              "source": "chime"
+            }
+          ],
+          "transition": {
+            "type": "dissolve",
+            "start": 212,
+            "end": 221
+          }
+        }
+      ],
+      "end": 340
+    }
+  ],
+  "captions": [
+    {
+      "start": 11,
+      "end": 68,
+      "text": "They told me not to press the yellow\none.",
+      "words": [
+        {
+          "text": "They",
+          "start": 11,
+          "end": 18
+        },
+        {
+          "text": "told",
+          "start": 18,
+          "end": 25
+        },
+        {
+          "text": "me",
+          "start": 25,
+          "end": 28
+        },
+        {
+          "text": "not",
+          "start": 28,
+          "end": 33
+        },
+        {
+          "text": "to",
+          "start": 33,
+          "end": 36
+        },
+        {
+          "text": "press",
+          "start": 36,
+          "end": 44
+        },
+        {
+          "text": "the",
+          "start": 44,
+          "end": 49
+        },
+        {
+          "text": "yellow",
+          "start": 49,
+          "end": 59
+        },
+        {
+          "text": "one.",
+          "start": 59,
+          "end": 68
+        }
+      ]
+    },
+    {
+      "start": 148,
+      "end": 189,
+      "text": "Oh. That was the moon.",
+      "words": [
+        {
+          "text": "Oh.",
+          "start": 148,
+          "end": 156
+        },
+        {
+          "text": "That",
+          "start": 156,
+          "end": 164
+        },
+        {
+          "text": "was",
+          "start": 164,
+          "end": 170
+        },
+        {
+          "text": "the",
+          "start": 170,
+          "end": 176
+        },
+        {
+          "text": "moon.",
+          "start": 176,
+          "end": 189
+        }
+      ]
+    },
+    {
+      "start": 225,
+      "end": 296,
+      "text": "Have you tried turning the sky off and\non again?",
+      "words": [
+        {
+          "text": "Have",
+          "start": 225,
+          "end": 232
+        },
+        {
+          "text": "you",
+          "start": 232,
+          "end": 237
+        },
+        {
+          "text": "tried",
+          "start": 237,
+          "end": 246
+        },
+        {
+          "text": "turning",
+          "start": 246,
+          "end": 258
+        },
+        {
+          "text": "the",
+          "start": 258,
+          "end": 263
+        },
+        {
+          "text": "sky",
+          "start": 263,
+          "end": 268
+        },
+        {
+          "text": "off",
+          "start": 268,
+          "end": 273
+        },
+        {
+          "text": "and",
+          "start": 273,
+          "end": 278
+        },
+        {
+          "text": "on",
+          "start": 278,
+          "end": 282
+        },
+        {
+          "text": "again?",
+          "start": 282,
+          "end": 296
+        }
+      ]
+    }
+  ],
+  "audio": {},
+  "music": {
+    "kind": "preset",
+    "source": "pulse",
+    "gain": 0.092
+  },
+  "loudness": {
+    "integrated_lufs": "-14.13",
+    "true_peak_db": "-1.51",
+    "loudness_range": "2.70"
+  }
+}

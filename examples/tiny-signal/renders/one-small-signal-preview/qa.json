@@ -1,0 +1,39 @@
+{
+  "duration_seconds": 6.208333,
+  "frames": 149,
+  "fps": 24,
+  "width": 270,
+  "height": 480,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "audio_seconds": 6.208,
+  "caption_cues": 0,
+  "renderer": "hyperframes",
+  "preview": true,
+  "burned_captions": false,
+  "audio": {
+    "voice_engines": [],
+    "scratch_voice_lines": 0,
+    "preset_effects": 2,
+    "library_effects": 0,
+    "caption_cues": 0,
+    "caption_words": 0,
+    "loudness": {
+      "integrated_lufs": "-14.50",
+      "true_peak_db": "-1.60",
+      "loudness_range": "0.50"
+    },
+    "music": {
+      "kind": "preset",
+      "source": "pulse",
+      "gain": 0.06
+    }
+  },
+  "render": {
+    "crf": 16,
+    "preset": "slow",
+    "tune": "film",
+    "supersample": 1,
+    "motion_blur": 0.28
+  }
+}

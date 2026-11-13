@@ -25,6 +25,24 @@
         "y": {"type": "number", "minimum": -1, "maximum": 1},
         "zoom": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
         "rotate": {"type": "number", "minimum": -180, "maximum": 180},
+        "preset": {"enum": ["push-in", "pull-out", "crash-zoom", "whip-pan", "dolly", "float", "orbit", "handheld"]},
+        "shake": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "amplitude": {"type": "number", "minimum": 0, "maximum": 0.2},
+            "frequency": {"type": "number", "minimum": 0.1, "maximum": 60},
+            "decay": {"type": "number", "minimum": 0, "maximum": 1},
+            "seed": {"type": "number"}
+          }
+        },
+        "handheld": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "amplitude": {"type": "number", "minimum": 0, "maximum": 0.05},
+            "frequency": {"type": "number", "minimum": 0.1, "maximum": 12},
+            "seed": {"type": "number"}
+          }
+        },
         "keyframes": {"type": "array", "items": {"$ref": "#/$defs/camera_key"}}
       }
     },
@@ -44,14 +62,28 @@
         "tint": {"$ref": "#/$defs/color"}
       }
     },
+    "style": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "preset": {"$ref": "#/$defs/text"},
+        "energy": {"$ref": "#/$defs/unit"}
+      }
+    },
     "captions": {
       "type": "object", "additionalProperties": false,
       "properties": {
         "style": {"enum": ["box", "karaoke", "minimal"]},
         "position": {"enum": ["top", "center", "bottom"]},
         "highlight": {"$ref": "#/$defs/color"},
+        "foreground": {"$ref": "#/$defs/color"},
+        "background": {"$ref": "#/$defs/color"},
         "uppercase": {"type": "boolean"},
         "max_words": {"type": "integer", "minimum": 1, "maximum": 10},
+        "font": {"$ref": "#/$defs/path"},
+        "font_size": {"type": "number", "minimum": 0.5, "maximum": 2},
+        "stroke": {"$ref": "#/$defs/unit"},
+        "shadow": {"type": "boolean"},
+        "radius": {"$ref": "#/$defs/unit"},
         "animation": {"enum": ["none", "pop", "slide"]}
       }
     },
@@ -71,6 +103,21 @@
       "properties": {
         "mix": {"$ref": "#/$defs/unit"},
         "size": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "render": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "crf": {"type": "integer", "minimum": 0, "maximum": 51},
+        "preset": {"enum": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"]},
+        "tune": {"enum": ["animation", "film", "grain", "stillimage", "fastdecode", "zerolatency", "none"]},
+        "audio_bitrate": {"type": "integer", "minimum": 64, "maximum": 512},
+        "captions": {"type": "boolean"},
+        "thumbnail": {"type": "boolean"},
+        "publishing": {"type": "boolean"},
+        "supersample": {"type": "integer", "minimum": 1, "maximum": 2},
+        "motion_blur": {"$ref": "#/$defs/unit"},
+        "master": {"type": "boolean"}
       }
     },
     "audio": {
@@ -111,7 +158,9 @@
         "scene_library": {"$ref": "#/$defs/path"},
         "audio_library": {"$ref": "#/$defs/path"},
         "captions": {"$ref": "#/$defs/captions"},
+        "style": {"$ref": "#/$defs/style"},
         "audio": {"$ref": "#/$defs/audio"},
+        "render": {"$ref": "#/$defs/render"},
         "post": {"$ref": "#/$defs/post"},
         "motion_blur": {"$ref": "#/$defs/unit"},
         "banner": {
@@ -132,7 +181,8 @@
         "y": {"type": "number", "minimum": -2, "maximum": 3},
         "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
         "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
-        "opacity": {"$ref": "#/$defs/unit"}
+        "opacity": {"$ref": "#/$defs/unit"},
+        "visible": {"type": "boolean"}
       }
     },
     "keyframe": {
@@ -166,6 +216,7 @@
         "file": {"$ref": "#/$defs/path"},
         "mouth_for": {"$ref": "#/$defs/text"},
         "parent": {"$ref": "#/$defs/text"},
+        "variant_group": {"$ref": "#/$defs/text"},
         "pivot": {
           "type": "array", "minItems": 2, "maxItems": 2,
           "items": {"$ref": "#/$defs/unit"}
@@ -459,6 +510,7 @@
           "type": "object", "required": ["type", "duration"], "additionalProperties": false,
           "properties": {
             "type": {"enum": ["dissolve", "wipe-left", "wipe-right", "wipe-up", "wipe-down", "slide-left", "slide-right", "slide-up", "slide-down", "whip-left", "whip-right", "zoom-in", "zoom-out", "iris", "flash", "dip-to-black", "luma-wipe"]},
+            "ease": {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold"]},
             "duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 3}
           }
         }
@@ -479,7 +531,9 @@
         "motion_blur": {"$ref": "#/$defs/unit"},
         "post": {"$ref": "#/$defs/post"},
         "captions": {"$ref": "#/$defs/captions"},
+        "style": {"$ref": "#/$defs/style"},
         "audio": {"$ref": "#/$defs/audio"},
+        "render": {"$ref": "#/$defs/render"},
         "tiktok": {
           "type": "object", "additionalProperties": false,
           "properties": {

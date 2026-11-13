@@ -70,6 +70,8 @@ Every sound is layered from a transient, a body, and a tail, then filtered and p
 
 Split the bank into impact, liquid, destruction, and comedy families and layer two or three cues per beat: contact, then debris, then settle. Put the contact on the exact frame. Keep music 6–12 dB under speech. If a real recording matters for a hero moment, import it as a shot-local `file` and leave the generated bank as the consistent bed.
 
+For a cue the bank does not have, write a Sound Lab JSON recipe and synthesize it into the channel with `python video.py sound <channel> --recipe audio/custom-impact.json`. Recipes combine tone, sweep, noise and grain layers with envelopes, filters and a reverb tail. Keep generated files inside the channel and point the episode at the new sound ID.
+
 
 ## Master for the platform
 

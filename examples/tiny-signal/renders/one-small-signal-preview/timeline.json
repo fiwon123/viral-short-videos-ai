@@ -1,0 +1,238 @@
+{
+  "fps": 24,
+  "duration_frames": 149,
+  "scenes": [
+    {
+      "id": "S1",
+      "purpose": "Introduce the station and the little signal above it.",
+      "start": 0,
+      "shots": [
+        {
+          "id": "A",
+          "start": 0,
+          "end": 77,
+          "speech": [],
+          "sfx": [
+            {
+              "start": 5,
+              "end": 17,
+              "gain": 0.2,
+              "kind": "preset",
+              "source": "chime",
+              "pan": 0.1,
+              "reverb": 0.16
+            }
+          ],
+          "three": {
+            "scene": "station",
+            "camera": [
+              {
+                "at": 0,
+                "position": [
+                  4.2,
+                  3.0,
+                  7.4
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ]
+              },
+              {
+                "at": 1,
+                "position": [
+                  2.7,
+                  2.6,
+                  5.9
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ],
+                "ease": "sine"
+              }
+            ],
+            "objects": {
+              "signal": [
+                {
+                  "at": 0.5,
+                  "scale": [
+                    0.24,
+                    0.24,
+                    0.24
+                  ],
+                  "ease": "sine"
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    0.18,
+                    0.18,
+                    0.18
+                  ],
+                  "ease": "sine"
+                }
+              ],
+              "ring-a": [
+                {
+                  "at": 0.25,
+                  "scale": [
+                    0.2,
+                    0.2,
+                    0.2
+                  ],
+                  "visible": false
+                },
+                {
+                  "at": 0.45,
+                  "scale": [
+                    0.3,
+                    0.3,
+                    0.3
+                  ],
+                  "visible": true,
+                  "ease": "expo"
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    0.55,
+                    0.55,
+                    0.55
+                  ],
+                  "visible": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "B",
+          "start": 77,
+          "end": 149,
+          "speech": [],
+          "sfx": [
+            {
+              "start": 83,
+              "end": 92,
+              "gain": 0.14,
+              "kind": "preset",
+              "source": "whoosh",
+              "pan": -0.2,
+              "reverb": 0.2
+            }
+          ],
+          "transition": {
+            "type": "dissolve",
+            "start": 77,
+            "end": 86
+          },
+          "three": {
+            "scene": "station",
+            "camera": [
+              {
+                "at": 0,
+                "position": [
+                  4.4,
+                  3.2,
+                  8.0
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ]
+              },
+              {
+                "at": 1,
+                "position": [
+                  6.2,
+                  4.2,
+                  10.2
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ],
+                "ease": "sine"
+              }
+            ],
+            "objects": {
+              "ring-a": [
+                {
+                  "at": 0,
+                  "scale": [
+                    0.45,
+                    0.45,
+                    0.45
+                  ],
+                  "visible": true
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    0.8,
+                    0.8,
+                    0.8
+                  ],
+                  "visible": false
+                }
+              ],
+              "ring-b": [
+                {
+                  "at": 0.1,
+                  "scale": [
+                    0.35,
+                    0.35,
+                    0.35
+                  ],
+                  "visible": true
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "visible": false
+                }
+              ],
+              "signal": [
+                {
+                  "at": 1,
+                  "scale": [
+                    0.12,
+                    0.12,
+                    0.12
+                  ],
+                  "ease": "sine"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "end": 149
+    }
+  ],
+  "captions": [],
+  "audio": {},
+  "music": {
+    "kind": "preset",
+    "source": "pulse",
+    "gain": 0.06
+  },
+  "loudness": {
+    "integrated_lufs": "-14.50",
+    "true_peak_db": "-1.60",
+    "loudness_range": "0.50"
+  },
+  "scene_library": {
+    "file": "scene-library/station-v1.json",
+    "version": 1
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Cinematic",
+  "camera": {"preset": "push-in"},
+  "motion_blur": 0.28,
+  "post": {"grain": 0.12, "vignette": 0.2, "bloom": 0.24, "contrast": 1.04, "saturation": 1.02},
+  "captions": {"style": "minimal", "position": "bottom", "max_words": 4},
+  "render": {"crf": 16, "preset": "slow", "tune": "film"}
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Tiny Signal",
+  "handle": "@TinySignalStudio",
+  "tagline": "One small signal. One big sky.",
+  "description": "A tiny radio station on a quiet hill sends one signal into the dark. Original 3D animated micro-stories about distance, patience and the people who listen.",
+  "tags": ["3D animation", "animated short", "tiny signal", "radio", "night scene"],
+  "mark": "TS",
+  "palette": {
+    "background": "#0B1020",
+    "foreground": "#F7EAD7",
+    "accent": "#6EE7B7",
+    "secondary": "#26324A"
+  },
+  "scene_library": "scene-library/station-v1.json",
+  "captions": {"style": "minimal", "position": "bottom", "max_words": 5},
+  "render": {"crf": 18, "preset": "medium", "tune": "animation", "supersample": 1}
+}

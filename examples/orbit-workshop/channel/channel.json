@@ -1,0 +1,14 @@
+{
+  "name": "Orbit Workshop",
+  "handle": "@OrbitWorkshop",
+  "tagline": "Small machines. Big surprises.",
+  "description": "Animated micro-stories about curious robots, impossible gadgets, and the little mistakes that change everything.",
+  "tags": ["animated micro-stories", "robot animation", "science fiction shorts", "motion graphics"],
+  "mark": "OW",
+  "palette": {
+    "background": "#0C1326",
+    "foreground": "#FAEED8",
+    "accent": "#FFCB74",
+    "secondary": "#24375D"
+  }
+}

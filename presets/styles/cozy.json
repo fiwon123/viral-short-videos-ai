@@ -1,0 +1,8 @@
+{
+  "name": "Cozy",
+  "camera": {"preset": "float"},
+  "motion_blur": 0.18,
+  "post": {"grain": 0.16, "vignette": 0.16, "bloom": 0.18, "saturation": 0.96, "tint": "#ffd6a5"},
+  "captions": {"style": "box", "position": "bottom", "max_words": 5},
+  "render": {"crf": 17, "preset": "medium", "tune": "animation"}
+}

@@ -332,8 +332,12 @@ def mix_shot(writer, frames, cursor, fps, voices, effects, bed, gain, *, preserv
         mixed += np.stack([tone[indices], tone[indices]], axis=1)
     if bed is not None and gain:
         stereo = bed if bed.ndim > 1 else np.stack([bed, bed], axis=1)
-        indices = np.arange(cursor * step, (cursor + frames) * step, dtype=np.int64) % len(stereo)
+        absolute = np.arange(cursor * step, (cursor + frames) * step, dtype=np.int64)
+        indices = absolute % len(stereo)
         music = stereo[indices] * float(gain)
+        if not (music_config or {}).get("loop", True):
+            music = music.copy()
+            music[absolute >= len(stereo)] = 0
         music *= _duck_envelope(voices, frames, step, (music_config or {}).get("duck"))[:, None]
         if total_frames:
             fade_in = float((music_config or {}).get("fade_in", 0) or 0)
@@ -361,7 +365,10 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
     fps = episode["fps"]
     limit = episode.get("max_seconds", MAX_SECONDS)
     config = merge_audio(channel, episode)
-    master = config.get("master", {})
+    master = dict(config.get("master") or {})
+    render_options = {**((channel or {}).get("render") or {}), **(episode.get("render") or {})}
+    if render_options.get("master") is False:
+        master["enabled"] = False
     music = episode.get("music")
     bed = music_bed(music, base) if music else None
     room = None

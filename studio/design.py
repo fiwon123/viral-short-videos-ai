@@ -6,6 +6,7 @@ import math
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
+from .camera import resolve_camera
 from .core import asset
 from .transform import apply as apply_matrix
 from .transform import bbox as matrix_bbox
@@ -100,7 +101,8 @@ def make_brand(channel, base, out):
 
 def poses(layer):
     state = {"x": layer["x"], "y": layer["y"], "scale": layer.get("scale", 1),
-             "rotate": layer.get("rotate", 0), "opacity": layer.get("opacity", 1)}
+             "rotate": layer.get("rotate", 0), "opacity": layer.get("opacity", 1),
+             "visible": layer.get("visible", True)}
     points = [(0, state, "linear")]
     for key in layer.get("keyframes", []):
         state = {name: key.get(name, value) for name, value in state.items()}
@@ -171,7 +173,11 @@ def pose_at(points, progress):
     for (a, start, _), (b, end, mode) in zip(points, points[1:]):
         if progress <= b:
             t = ease((progress - a) / (b - a) if b > a else 1, mode)
-            return {name: value + (end[name] - value) * t for name, value in start.items()}
+            return {
+                name: (end[name] if progress >= b else value) if isinstance(value, bool)
+                else value + (end[name] - value) * t
+                for name, value in start.items()
+            }
     return points[-1][1]
 
 
@@ -295,7 +301,7 @@ class Composition:
         self.background = shot.get("background", palette["background"])
         self.post = _merge(channel.get("post"), episode_post, shot.get("post"))
         self.motion_blur = shot.get("motion_blur", motion_blur)
-        self.camera_points = camera_points(shot)
+        self.camera_points = camera_points({**shot, "camera": resolve_camera(shot)}) if shot.get("camera") else None
         layers = sorted(layer_order(shot["layers"]), key=lambda item: item.get("plane") != "background")
         self.layers = [{
             "id": layer["id"],
@@ -303,6 +309,7 @@ class Composition:
             "points": poses(layer),
             "mouth_for": layer.get("mouth_for"),
             "parent": layer.get("parent"),
+            "variant_group": layer.get("variant_group"),
             "pivot": layer.get("pivot", [0.5, 0.5]),
             "blend": layer.get("blend", "normal"),
             "blur": layer.get("blur", 0),
@@ -318,11 +325,24 @@ class Composition:
         for layer in self.layers:
             if layer["parent"] in hidden_ids:
                 hidden_ids.add(layer["id"])
+        states = {layer["id"]: pose_at(layer["points"], progress) for layer in self.layers}
+        chosen = {}
+        for layer in self.layers:
+            group = layer.get("variant_group")
+            if group and states[layer["id"]]["visible"]:
+                chosen[group] = layer["id"]
+        for layer in self.layers:
+            state = states[layer["id"]]
+            group = layer.get("variant_group")
+            if group and chosen.get(group) != layer["id"]:
+                state["visible"] = False
+            if layer["parent"] and not states[layer["parent"]]["visible"]:
+                state["visible"] = False
         matrices, alphas, origins = {}, {}, {}
         for layer in self.layers:
-            if layer["id"] in hidden_ids:
+            state = states[layer["id"]]
+            if layer["id"] in hidden_ids or not state["visible"]:
                 continue
-            state = pose_at(layer["points"], progress)
             parent_matrix = matrices.get(layer["parent"])
             parent_alpha = alphas.get(layer["parent"], 1.0)
             alpha = state["opacity"] * parent_alpha
@@ -395,8 +415,8 @@ def sprite(layer, canvas, palette, font, base):
     return tile
 
 
-def transition_frame(previous, current, mode, progress):
-    t = ease(progress, "smooth")
+def transition_frame(previous, current, mode, progress, ease_mode="smooth"):
+    t = ease(progress, ease_mode)
     if mode == "dissolve":
         return Image.blend(previous, current, t)
     if mode in {"wipe-left", "wipe-right", "wipe-up", "wipe-down"}:
@@ -500,7 +520,7 @@ def caption_layout(image, text, font_path, config=None):
     width, height = image.size
     max_words = int(config.get("max_words", 6))
     max_width = width * 0.82
-    size = max(14, round(min(width, height) * 0.058))
+    size = max(12, round(min(width, height) * 0.058 * float(config.get("font_size", 1))))
     draw = ImageDraw.Draw(image)
     font, rows = get_font(font_path, size), []
     # Shrink rather than clip when a long line or a narrow phone needs it.
@@ -543,34 +563,43 @@ def draw_caption(image, cue, channel, font, config=None, frame=None):
     style = config.get("style", "box")
     position = config.get("position", "bottom")
     font_obj, rows, size = caption_layout(image, text, font, config)
-    draw = ImageDraw.Draw(image)
     width, height = image.size
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    foreground = config.get("foreground", channel["palette"]["foreground"])
+    background = config.get("background", channel["palette"]["background"])
+    highlight = config.get("highlight", channel["palette"]["accent"])
     top = rows[0][0]["box"][1] if rows else 0
     bottom = rows[-1][0]["box"][3] if rows else 0
-    block_height = bottom - top
     if position == "top":
         offset = round(height * 0.09) - top
     elif position == "center":
         offset = round(height * 0.46) - top
     else:
         offset = round(height * 0.80) - top
+    radius = max(2, round(size * float(config.get("radius", 0.45))))
     if style in {"box", "karaoke"}:
         pad_x, pad_y = round(size * 0.65), round(size * 0.45)
         left = round(width / 2 - width * 0.43) - pad_x
         right = round(width / 2 + width * 0.43) + pad_x
         box = (left, offset + top - pad_y, right, offset + bottom + pad_y)
-        draw.rounded_rectangle(box, radius=max(2, round(size * 0.45)),
-                               fill=channel["palette"]["background"])
-    highlight = config.get("highlight", channel["palette"]["accent"])
+        draw.rounded_rectangle(box, radius=radius, fill=background)
+    outline = max(0, round(size * float(config.get("stroke", 0))))
+    shadow = bool(config.get("shadow", False))
+
+    def write(word, x, y, fill):
+        if shadow:
+            draw.text((x + size * 0.05, y + size * 0.07), word, font=font_obj,
+                      fill=(0, 0, 0, 120), stroke_width=outline, stroke_fill=(0, 0, 0, 90))
+        draw.text((x, y), word, font=font_obj, fill=fill,
+                  stroke_width=outline, stroke_fill=background if outline else fill)
+
     if style == "minimal":
-        outline = max(2, round(size * 0.11))
         for row in rows:
             for word in row:
                 box = (word["box"][0], word["box"][1] + offset,
                        word["box"][2], word["box"][3] + offset)
-                draw.text((box[0], box[1]), word["text"], font=font_obj,
-                          fill=channel["palette"]["foreground"], stroke_width=outline,
-                          stroke_fill=channel["palette"]["background"])
+                write(word["text"], box[0], box[1], foreground)
     elif style == "karaoke" and cue.get("words"):
         active = None
         if frame is not None:
@@ -585,15 +614,29 @@ def draw_caption(image, cue, channel, font, config=None, frame=None):
                     draw.rounded_rectangle((box[0] - size * 0.18, box[1] - size * 0.13,
                                             box[2] + size * 0.18, box[3] + size * 0.19),
                                            radius=max(2, round(size * 0.25)), fill=highlight)
-                draw.text((box[0], box[1]), word["text"], font=font_obj,
-                          fill=channel["palette"]["background"] if index == active
-                          else channel["palette"]["foreground"])
+                write(word["text"], box[0], box[1], background if index == active else foreground)
                 index += 1
     else:
         for row in rows:
             for word in row:
-                draw.text((word["box"][0], word["box"][1] + offset), word["text"], font=font_obj,
-                          fill=channel["palette"]["foreground"])
+                write(word["text"], word["box"][0], word["box"][1] + offset, foreground)
+
+    animation = config.get("animation", "none")
+    if animation != "none" and cue.get("start") is not None and cue.get("end") is not None:
+        span = max(1, int((cue["end"] - cue["start"]) * 0.22))
+        t = 1.0 if frame is None else max(0.0, min(1.0, (frame - cue["start"]) / span))
+        if animation == "pop":
+            scale = 0.9 + 0.1 * t
+            resized = layer.resize((max(1, round(width * scale)), max(1, round(height * scale))),
+                                   Image.Resampling.BICUBIC)
+            layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+            layer.alpha_composite(resized, ((width - resized.width) // 2,
+                                            (height - resized.height) // 2))
+        elif animation == "slide":
+            shifted = Image.new("RGBA", image.size, (0, 0, 0, 0))
+            shifted.alpha_composite(layer, (0, round((1 - t) * height * 0.035)))
+            layer = shifted
+    image.paste(layer, (0, 0), layer)
 
 
 def thumbnail(frame, text, channel, font):

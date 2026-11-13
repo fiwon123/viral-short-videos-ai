@@ -179,9 +179,18 @@ export async function createPainter(canvas, data, urlFor) {
     const matrices = new Map();
     const alphas = new Map();
     const origins = new Map();
+    const states = new Map(layers.map((layer) => [layer.id, layer.getPose(progress)]));
+    const chosen = new Map();
     for (const layer of layers) {
-      if (isCover && hiddenOnCover.has(layer.id)) continue;
-      const pose = layer.getPose(progress);
+      const state = states.get(layer.id);
+      if (layer.variant_group && (state.visible ?? true)) chosen.set(layer.variant_group, layer.id);
+    }
+    for (const layer of layers) {
+      if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
+      const pose = states.get(layer.id);
+      if (!(pose.visible ?? true)) continue;
+      if (layer.variant_group && chosen.get(layer.variant_group) !== layer.id) continue;
+      if (layer.parent && !(states.get(layer.parent)?.visible ?? true)) continue;
       const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
       const parentAlpha = layer.parent ? (alphas.get(layer.parent) ?? 1) : 1;
       const alpha = (pose.opacity ?? 1) * parentAlpha;
@@ -305,6 +314,20 @@ export async function createPainter(canvas, data, urlFor) {
   function drawCaption(frame) {
     const caption = captions[findFrame(captions, frame)];
     if (!caption || caption.start > frame) return;
+    const animation = caption.animation ?? "none";
+    ctx.save();
+    if (animation !== "none") {
+      const span = Math.max(1, (caption.end - caption.start) * 0.22);
+      const t = Math.max(0, Math.min(1, (frame - caption.start) / span));
+      if (animation === "pop") {
+        const scaleValue = 0.9 + 0.1 * t;
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scaleValue, scaleValue);
+        ctx.translate(-width / 2, -height / 2);
+      } else if (animation === "slide") {
+        ctx.translate(0, (1 - t) * height * 0.035);
+      }
+    }
     if (caption.karaoke) {
       const background = images.get(caption.background.sprite);
       ctx.drawImage(background, caption.background.x, caption.background.y);
@@ -327,11 +350,13 @@ export async function createPainter(canvas, data, urlFor) {
       const sprite = images.get(caption.sprite);
       ctx.drawImage(sprite, caption.x, caption.y);
     }
+    ctx.restore();
   }
 
-  function transition(t, type) {
+  function transition(t, type, easeMode = "smooth") {
+    t = easing(t, easeMode);
     if (type === "dissolve") {
-      ctx.globalAlpha = easing(t, "smooth");
+      ctx.globalAlpha = t;
       ctx.drawImage(incoming, 0, 0);
       return;
     }
@@ -398,7 +423,7 @@ export async function createPainter(canvas, data, urlFor) {
         const t = (frame - edge.start + 1) / (edge.end - edge.start);
         ctx.save();
         ctx.globalAlpha = 1;
-        transition(t, edge.type);
+        transition(t, edge.type, edge.ease ?? "smooth");
         ctx.restore();
       } else {
         paintShot(ctx, index, frame, isCover);

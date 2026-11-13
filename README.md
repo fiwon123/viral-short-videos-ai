@@ -1,156 +1,117 @@
 <h1 align="center">🎬 Viral Short Videos AI</h1>
 
 <p align="center">
-  <a href=".agents/skills/viral-video-studio/references/shorts.md"><img alt="Format: Animated Shorts" src="https://img.shields.io/badge/Format-Animated%20Shorts-6d4aff"></a>
-  <a href=".agents/skills/viral-video-studio/references/renderers.md"><img alt="Animation: 2D, 2.5D, and 3D" src="https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e"></a>
-  <a href=".agents/skills/viral-video-studio/SKILL.md"><img alt="Workflow: Research to MP4" src="https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e"></a>
+  <a href=".agents/skills/viral-video-studio/SKILL.md"><img alt="Workflow: Research to MP4" src="https://img.shields.io/badge/Workflow-Research%20to%20MP4-2563eb?style=flat-square"></a>
+  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/Motion-Camera-and-Rigs"><img alt="Animation: 2D, 2.5D and 3D" src="https://img.shields.io/badge/Animation-2D%20%7C%202.5D%20%7C%203D-0f766e?style=flat-square"></a>
+  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki/Audio-and-Sound-Design"><img alt="Audio: mastered stereo" src="https://img.shields.io/badge/Audio-Mastered%20Stereo-8b5cf6?style=flat-square"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square"></a>
 </p>
 
-A reusable template for turning a video idea into an original channel and a finished episode. The built-in studio focuses on **animated Shorts**, including character comedy, visual gags, short stories, and explainers. It supports 2D, 2.5D, and 3D animation up to 12 minutes. You can reuse the research, scripting, and publishing steps for other genres with your own production tools.
+Turn a video idea into an original animated channel and a finished Short. The studio is manifest-driven: an AI or a person writes JSON, imports original assets, previews, and renders a verified MP4 with captions and publishing copy.
 
-## 🤖 Use any AI model
+It supports 2D vector, 2.5D layered and 3D animation up to 12 minutes, with AI-controlled camera moves, transitions, sound design, captions, VFX and audio mastering.
 
-The workflow is written in Markdown and works with hosted or local models that can follow text instructions. Use ChatGPT, Claude, Codex, OpenCode, another coding assistant, or a model you run yourself. Model quality, available tools, and context size can affect the result and how much review it needs.
+## 🚀 Quick start
 
-1. **If your assistant can access the repository**, open the folder and tell it to follow [SKILL.md](.agents/skills/viral-video-studio/SKILL.md). Run your assistant in the terminal if that is how you normally use it.
-2. **If you use a standalone chat or text-only model**, attach or paste [SKILL.md](.agents/skills/viral-video-studio/SKILL.md). Add [discovery and branding](.agents/skills/viral-video-studio/references/discovery.md) for channel work or [production](.agents/skills/viral-video-studio/references/production.md), [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md), and the [episode schema](studio/schema.json) for video work. If the model has limited context, share the guide for one stage at a time and carry the approved brief forward.
-3. **Match the work to the tools available.** For live research, give a model without browsing your reference links and verified notes. For rendering, have a model without terminal access return the editable manifests, assets or asset list, and the export command so you can run it locally.
-
-## 🚀 Start where you are
-
-On GitHub, use **Code** to clone or download the repository. Open it in your assistant or share the files above.
-
-**Copy a prompt.** Use the copy icon in the top-right corner of a prompt box on GitHub when it appears. In other viewers, select the text inside the box. Paste it into your assistant and replace the bracketed fields you know. Leave the others open for the assistant to propose. Add any other preferences that matter, such as genre, language, or time budget.
-
-### 🔎 Find an original channel direction
-
-```text
-Help me choose a channel direction for [platform, country, audience].
-
-Compare five relevant channels using their strongest Shorts from the last
-seven days where reliable data is available. Include links, dates, views,
-and one technique I can adapt from each example.
-
-Give me three original directions. For each, show the audience promise,
-repeatable video format, animation style, runtime range, and a pilot idea.
-Let me choose a direction.
+```sh
+git clone https://github.com/fiwon123/viral-short-videos-ai.git
+cd viral-short-videos-ai
+python -m pip install -r requirements.txt
+npm ci --ignore-scripts
+python video.py doctor
 ```
 
-### 🎨 Build a channel from scratch
+For Kokoro voices, use Python 3.10–3.13 and install `requirements-voice.txt`, then add the local model files under `audio-models/`. See [Quick Start](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start).
+
+## 📁 One channel = one workspace
 
 ```text
-Build an original channel around [idea or direction] for [platform] and
-[audience]. Propose a name, handle, tagline, description, and keywords.
-
-Design a logo that reads at avatar size and a banner that survives the
-platform crop. Define the colors, fonts, characters, voices, video format,
-and target runtime.
-
-Save the approved brand kit and give me three pilot ideas with estimated
-production effort for each.
+workspace/<channel>/
+├── channel/
+│   ├── channel.json      # machine-readable identity
+│   ├── channel.md        # generated copy/paste page
+│   ├── brief.md
+│   ├── brand/
+│   ├── art/
+│   ├── audio/
+│   └── vfx/
+├── episodes/<episode>/episode.json
+├── research/
+└── renders/<episode>-v1/
+    ├── video.mp4
+    ├── thumbnail.png
+    ├── captions.srt
+    └── publishing.md
 ```
 
-### 🔄 Continue an existing channel
+The older `channels/`, `episodes/`, `research/` and `output/` layout still works. Migrate one channel when ready:
 
-```text
-Use my channel brief, assets, and recent videos [attach or link]. Keep the
-approved brand, character designs, voices, and episode format unless I ask
-for a change.
-
-If I share analytics, compare similar uploads at the same age and show
-what you can verify. Suggest three original episodes that fit the channel
-and one change worth testing.
+```sh
+make migrate CHANNEL=channels/my-channel/channel.json EPISODE=episodes/my-episode/episode.json
+make migrate CHANNEL=channels/my-channel/channel.json EPISODE=episodes/my-episode/episode.json APPLY=1
 ```
 
-### 🎞️ Make one episode
+## ▶️ The five commands you need
 
-```text
-Turn [idea] into an original [2D, 2.5D, or 3D] video for [platform]. Use
-[language], aim for [runtime], and follow my approved channel brief.
-
-Write a timed shot plan with positions, poses, camera, dialogue, captions,
-sound, and transitions. Make a phone-size rough cut. Check the opening and
-payoff with sound and muted.
-
-Deliver the MP4, editable source, timed script, SRT when needed, thumbnail,
-title, description, and platform tags or hashtags. Tell me which files
-are ready to use.
+```sh
+make status       # resolved channel, episode and layout
+make validate     # schema and asset checks
+make audio        # listen to the mastered mix before animation
+make preview      # fast review render
+make render       # final package
 ```
 
-### 📅 Plan the first month
+Pass `EPISODE=...` and `CHANNEL=...` when discovery is ambiguous. `make help` lists the rest, including `sfx`, `vfx`, `sound`, `effect`, `channel-doc` and `assets`.
 
-```text
-Make a four-week posting plan for [platforms] in [country] with a budget
-of [hours per week]. Give me a realistic number of videos per week,
-posting days and times to test, and what to review each week. Use my
-audience's time zone and any channel data I share.
+## 🎨 Creative controls
 
-Verify each platform's monetization rules and show my remaining milestones.
-Estimate time to eligibility only from stated assumptions or my own data.
+```json
+{
+  "style": {"preset": "cinematic"},
+  "camera": {"preset": "push-in"},
+  "motion_blur": 0.3,
+  "post": {"grain": 0.12, "vignette": 0.2, "bloom": 0.24},
+  "captions": {"style": "karaoke", "animation": "pop"},
+  "audio": {"master": {"loudness": -14}, "reverb": {"mix": 0.08}}
+}
 ```
 
-## 🎯 Keep episodes consistent
+Layer-level rigs, blend modes, camera shake, procedural transitions, Sound Lab recipes and Effect Lab SVGs are documented in the wiki.
 
-Save the approved identity, characters, voice references, subtitle style, thumbnail style, and repeatable episode format with the channel. Reuse those decisions while giving each episode a new premise, action, and payoff. Study references for staging, timing, and performance, then create your own characters, artwork, dialogue, and sound.
+## 🧪 Complete examples
 
-Channels can also carry a generated Foley bank and a palette-matched effects kit: `python -m studio.sfx channels/<slug>` writes layered, variant-based sound effects, `python -m studio.vfx channels/<slug>` draws flash, dust, splash, shockwave and finishing art, and `studio/physics.py` samples falling, bouncing, splashing, springing and swinging motion instead of hand-placed keys.
+Three complete, original examples show the full input-to-output flow:
 
-### ✨ Finishing controls
-
-Episodes can now direct the parts that usually make a render feel finished:
-
-- **Motion:** spring, back, elastic, bounce, sine, expo and hold easings; parented 2D rigs with pivots; a shot camera with push-in, pan and rotate keys; motion blur; and 2× supersampling for both renderers.
-- **Picture:** per-shot `post` controls for grade, bloom, blur, chromatic split, grain, vignette and letterbox; layer blend modes; and a larger transition set including whip pans, slides, iris, flash and dip-to-black.
-- **Sound:** stereo mixing, panning, convolution reverb, layered Foley stacks, pitch variation, room tone, music ducking, and a two-pass loudness master targeting −14 LUFS with a true-peak limiter.
-- **Captions:** `box`, `karaoke`, and `minimal` styles with word-level timing, configurable position, uppercase, highlight colour and word grouping.
-- **3D:** ACES tone mapping, sRGB output, PBR material controls, and glTF animation clip playback.
-
-All of these are optional. Existing manifests render with the same defaults and gain the safer transform maths, louder master and animated captions automatically.
-
-Try a 15–30 second first cut for a single visual gag, then adjust the length to fit the beats and the platform. Review it on a phone. Check where the eye goes in the opening, whether the payoff reads when muted, and whether captions and effects line up in playback. Each render includes `publishing.md` with YouTube title, description, and tags, plus a TikTok caption with hashtags. [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md)
-
-## 📈 Posting and monetization
-
-**Start with a schedule you can keep.** For a new animated channel, try **one Short per posting day on two or three days a week** for the first four weeks. That’s a starter experiment. Pick two time slots in your audience’s time zone, compare posts at the same age, and review watch time, completion, and shares where available. Move toward one a day only if your production time and quality can support it. Use your own audience activity to refine posting times as data comes in. [YouTube scheduling guidance](https://support.google.com/youtube/answer/13616979?co=YOUTUBE._YTVideoType%3Dshorts&hl=en) · [YouTube audience analytics](https://support.google.com/youtube/answer/9314416?hl=en)
-
-**Plan for eligibility, review, and then earnings.** The 30- and 90-day windows measure recent performance. Time to qualify depends on the channel’s growth and the rules for its country and account. Check the platform dashboard before planning around revenue. Rules below were checked November 10, 2026.
-
-| Platform | What to plan for |
+| Example | Shows |
 | --- | --- |
-| **YouTube Shorts** | Shorts can run up to **3 minutes**. The Shorts route to ad sharing requires **1,000 subscribers** and **10 million qualified public Shorts views in the last 90 days**. YouTube says Partner Program review typically takes about **one month after applying**. In eligible countries, some fan-funding and shopping features may be available at **500 subscribers**, plus **3 valid public uploads and 3 million qualified Shorts views in the last 90 days**. [Shorts format](https://support.google.com/youtube/answer/12921536) · [Partner Program](https://support.google.com/youtube/answer/72851?hl=en) · [Expanded program](https://support.google.com/youtube/answer/13429240?hl=en) |
-| **TikTok Creator Rewards** | Where available, the program requires an eligible personal account with **10,000 followers** and **100,000 video views in the last 30 days**. TikTok gives **about three days** for an application response through TikTok Studio. An eligible original video must run **at least one minute**, be posted after joining, and reach **1,000 qualified For You feed views** to start earning. [TikTok Creator Rewards requirements](https://www.tiktok.com/support/faq_detail?id=7581821550694013452&category=web_account) |
+| [Orbit Workshop](examples/orbit-workshop) | 2D/2.5D layers, karaoke captions, Foley and a finished package |
+| [Paper Crane Post](examples/paper-crane) | Parented rig, camera push-in, slide caption, whip transition and post |
+| [Tiny Signal](examples/tiny-signal) | Three.js scene library, PBR/emissive materials, camera move and mastered mix |
 
-YouTube also lists a **February 1, 2027** change that requires **10 million qualified Shorts views over its specified 90-day window** for monthly Shorts Creator Pool and Premium revenue. Check the policy when planning a Shorts-first channel. [YouTube Shorts monetization policies](https://support.google.com/youtube/answer/12504220?hl=en)
+Each example contains a channel identity, episode source, research note, generated `channel.md`, rendered preview and publishing package. See [examples/README.md](examples/README.md).
 
-## 🛠️ Render locally
+## 📚 Documentation
 
-Install Python 3.10+ and FFmpeg with FFprobe. From the repository folder, run `python -m pip install -r requirements.txt` and `python video.py doctor`. For SVG or 3D projects, install Node.js 22+ and Chrome or Chromium, then run `npm ci --ignore-scripts`. Follow the export command your assistant provides. [Renderer options](.agents/skills/viral-video-studio/references/renderers.md) · [Voice and sound](.agents/skills/viral-video-studio/references/audio.md)
+| I want to… | Read |
+| --- | --- |
+| Understand the big picture | [Core Concepts](https://github.com/fiwon123/viral-short-videos-ai/wiki/Core-Concepts) |
+| Look up every field | [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) |
+| Make audio and sound design | [Audio and Sound Design](https://github.com/fiwon123/viral-short-videos-ai/wiki/Audio-and-Sound-Design) |
+| Move the camera and rig a character | [Motion, Camera and Rigs](https://github.com/fiwon123/viral-short-videos-ai/wiki/Motion-Camera-and-Rigs) |
+| Make effects and transitions | [VFX and Post](https://github.com/fiwon123/viral-short-videos-ai/wiki/VFX-and-Post) |
+| Style captions | [Captions and Typography](https://github.com/fiwon123/viral-short-videos-ai/wiki/Captions-and-Typography) |
+| Build 3D scenes | [3D and Renderers](https://github.com/fiwon123/viral-short-videos-ai/wiki/3D-and-Renderers) |
+| Use AI to make a video | [AI Workflow and Prompt Cookbook](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook) |
+| Publish and troubleshoot | [QA, Export and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
+| Edit the docs source | [wiki/](wiki/) · publish with `make wiki` |
 
-The `Makefile` wraps the same commands and ships **no channel or episode path** — it resolves what is on disk, then falls back to `.env`:
+## 🛠️ Requirements
 
-```sh
-make status        # what channel, episode, and .env resolve to
-make init          # write .env from what is already on disk
-make assets        # what this channel needs, and what is optional
-make doctor        # ffmpeg, node, Chrome, Kokoro
+- Python 3.10+ with `requirements.txt`
+- FFmpeg and FFprobe
+- Node.js 22+ and Chrome or Chromium for SVG/3D renderers
+- Optional Kokoro ONNX model files for local neural voices
 
-make validate EPISODE=episodes/my-episode/episode.json
-make preview  EPISODE=episodes/my-episode/episode.json
-make render   EPISODE=episodes/my-episode/episode.json
-```
+## 📄 License
 
-Resolution order for `CHANNEL` and `EPISODE`: command line, then `.env`, then discovery. Discovery picks the only channel folder that has a manifest, preferring `channel.json`; with several folders or several manifests it stops and tells you what to pass. Copy [.env.example](.env.example) to `.env` to pin a channel and episode to the machine — `.env` is ignored by git, so a fresh clone starts clean.
-
-Episode packages go under `output/<channel-slug>/`, using the selected channel manifest’s folder name. For example, rendering `episodes/my-episode/episode.json` with `CHANNEL=channels/my-channel/channel.json` writes `output/my-channel/my-episode-v1/video.mp4` alongside its publishing guide and other exports. Preview and audio packages use the suffixes `-preview` and `-audio`. Pass `OUT=<dir>` with Make or `--out <dir>` with `video.py` to choose a different path, including for a new render of the same episode.
-
-`make assets` prints the identity kit a render actually reads — cast models, scene libraries, voice profiles, Foley — and separates it from artwork, documentation, audition leftovers and older looks. Delete an optional group only when you mean it:
-
-```sh
-make prune-casting        # dry run
-make prune-casting APPLY=1
-```
-
-`make clean-cache` clears failed render staging, audio takes and `__pycache__`; `make clean-previews` removes preview packages. Rendered packages are never deleted automatically.
-
-Channel assets, episodes, research, and exports stay in your local project folders. Each new clone carries the reusable workflow and tools.
+MIT. See [LICENSE](LICENSE).

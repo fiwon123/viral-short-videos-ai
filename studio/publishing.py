@@ -1,6 +1,7 @@
 """Build a copy-ready publishing guide for a rendered episode package."""
 
 import re
+from pathlib import Path
 
 # Limits per destination. Keep platform rules here so a new destination is one entry.
 LIMITS = {
@@ -124,6 +125,57 @@ def package_section(package, destination, video, episode, runtime):
     rows = ["## Package", "", f"Folder: `{destination.absolute()}`", ""]
     rows.extend(f"- `{name}` — {notes.get(name, 'Rendered file.')}" for name in names)
     return [*rows, ""]
+
+
+def channel_guide(channel, base):
+    """Human-readable channel identity with copy-ready platform blocks."""
+    base = Path(base)
+    name = channel["name"]
+    handle = channel.get("handle", "")
+    rows = [f"# 🎬 {name}", ""]
+    if handle:
+        rows.extend([f"`{handle}`", ""])
+    rows.extend([f"> {channel['tagline']}", "",
+                 "This page is generated from `channel.json`. Edit the JSON, then run "
+                 "`python video.py channel-doc <channel.json>` to refresh it.", "",
+                 "## Identity", "",
+                 "| Field | Value |",
+                 "| --- | --- |",
+                 f"| Name | **{name}** |",
+                 f"| Handle | `{handle or '—'}` |",
+                 f"| Mark | `{channel.get('mark', '')}` |",
+                 f"| Font | `{channel.get('font', 'default sans serif')}` |",
+                 f"| Tags | {', '.join(channel.get('tags', []))} |", ""])
+    palette = channel["palette"]
+    rows.extend(["## 🎨 Palette", "",
+                 "| Role | Hex | Swatch |",
+                 "| --- | --- | --- |"])
+    for role, value in palette.items():
+        hexed = value.lstrip("#")
+        rows.append(f"| {role} | `{value}` | "
+                    f"![{role}](https://img.shields.io/badge/-%23{hexed}?style=flat-square&color={hexed}) |")
+    rows.append("")
+    if (base / "brand" / "logo.png").is_file():
+        rows.extend(["## 🖼️ Brand kit", "",
+                     "| Asset | File |",
+                     "| --- | --- |",
+                     "| Logo | [brand/logo.png](brand/logo.png) |",
+                     "| Banner | [brand/banner.png](brand/banner.png) |",
+                     "| Safe-area preview | [brand/banner-safe-preview.png](brand/banner-safe-preview.png) |", ""])
+    rows.extend(["## 📺 YouTube channel description", "",
+                 fence(channel["description"].strip()), "",
+                 "## 🏷️ YouTube channel tags", "",
+                 fence(", ".join(channel.get("tags", []))), "",
+                 "## 🎵 TikTok bio", "",
+                 fence((channel.get("tagline", "") + " " + hashtag_line(channel.get("tags", []))).strip()), "",
+                 "## 📋 Where to paste", "",
+                 "| Platform | Field | Source |",
+                 "| --- | --- | --- |",
+                 "| YouTube | Channel description | the block above |",
+                 "| YouTube | Channel tags | the block above |",
+                 "| TikTok | Bio | the block above |",
+                 "| YouTube / TikTok | Episode title, description, tags and caption | each render's `publishing.md` |", ""])
+    return "\n".join(rows).rstrip() + "\n"
 
 
 def publishing_guide(episode, channel, timeline, package, destination=None):

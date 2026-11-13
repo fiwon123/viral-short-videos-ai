@@ -25,7 +25,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets sfx vfx doctor list \
+.PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect wiki \
         validate check audio preview render \
         clean clean-cache clean-previews \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -38,6 +38,11 @@ help:
 	@echo "  make assets                 what the channel needs, and what is optional"
 	@echo "  make sfx                    regenerate the channel Foley bank"
 	@echo "  make vfx                    redraw the channel VFX kit from its palette"
+	@echo "  make sound RECIPE=...       synthesize a custom Sound Lab recipe"
+	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
+	@echo "  make channel-doc            write channel.md from channel.json"
+	@echo "  make migrate                dry-run a legacy channel move; APPLY=1 to move"
+	@echo "  make wiki                   publish wiki/ to the GitHub Wiki"
 	@echo "  make doctor                 check ffmpeg, node, Chrome, Kokoro"
 	@echo "  make list                   channel folders and episodes"
 	@echo
@@ -80,6 +85,27 @@ vfx:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
 	@$(PYTHON) -m studio.vfx $(CHANNEL_DIR)
 
+sound:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@test -n "$(RECIPE)" || { echo "Set RECIPE=audio/my-recipe.json"; exit 1; }
+	@$(PYTHON) -m studio.soundlab $(CHANNEL_DIR) --recipe $(RECIPE)
+
+effect:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@test -n "$(RECIPE)" || { echo "Set RECIPE=vfx/my-effect.json"; exit 1; }
+	@$(PYTHON) -m studio.effectlab $(CHANNEL_DIR) --recipe $(RECIPE)
+
+channel-doc:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@$(PYTHON) video.py channel-doc $(CHANNEL)
+
+migrate:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
+	@$(PYTHON) -m studio.migrate $(CHANNEL) $(if $(EPISODE),--episode $(EPISODE),) $(if $(APPLY),--apply,)
+
+wiki:
+	@./scripts/publish-wiki.sh
+
 doctor:
 	@$(PYTHON) video.py doctor
 
@@ -106,7 +132,9 @@ render:
 
 list:
 	@echo "channels:"; ls -1 channels 2>/dev/null | sed 's/^/  /' || true
+	@echo "workspace:"; ls -1 workspace 2>/dev/null | sed 's/^/  /' || true
 	@echo "episodes:"; ls -1 episodes 2>/dev/null | sed 's/^/  /' || true
+	@echo "examples:"; find examples -mindepth 1 -maxdepth 1 -type d -printf '  %f\n' 2>/dev/null | sort || true
 
 clean-cache:
 	@find output -mindepth 1 -maxdepth 2 -name '.studio-*' -type d -prune -print -exec rm -rf {} + 2>/dev/null || true

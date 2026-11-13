@@ -1,0 +1,10 @@
+{
+  "id": "custom-impact",
+  "layers": [
+    {"type": "tone", "start": 120, "end": 42, "duration": 0.22, "gain": 0.8, "attack": 0.002, "decay": 3.2},
+    {"type": "noise", "duration": 0.08, "gain": 0.5, "filter": {"type": "bandpass", "low": 900, "high": 4800}},
+    {"type": "grain", "count": 12, "duration": 0.4, "gain": 0.3}
+  ],
+  "reverb": {"mix": 0.15, "size": 0.3},
+  "variants": 3
+}

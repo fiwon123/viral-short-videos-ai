@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "lighting_rigs": {
+    "night": {
+      "ambient": 0.18,
+      "key": 1.7,
+      "position": [
+        -3,
+        6,
+        4
+      ],
+      "target": [
+        0,
+        0.7,
+        0
+      ],
+      "color": "#BFD7FF",
+      "shadows": true,
+      "shadow_extent": 5
+    }
+  },
+  "scenes": {
+    "station": {
+      "camera": {
+        "position": [
+          4.2,
+          3.0,
+          7.4
+        ],
+        "target": [
+          0,
+          1.8,
+          0
+        ],
+        "fov": 38
+      },
+      "lighting_rig": "night",
+      "objects": [
+        {
+          "id": "ground",
+          "kind": "box",
+          "position": [
+            0,
+            -0.35,
+            0
+          ],
+          "scale": [
+            8,
+            0.6,
+            6
+          ],
+          "color": "#162033",
+          "receive_shadow": true
+        },
+        {
+          "id": "desk",
+          "kind": "box",
+          "position": [
+            0,
+            0.15,
+            0
+          ],
+          "scale": [
+            2.6,
+            0.3,
+            1.5
+          ],
+          "color": "#3B4A63",
+          "cast_shadow": true,
+          "receive_shadow": true
+        },
+        {
+          "id": "mast",
+          "kind": "cylinder",
+          "position": [
+            0.9,
+            1.8,
+            -0.35
+          ],
+          "scale": [
+            0.12,
+            2.8,
+            0.12
+          ],
+          "color": "#8EA4C8",
+          "cast_shadow": true
+        },
+        {
+          "id": "dish",
+          "kind": "sphere",
+          "position": [
+            0.9,
+            3.3,
+            -0.35
+          ],
+          "scale": [
+            0.42,
+            0.16,
+            0.42
+          ],
+          "color": "#F7EAD7",
+          "cast_shadow": true
+        },
+        {
+          "id": "signal",
+          "kind": "sphere",
+          "position": [
+            0.9,
+            3.6,
+            -0.35
+          ],
+          "scale": [
+            0.18,
+            0.18,
+            0.18
+          ],
+          "color": "#6EE7B7",
+          "emissive": "#6EE7B7",
+          "emissive_intensity": 2.4
+        },
+        {
+          "id": "ring-a",
+          "kind": "torus",
+          "position": [
+            0.9,
+            3.6,
+            -0.35
+          ],
+          "scale": [
+            1.2,
+            1.2,
+            1.2
+          ],
+          "color": "#6EE7B7",
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "ring-b",
+          "kind": "torus",
+          "position": [
+            0.9,
+            3.6,
+            -0.35
+          ],
+          "scale": [
+            1.9,
+            1.9,
+            1.9
+          ],
+          "color": "#6EE7B7",
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "visible": false
+        }
+      ]
+    }
+  }
+}

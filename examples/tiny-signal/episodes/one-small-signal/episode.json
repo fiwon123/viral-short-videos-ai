@@ -1,0 +1,292 @@
+{
+  "title": "The Signal That Waited",
+  "description": "A tiny station sends one green signal into the dark and waits. An original Tiny Signal 3D micro-story about distance and patience.",
+  "tags": [
+    "3D animation",
+    "animated short",
+    "tiny signal",
+    "radio",
+    "night scene"
+  ],
+  "tiktok": {
+    "caption": "One small signal into one very big sky. #3DAnimation #AnimatedShort"
+  },
+  "width": 540,
+  "height": 960,
+  "fps": 24,
+  "max_seconds": 7,
+  "style": {
+    "preset": "cinematic"
+  },
+  "music": {
+    "preset": "pulse",
+    "gain": 0.06,
+    "duck": {
+      "amount": 0.5,
+      "attack": 0.04,
+      "release": 0.16
+    }
+  },
+  "thumbnail": {
+    "shot": "A",
+    "at": 0.62,
+    "text": "ONE SMALL SIGNAL",
+    "hide_layers": [
+      "badge"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "S1",
+      "purpose": "Introduce the station and the little signal above it.",
+      "shots": [
+        {
+          "id": "A",
+          "duration": 3.2,
+          "direction": "A slow push toward the little dish while the signal pulses above it.",
+          "three": {
+            "scene": "station",
+            "camera": [
+              {
+                "at": 0,
+                "position": [
+                  4.2,
+                  3.0,
+                  7.4
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ]
+              },
+              {
+                "at": 1,
+                "position": [
+                  2.7,
+                  2.6,
+                  5.9
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ],
+                "ease": "sine"
+              }
+            ],
+            "objects": {
+              "signal": [
+                {
+                  "at": 0.5,
+                  "scale": [
+                    0.24,
+                    0.24,
+                    0.24
+                  ],
+                  "ease": "sine"
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    0.18,
+                    0.18,
+                    0.18
+                  ],
+                  "ease": "sine"
+                }
+              ],
+              "ring-a": [
+                {
+                  "at": 0.25,
+                  "scale": [
+                    0.2,
+                    0.2,
+                    0.2
+                  ],
+                  "visible": false
+                },
+                {
+                  "at": 0.45,
+                  "scale": [
+                    0.3,
+                    0.3,
+                    0.3
+                  ],
+                  "visible": true,
+                  "ease": "expo"
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    0.55,
+                    0.55,
+                    0.55
+                  ],
+                  "visible": false
+                }
+              ]
+            }
+          },
+          "layers": [
+            {
+              "id": "badge",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.5,
+              "height": 0.036,
+              "fill": "secondary",
+              "radius": 0.4
+            },
+            {
+              "id": "badge-text",
+              "kind": "text",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.42,
+              "height": 0.021,
+              "fill": "accent",
+              "text": "TINY SIGNAL / 01"
+            }
+          ],
+          "sfx": [
+            {
+              "at": 0.2,
+              "cue": "chime",
+              "gain": 0.2,
+              "pan": 0.1,
+              "reverb": 0.16
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "duration": 3.0,
+          "direction": "Pull back to the wide hill as the second ring leaves the dish.",
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.35,
+            "ease": "sine"
+          },
+          "three": {
+            "scene": "station",
+            "camera": [
+              {
+                "at": 0,
+                "position": [
+                  4.4,
+                  3.2,
+                  8.0
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ]
+              },
+              {
+                "at": 1,
+                "position": [
+                  6.2,
+                  4.2,
+                  10.2
+                ],
+                "target": [
+                  0,
+                  1.9,
+                  0
+                ],
+                "ease": "sine"
+              }
+            ],
+            "objects": {
+              "ring-a": [
+                {
+                  "at": 0,
+                  "scale": [
+                    0.45,
+                    0.45,
+                    0.45
+                  ],
+                  "visible": true
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    0.8,
+                    0.8,
+                    0.8
+                  ],
+                  "visible": false
+                }
+              ],
+              "ring-b": [
+                {
+                  "at": 0.1,
+                  "scale": [
+                    0.35,
+                    0.35,
+                    0.35
+                  ],
+                  "visible": true
+                },
+                {
+                  "at": 1,
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "visible": false
+                }
+              ],
+              "signal": [
+                {
+                  "at": 1,
+                  "scale": [
+                    0.12,
+                    0.12,
+                    0.12
+                  ],
+                  "ease": "sine"
+                }
+              ]
+            }
+          },
+          "layers": [
+            {
+              "id": "badge",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.5,
+              "height": 0.036,
+              "fill": "secondary",
+              "radius": 0.4
+            },
+            {
+              "id": "badge-text",
+              "kind": "text",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.42,
+              "height": 0.021,
+              "fill": "accent",
+              "text": "TINY SIGNAL / 02"
+            }
+          ],
+          "sfx": [
+            {
+              "at": 0.25,
+              "cue": "whoosh",
+              "gain": 0.14,
+              "pan": -0.2,
+              "reverb": 0.2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

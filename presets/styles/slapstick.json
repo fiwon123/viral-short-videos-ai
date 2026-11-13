@@ -1,0 +1,8 @@
+{
+  "name": "Slapstick",
+  "camera": {"preset": "crash-zoom"},
+  "motion_blur": 0.42,
+  "post": {"saturation": 1.12, "contrast": 1.06, "vignette": 0.1},
+  "captions": {"style": "karaoke", "position": "bottom", "max_words": 3, "animation": "pop"},
+  "render": {"crf": 17, "preset": "medium", "tune": "animation"}
+}

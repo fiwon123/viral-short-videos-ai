@@ -1,0 +1,199 @@
+{
+  "fps": 24,
+  "duration_frames": 154,
+  "scenes": [
+    {
+      "id": "S1",
+      "purpose": "Introduce the crane waiting on a hill and its one important letter.",
+      "start": 0,
+      "shots": [
+        {
+          "id": "A",
+          "start": 0,
+          "end": 82,
+          "speech": [
+            {
+              "speaker": "Narrator",
+              "text": "The letter was ready. The wind was not.",
+              "source": "eSpeak NG (en-us)",
+              "start": 8,
+              "end": 71,
+              "engine": "espeak",
+              "pan": 0.0,
+              "reverb": 0.06
+            }
+          ],
+          "sfx": [
+            {
+              "start": 3,
+              "end": 12,
+              "gain": 0.18,
+              "kind": "preset",
+              "source": "whoosh",
+              "pan": -0.3
+            },
+            {
+              "start": 3,
+              "end": 7,
+              "gain": 0.12,
+              "kind": "preset",
+              "source": "pop",
+              "pan": 0.25
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "start": 82,
+          "end": 154,
+          "speech": [
+            {
+              "speaker": "Narrator",
+              "text": "A small delay is still a delivery.",
+              "source": "eSpeak NG (en-us)",
+              "start": 95,
+              "end": 143,
+              "engine": "espeak",
+              "pan": 0.15,
+              "reverb": 0.08
+            }
+          ],
+          "sfx": [
+            {
+              "start": 86,
+              "end": 95,
+              "gain": 0.2,
+              "kind": "preset",
+              "source": "whoosh",
+              "pan": -0.2
+            },
+            {
+              "start": 91,
+              "end": 103,
+              "gain": 0.12,
+              "kind": "preset",
+              "source": "chime",
+              "pan": 0.3
+            }
+          ],
+          "transition": {
+            "type": "whip-left",
+            "start": 82,
+            "end": 89
+          }
+        }
+      ],
+      "end": 154
+    }
+  ],
+  "captions": [
+    {
+      "start": 8,
+      "end": 71,
+      "text": "The letter was ready. The wind was\nnot.",
+      "words": [
+        {
+          "text": "The",
+          "start": 8,
+          "end": 14
+        },
+        {
+          "text": "letter",
+          "start": 14,
+          "end": 25
+        },
+        {
+          "text": "was",
+          "start": 25,
+          "end": 31
+        },
+        {
+          "text": "ready.",
+          "start": 31,
+          "end": 44
+        },
+        {
+          "text": "The",
+          "start": 44,
+          "end": 50
+        },
+        {
+          "text": "wind",
+          "start": 50,
+          "end": 57
+        },
+        {
+          "text": "was",
+          "start": 57,
+          "end": 63
+        },
+        {
+          "text": "not.",
+          "start": 63,
+          "end": 71
+        }
+      ]
+    },
+    {
+      "start": 95,
+      "end": 143,
+      "text": "A small delay is still a delivery.",
+      "words": [
+        {
+          "text": "A",
+          "start": 95,
+          "end": 97
+        },
+        {
+          "text": "small",
+          "start": 97,
+          "end": 105
+        },
+        {
+          "text": "delay",
+          "start": 105,
+          "end": 113
+        },
+        {
+          "text": "is",
+          "start": 113,
+          "end": 116
+        },
+        {
+          "text": "still",
+          "start": 116,
+          "end": 124
+        },
+        {
+          "text": "a",
+          "start": 124,
+          "end": 126
+        },
+        {
+          "text": "delivery.",
+          "start": 126,
+          "end": 143
+        }
+      ]
+    }
+  ],
+  "audio": {
+    "master": {
+      "loudness": -14
+    },
+    "reverb": {
+      "mix": 0.08,
+      "size": 0.3
+    }
+  },
+  "music": {
+    "kind": "preset",
+    "source": "pulse",
+    "gain": 0.06
+  },
+  "loudness": {
+    "integrated_lufs": "-13.44",
+    "true_peak_db": "-1.51",
+    "loudness_range": "0.80"
+  }
+}

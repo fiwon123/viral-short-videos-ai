@@ -8,10 +8,15 @@ node_modules/
 # Local production inputs and outputs
 /channels/
 /episodes/
-/examples/
+/workspace/
 /research/
 /reference-media/
 /output/
+
+# Tracked showcase examples keep only reproducible sources and small previews.
+/examples/**/.audio-takes/
+/examples/**/.studio-*/
+/examples/**/__pycache__/
 
 # Local speech models and generated takes
 /audio-models/

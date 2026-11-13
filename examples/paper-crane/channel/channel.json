@@ -1,0 +1,16 @@
+{
+  "name": "Paper Crane Post",
+  "handle": "@PaperCranePost",
+  "tagline": "Small letters. Long flights.",
+  "description": "A tiny paper crane delivers one impossible letter at a time. Original animated micro-stories about distance, patience and the places a small message can reach.",
+  "tags": ["paper animation", "animated short", "micro story", "paper crane", "quiet comedy"],
+  "mark": "PC",
+  "palette": {
+    "background": "#101820",
+    "foreground": "#FFF4E1",
+    "accent": "#FF9F68",
+    "secondary": "#284B63"
+  },
+  "captions": {"style": "karaoke", "position": "bottom", "highlight": "#FFD166", "max_words": 4},
+  "audio": {"master": {"loudness": -14}, "reverb": {"mix": 0.08, "size": 0.3}}
+}

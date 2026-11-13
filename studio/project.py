@@ -34,12 +34,18 @@ def channel_manifests(folder):
 
 
 def channels(root):
-    """Channel folders that contain at least one manifest."""
+    """Manifest folders from both the legacy and workspace layouts."""
     rows = []
     for folder in sorted((root / "channels").glob("*")):
         found = channel_manifests(folder) if folder.is_dir() else []
         if found:
             rows.append((folder, found))
+    for root_folder in (root / "workspace",):
+        for folder in sorted(root_folder.glob("*")):
+            manifest_dir = folder / "channel"
+            found = channel_manifests(manifest_dir) if manifest_dir.is_dir() else []
+            if found:
+                rows.append((manifest_dir, found))
     return rows
 
 
@@ -50,14 +56,20 @@ def episodes(root):
             found = [path for path in sorted(folder.glob("*.json")) if is_episode(read(path))]
             if found:
                 rows.append((folder, found))
+    for folder in sorted((root / "workspace").glob("*")):
+        for episode_dir in sorted((folder / "episodes").glob("*")):
+            if episode_dir.is_dir():
+                found = [path for path in sorted(episode_dir.glob("*.json")) if is_episode(read(path))]
+                if found:
+                    rows.append((episode_dir, found))
     return rows
 
 
 def resolve_channel(root=ROOT):
     found = channels(root)
     if not found:
-        raise ValueError("No channel manifest found. Create channels/<slug>/channel.json "
-                         "or set CHANNEL=channels/<slug>/channel.json.")
+        raise ValueError("No channel manifest found. Create workspace/<slug>/channel/channel.json "
+                         "or set CHANNEL=workspace/<slug>/channel/channel.json.")
     if len(found) > 1:
         names = ", ".join(str(folder.relative_to(root)) for folder, _ in found)
         raise ValueError(f"Several channels found ({names}). Set CHANNEL=<manifest> or run make init.")
@@ -75,8 +87,8 @@ def resolve_channel(root=ROOT):
 def resolve_episode(root=ROOT):
     found = episodes(root)
     if not found:
-        raise ValueError("No episode found. Create episodes/<slug>/episode.json "
-                         "or set EPISODE=episodes/<slug>/episode.json.")
+        raise ValueError("No episode found. Create workspace/<slug>/episodes/<episode>/episode.json "
+                         "or set EPISODE=workspace/<slug>/episodes/<episode>/episode.json.")
     if len(found) > 1:
         names = ", ".join(str(folder.relative_to(root)) for folder, _ in found)
         raise ValueError(f"Several episodes found ({names}). Set EPISODE=<manifest> or run make init.")
@@ -95,11 +107,12 @@ def status(root=ROOT):
     lines = []
     found_channels = channels(root)
     if not found_channels:
-        lines.append("channel  none — create channels/<slug>/channel.json")
+        lines.append("channel  none — create workspace/<slug>/channel/channel.json")
     for folder, manifests in found_channels:
         canonical = folder / "channel.json"
         active = canonical if canonical in manifests else manifests[0]
-        lines.append(f"channel  {active.relative_to(root)}")
+        layout = "workspace" if active.parent.parent.parent.name == "workspace" else "legacy"
+        lines.append(f"channel  {active.relative_to(root)}  [{layout}]")
         alternates = [path.name for path in manifests if path != active]
         if alternates:
             lines.append(f"         alternates: {', '.join(alternates)}")
@@ -108,7 +121,8 @@ def status(root=ROOT):
         lines.append("episode  none")
     for folder, manifests in found_episodes:
         names = ", ".join(path.name for path in manifests)
-        lines.append(f"episode  {folder.relative_to(root)} ({names})")
+        layout = "workspace" if folder.parent.parent.parent.name == "workspace" else "legacy"
+        lines.append(f"episode  {folder.relative_to(root)} ({names})  [{layout}]")
     lines.append(f".env     {'found' if (root / '.env').is_file() else 'not found (optional; cp .env.example .env)'}")
     return "\n".join(lines)
 

@@ -58,4 +58,6 @@ Add `post` for finishing: `grain`, `vignette`, `bloom`, `blur`, `chromatic`, `le
 
 For 3D, PBR objects accept `metalness`, `roughness`, `emissive` and `emissive_intensity`. A GLB with animation clips can play them through `three.animations` with an object ID, clip name, offset, rate and loop flag. The renderer uses ACES tone mapping with sRGB output.
 
-Transitions include `dissolve`, four wipes, four slides, `whip-left`/`whip-right`, `zoom-in`/`zoom-out`, `iris`, `flash`, `dip-to-black` and `luma-wipe`. Keep the transition shorter than the shot and check the cut with sound.
+Transitions include `dissolve`, four wipes, four slides, `whip-left`/`whip-right`, `zoom-in`/`zoom-out`, `iris`, `flash`, `dip-to-black` and `luma-wipe`. Keep the transition shorter than the shot and check the cut with sound. Camera presets include `push-in`, `pull-out`, `crash-zoom`, `whip-pan`, `dolly`, `float`, `orbit` and `handheld`; add `shake` or `handheld` for procedural movement.
+
+Use `style.preset` for a coherent first pass, `render` for CRF/preset/tune/audio bitrate and output switches, and `visible`/`variant_group` for 2D expression or pose swaps. If the channel needs a new SVG, write an Effect Lab recipe and run `python video.py effect`; keep the generated file inside the channel.

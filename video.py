@@ -25,17 +25,36 @@ def options():
         command.add_argument("--channel", type=Path,
                              help="channel manifest; discovered under channels/ when omitted")
         if name in {"audio", "render"}:
-            command.add_argument("--out", type=Path, help="package directory (defaults to output/<channel>/<episode>-<suffix>)")
+            command.add_argument("--out", type=Path,
+                                 help="package directory (defaults to the channel workspace or output/)")
         if name == "render":
             preview = command.add_mutually_exclusive_group()
             preview.add_argument("--preview", action="store_true", help="export a half-size preview")
             preview.add_argument("--full-size-preview", action="store_true", help="export a preview at full resolution")
             command.add_argument("--renderer", choices=("python", "remotion", "hyperframes"), default="python",
                                  help="select the visual renderer")
-            command.add_argument("--no-burn", action="store_true", help="export captions as a separate SRT only")
+            captions = command.add_mutually_exclusive_group()
+            captions.add_argument("--no-burn", action="store_true", help="export captions as a separate SRT only")
+            captions.add_argument("--no-captions", action="store_true", help="disable burned captions and SRT")
+            command.add_argument("--no-thumbnail", action="store_true", help="skip thumbnail.png")
+            command.add_argument("--no-publishing", action="store_true", help="skip publishing.md and publishing.json")
+            command.add_argument("--crf", type=int, help="override the H.264 CRF quality")
+            command.add_argument("--preset", help="override the x264 preset")
+            command.add_argument("--audio-bitrate", type=int, help="override the AAC bitrate in kbps")
     brand = commands.add_parser("brand", help="generate a logo, banner, and channel metadata")
     brand.add_argument("channel", type=Path)
     brand.add_argument("--out", required=True, type=Path)
+    doc = commands.add_parser("channel-doc", help="write channel.md from the channel manifest")
+    doc.add_argument("channel", type=Path)
+    sound = commands.add_parser("sound", help="synthesize a custom Sound Lab recipe")
+    sound.add_argument("channel", type=Path)
+    sound.add_argument("--recipe", required=True, type=Path)
+    sound.add_argument("--library", default="audio/cast-v2.json")
+    sound.add_argument("--variants", type=int)
+    effect = commands.add_parser("effect", help="generate a custom Effect Lab SVG")
+    effect.add_argument("channel", type=Path)
+    effect.add_argument("--recipe", required=True, type=Path)
+    effect.add_argument("--folder", default="vfx")
     reference = commands.add_parser("analyze", help="extract local reference frames, cuts, and audio")
     reference.add_argument("video", type=Path)
     reference.add_argument("--out", required=True, type=Path)
@@ -93,6 +112,15 @@ def execute(args):
             raise ValueError("Provide a local reference video file")
         return reference(args.video.resolve(), args.out, args.threshold, focus_shorts=args.focus_shorts), 0
 
+    if args.command == "sound":
+        from studio.soundlab import build
+
+        return build(args.channel, args.recipe, library=args.library, variants=args.variants), 0
+    if args.command == "effect":
+        from studio.effectlab import build
+
+        return build(args.channel, args.recipe, folder=args.folder), 0
+
     from studio.core import load, new_package, validate_channel, validate_episode, write_json
 
     if args.channel is None:
@@ -101,18 +129,30 @@ def execute(args):
         args.channel = resolve_channel(Path(__file__).resolve().parent)
     channel = load(args.channel, "channel")
     validate_channel(channel, args.channel.parent)
-    if args.command == "brand":
-        from studio.design import make_brand
+    if args.command in {"brand", "channel-doc"}:
+        from studio.publishing import channel_guide
 
-        with new_package(args.out) as out:
-            make_brand(channel, args.channel.parent, out)
-            write_json(out / "channel-publishing.json", {
-                key: channel[key] for key in ("name", "handle", "tagline", "description", "tags") if key in channel
-            })
-        return {"brand": channel["name"], "package": str(args.out.resolve())}, 0
+        if args.command == "brand":
+            from studio.design import make_brand
+
+            with new_package(args.out) as out:
+                make_brand(channel, args.channel.parent, out)
+                write_json(out / "channel-publishing.json", {
+                    key: channel[key] for key in ("name", "handle", "tagline", "description", "tags") if key in channel
+                })
+        guide = channel_guide(channel, args.channel.parent)
+        (args.channel.parent / "channel.md").write_text(guide, encoding="utf-8")
+        if args.command == "channel-doc":
+            return {"channel": channel["name"],
+                    "markdown": str((args.channel.parent / "channel.md").resolve())}, 0
+        return {"brand": channel["name"], "package": str(args.out.resolve()),
+                "markdown": str((args.channel.parent / "channel.md").resolve())}, 0
 
     from studio.audio_library import load_audio_library, validate_audio
+    from studio.presets import apply_style
+
     episode = load(args.episode, "episode")
+    episode = apply_style(episode, channel, args.channel.parent)
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
@@ -120,9 +160,9 @@ def execute(args):
         suffix = "audio" if args.command == "audio" else "v1"
         if args.command == "render" and (args.preview or args.full_size_preview):
             suffix = "preview"
-        channel_dir = Path(os.path.abspath(args.channel)).parent.name or args.channel.stem
-        episode_dir = Path(os.path.abspath(args.episode)).parent.name or args.episode.stem
-        args.out = Path("output") / channel_dir / f"{episode_dir}-{suffix}"
+        from studio.workspace import default_output
+
+        args.out = default_output(args.episode, args.channel, suffix)
     if args.command == "audio":
         from studio.audio import audio_summary, prepare_audio
         from studio.render import export_srt
@@ -157,8 +197,22 @@ def execute(args):
         return report, int(bool(report["issues"]))
     from studio.render import render
 
-    report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview, not args.no_burn,
-                    backend=args.renderer, library=library, audio_library=audio_library)
+    options = {}
+    if args.no_captions:
+        options["captions"] = False
+    if args.no_thumbnail:
+        options["thumbnail"] = False
+    if args.no_publishing:
+        options["publishing"] = False
+    if args.crf is not None:
+        options["crf"] = args.crf
+    if args.preset:
+        options["preset"] = args.preset
+    if args.audio_bitrate is not None:
+        options["audio_bitrate"] = args.audio_bitrate
+    report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview,
+                    not (args.no_burn or args.no_captions), backend=args.renderer, library=library,
+                    audio_library=audio_library, options=options)
     return {**report, "package": str(args.out.resolve())}, 0
 
 

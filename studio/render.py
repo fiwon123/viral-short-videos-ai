@@ -9,19 +9,38 @@ from tempfile import TemporaryDirectory
 from PIL import Image
 
 from .audio import audio_summary, prepare_audio
-from .core import MAX_SECONDS, new_package, probe, require, run, write_json
+from .core import MAX_SECONDS, asset, new_package, probe, require, run, write_json
 from .design import Composition, apply_post, draw_caption, resolve_font, thumbnail, transition_frame
 from .publishing import publishing_guide
 from .visual import audit_visual
 
 
-def encoder(width, height, fps):
+def render_config(channel, episode):
+    config = {}
+    for source in ((channel or {}).get("render"), (episode or {}).get("render")):
+        config.update(source or {})
+    config.setdefault("supersample", (channel or {}).get("render", {}).get("supersample",
+                                                                          (episode or {}).get("supersample", 1)))
+    config.setdefault("motion_blur", (channel or {}).get("motion_blur",
+                                                         (episode or {}).get("motion_blur", 0)))
+    return config
+
+
+def encoder(width, height, fps, config=None):
+    config = config or {}
     entries = run("ffmpeg", "-hide_banner", "-encoders").decode()
     encoders = {fields[1] for line in entries.splitlines() if len(fields := line.split()) > 2}
+    crf = int(config.get("crf", 17))
+    preset = config.get("preset", "medium")
+    tune = config.get("tune", "animation")
     if "libx264" in encoders:
-        return ["-c:v", "libx264", "-preset", "medium", "-crf", "17", "-tune", "animation"]
+        options = ["-c:v", "libx264", "-preset", preset, "-crf", str(crf)]
+        if tune != "none":
+            options.extend(["-tune", tune])
+        return options
     if "libopenh264" in encoders:
-        bitrate = max(1_000_000, round(width * height * fps * 0.15))
+        factor = max(0.08, min(0.4, 0.30 - (crf - 17) * 0.015))
+        bitrate = max(1_000_000, round(width * height * fps * factor))
         return ["-c:v", "libopenh264", "-b:v", str(bitrate)]
     raise ValueError("Install an FFmpeg build with libx264 or libopenh264 for H.264 export")
 
@@ -38,7 +57,7 @@ def export_srt(path, cues, fps):
         f"{i}\n{clock(cue['start'], fps, ',')} --> {clock(cue['end'], fps, ',')}\n{cue['text']}\n\n"
         for i, cue in enumerate(cues, 1)
     ]
-    path.write_text("".join(blocks), encoding="utf-8")
+    path.write_text("".join(blocks).rstrip() + "\n", encoding="utf-8")
 
 
 def write_script(path, episode, channel, timeline):
@@ -110,29 +129,31 @@ def write_script(path, episode, channel, timeline):
     for cue in timeline["captions"]:
         text = cue["text"].replace("\n", " / ")
         rows.append(f"- {clock(cue['start'], fps)}–{clock(cue['end'], fps)} · {text}")
-    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    path.write_text("\n".join(rows).rstrip() + "\n", encoding="utf-8")
 
 
-def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn):
+def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn,
+                 config=None, make_thumbnail=True):
     import numpy as np
 
+    config = config or render_config(channel, episode)
     previous = None
     cues = iter(timeline["captions"])
     cue = next(cues, None)
-    supersample = max(1, int(episode.get("supersample", 1)))
+    supersample = max(1, int(config.get("supersample", 1)))
     render_canvas = (canvas[0] * supersample, canvas[1] * supersample)
     caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
     for scene, scene_timing in zip(episode["scenes"], timeline["scenes"]):
         for shot, timing in zip(scene["shots"], scene_timing["shots"]):
             composition = Composition(shot, render_canvas, channel, font, base,
                                       episode_post=episode.get("post"),
-                                      motion_blur=episode.get("motion_blur", 0))
+                                      motion_blur=config.get("motion_blur", 0))
             frames = timing["end"] - timing["start"]
             transition = timing.get("transition")
             count = transition["end"] - transition["start"] if transition else 0
             cover = episode["thumbnail"]
             cover_frame = round(cover.get("at", 0.5) * (frames - 1)) if cover["shot"] == shot["id"] else None
-            blur = float(shot.get("motion_blur", episode.get("motion_blur", 0)) or 0)
+            blur = float(shot.get("motion_blur", config.get("motion_blur", 0)) or 0)
             subframes = 5 if blur >= 0.55 else 3 if blur >= 0.18 else 1
             post = {**(channel.get("post") or {}), **(episode.get("post") or {}), **(shot.get("post") or {})}
             for frame in range(frames):
@@ -152,14 +173,15 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
                 else:
                     visual = composition.frame(progress, speaking, post=False, seed=absolute)
                 visual = apply_post(visual, post, seed=absolute)
-                if frame == cover_frame:
+                if make_thumbnail and frame == cover_frame:
                     clean = composition.frame(progress, {}, cover.get("hide_layers", []), post=False,
                                               seed=absolute)
                     thumbnail(apply_post(clean, post, seed=absolute), cover["text"], channel, font).save(
                         out / "thumbnail.png")
                 image = visual
                 if count and frame < count:
-                    image = transition_frame(previous, visual, transition["type"], (frame + 1) / count)
+                    image = transition_frame(previous, visual, transition["type"], (frame + 1) / count,
+                                             transition.get("ease", "smooth"))
                 while cue and absolute >= cue["end"]:
                     cue = next(cues, None)
                 if burn and cue and cue["start"] <= absolute < cue["end"]:
@@ -171,23 +193,27 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
             previous = visual
 
 
-def encode(episode, timeline, levels, canvas, channel, font, base, out, mix, burn):
+def encode(episode, timeline, levels, canvas, channel, font, base, out, mix, burn, *,
+           config=None, make_thumbnail=True):
     w, h = canvas
     fps = timeline["fps"]
-    options = encoder(w, h, fps)
+    config = config or render_config(channel, episode)
+    options = encoder(w, h, fps, config)
+    audio_bitrate = int(config.get("audio_bitrate", 192))
     dest = out / "video.mp4"
     with TemporaryDirectory() as temp:
         with (Path(temp) / "ffmpeg.log").open("w+b") as log:
             process = subprocess.Popen(
                 ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-f", "rawvideo",
                  "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(fps), "-i", "pipe:0", "-i", str(mix),
-                 *options, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ac", "2",
+                 *options, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", f"{audio_bitrate}k", "-ac", "2",
                  "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
                  "-movflags", "+faststart", str(dest)], stdin=subprocess.PIPE, stderr=log,
             )
             try:
                 with process.stdin as pipe:
-                    write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn)
+                    write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn,
+                                 config=config, make_thumbnail=make_thumbnail)
             except BrokenPipeError:
                 pass
             except BaseException:
@@ -222,7 +248,13 @@ def verify(path, timeline, canvas, limit):
 
 
 def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="python", library=None,
-           audio_library=None):
+           audio_library=None, options=None):
+    config = render_config(channel, episode)
+    if options:
+        config.update({key: value for key, value in options.items() if value is not None})
+    make_thumbnail = bool(config.get("thumbnail", True))
+    make_publishing = bool(config.get("publishing", True))
+    burn = bool(burn and config.get("captions", True))
     shots = [shot for scene in episode["scenes"] for shot in scene["shots"]]
     has_three = any("three" in shot for shot in shots)
     if backend == "python":
@@ -236,6 +268,9 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
     if preview:
         canvas = tuple(max(2, size // 4 * 2) for size in canvas)
     font = resolve_font(channel, channel_dir)
+    caption_font = (episode.get("captions") or {}).get("font") or (channel.get("captions") or {}).get("font")
+    if caption_font:
+        font = str(asset(channel_dir, caption_font))
     with new_package(target) as out, TemporaryDirectory() as temp:
         work = Path(temp)
         timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work, audio_library, channel=channel)
@@ -247,12 +282,13 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
                 issues.append(f"{item['shot']} frame {item['frame']}: {item['message']}{subjects}")
             raise ValueError("Visual checks failed. Run check-visual for the full report. " + " | ".join(issues))
         if backend == "python":
-            encode(episode, timeline, levels, canvas, channel, font, episode_dir, out, work / "mix.wav", burn)
+            encode(episode, timeline, levels, canvas, channel, font, episode_dir, out, work / "mix.wav", burn,
+                   config=config, make_thumbnail=make_thumbnail)
         else:
             from .browser import render_browser
 
             render_browser(backend, episode, channel, timeline, levels, canvas, font, episode_dir, channel_dir,
-                           library, work, out, burn, preview)
+                           library, work, out, burn, preview, config=config)
         if has_three:
             timeline["scene_library"] = {"file": channel["scene_library"], "version": library[0]["version"]}
             for scene, resolved in zip(episode["scenes"], timeline["scenes"]):
@@ -262,16 +298,20 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
         report = verify(out / "video.mp4", timeline, canvas, episode.get("max_seconds", MAX_SECONDS))
         report.update({"renderer": backend, "preview": preview, "burned_captions": burn and bool(timeline["captions"]),
                        "audio": audio_summary(timeline)})
-        if timeline["captions"]:
+        if timeline["captions"] and config.get("captions", True):
             export_srt(out / "captions.srt", timeline["captions"], timeline["fps"])
         if visual_report["checked_shots"]:
             write_json(out / "visual-qa.json", visual_report)
         write_json(out / "timeline.json", timeline)
         write_script(out / "timed-script.md", episode, channel, timeline)
-        write_json(out / "publishing.json", {key: episode[key] for key in ("title", "description", "tags")})
-        guide, warnings = publishing_guide(episode, channel, timeline, out, target)
-        (out / "publishing.md").write_text(guide, encoding="utf-8")
-        if warnings:
-            report["publishing_warnings"] = warnings
+        if make_publishing:
+            write_json(out / "publishing.json", {key: episode[key] for key in ("title", "description", "tags")})
+            guide, warnings = publishing_guide(episode, channel, timeline, out, target)
+            (out / "publishing.md").write_text(guide, encoding="utf-8")
+            if warnings:
+                report["publishing_warnings"] = warnings
+        report["render"] = {key: config[key] for key in ("crf", "preset", "tune", "supersample", "motion_blur",
+                                                         "audio_bitrate", "captions", "thumbnail", "publishing")
+                            if key in config}
         write_json(out / "qa.json", report)
     return report

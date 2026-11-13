@@ -1,0 +1,7 @@
+{
+  "name": "Minimal",
+  "motion_blur": 0,
+  "post": {"contrast": 1.02, "saturation": 1.0},
+  "captions": {"style": "minimal", "position": "bottom", "max_words": 5, "animation": "none"},
+  "render": {"crf": 18, "preset": "fast", "tune": "none"}
+}

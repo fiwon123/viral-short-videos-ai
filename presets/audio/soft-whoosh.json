@@ -1,0 +1,10 @@
+{
+  "id": "custom-whoosh",
+  "layers": [
+    {"type": "noise", "duration": 0.42, "gain": 0.7,
+     "filter": {"type": "sweep", "start": 280, "end": 3200}, "attack": 0.08, "decay": 2.0},
+    {"type": "tone", "start": 170, "end": 90, "duration": 0.4, "gain": 0.2, "attack": 0.1}
+  ],
+  "reverb": {"mix": 0.1, "size": 0.2},
+  "variants": 3
+}
