@@ -64,11 +64,14 @@ def report(channel_path):
     channel_path = channel_path.resolve()
     base = channel_path.parent
     channel = load(channel_path, "channel")
-    library, library_base = load_library(channel, base)
+    loaded = load_library(channel, base)
+    library, library_base = loaded if loaded else (None, base)
     audio = load_audio_library(channel, base)
-    scenes = library["scenes"]
+    scenes = library["scenes"] if library else {}
 
-    required = {channel_path, (base / channel["scene_library"]).resolve()}
+    required = {channel_path}
+    if "scene_library" in channel:
+        required.add((base / channel["scene_library"]).resolve())
     models = {}
     for scene_id, scene in scenes.items():
         for obj in scene["objects"]:

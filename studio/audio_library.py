@@ -35,7 +35,11 @@ def validate_audio(episode, audio_library):
                     if voices[speaker]["engine"] == "recorded" and "file" not in line:
                         raise ValueError(f"{shot['id']}/{speaker} requires an approved voice take in speech.file")
             for cue in shot.get("sfx", []):
-                if "sound" in cue:
-                    variants = sounds.get(cue["sound"])
-                    if not variants or cue.get("variant", 1) > len(variants):
-                        raise ValueError(f"{shot['id']} references an unknown sound or variant: {cue['sound']}")
+                stack = [cue]
+                while stack:
+                    item = stack.pop()
+                    if "sound" in item:
+                        variants = sounds.get(item["sound"])
+                        if not variants or item.get("variant", 1) > len(variants):
+                            raise ValueError(f"{shot['id']} references an unknown sound or variant: {item['sound']}")
+                    stack.extend(item.get("layers", []))

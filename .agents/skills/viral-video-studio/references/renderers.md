@@ -46,4 +46,16 @@ Give a channel a reusable effects kit with `python -m studio.vfx channels/<slug>
 
 Anchor screen-space effects to 3D contacts with `studio.lens.screen(point, camera)`, using the same shot camera and the canvas size. Recompute when the camera moves during the shot.
 
-Keyframe 3D motion through `studio.physics`: `drop()` for falling props, `burst()` and `splash()` for debris and droplets, `shake()` for decaying camera jitter. The renderer interpolates linearly between keys, so sample the curve at the frame rate instead of trusting two distant keys. Contact frames should be exact; `drop()` places them on the floor and emits squash on the same object keys. Bias debris upward and keep speeds modest so pieces stay in frame. Hide one-off particles after their last key, or they hang in the air.
+Keyframe 3D motion through `studio.physics`: `drop()` for falling props, `burst()` and `splash()` for debris and droplets, `spring()` for overshoot, `orbit()` for floating props, `pendulum()` for swings, and `shake()` for decaying camera jitter. The renderer interpolates linearly between keys, so sample the curve at the frame rate instead of trusting two distant keys. Contact frames should be exact; `drop()` places them on the floor and emits squash on the same object keys. Bias debris upward and keep speeds modest so pieces stay in frame. Hide one-off particles after their last key, or they hang in the air.
+
+## Finish the frame
+
+Use a shot `camera` for push-ins, pans and rotations instead of moving every layer by hand. Camera `x` and `y` are canvas-fraction offsets, `zoom` is a multiplier, and keyframes use the same easings as layers. Give background layers a lower `parallax` so they move less.
+
+Use layer `pivot` at human joints and `parent` for cutout rigs. A child's `x` and `y` are offsets from the parent's pivot, and it inherits the parent's scale, rotation and opacity. Keep the parent first in the layer list or rely on the renderer's parent-first ordering.
+
+Add `post` for finishing: `grain`, `vignette`, `bloom`, `blur`, `chromatic`, `letterbox`, and a grade through `brightness`, `contrast`, `saturation`, `hue` and `tint`. Use `blend` on a layer for `add`, `screen`, `multiply`, `overlay` or `soft-light`, and `blur` for depth. Set `motion_blur` on a shot or the episode to accumulate subframes; it costs more render time, so preview before the master. `supersample: 2` renders at twice the canvas and downsamples with Lanczos in both the Python and browser paths.
+
+For 3D, PBR objects accept `metalness`, `roughness`, `emissive` and `emissive_intensity`. A GLB with animation clips can play them through `three.animations` with an object ID, clip name, offset, rate and loop flag. The renderer uses ACES tone mapping with sRGB output.
+
+Transitions include `dissolve`, four wipes, four slides, `whip-left`/`whip-right`, `zoom-in`/`zoom-out`, `iris`, `flash`, `dip-to-black` and `luma-wipe`. Keep the transition shorter than the shot and check the cut with sound.

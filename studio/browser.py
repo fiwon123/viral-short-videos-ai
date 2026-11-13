@@ -3,12 +3,34 @@
 from pathlib import Path
 import shutil
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from .core import asset, ffmpeg, require, run, svg_asset, write_json
-from .design import draw_caption, poses, sprite, thumbnail
+from .design import caption_layout, draw_caption, layer_order, poses, sprite, thumbnail
 
 ENTRY = Path(__file__).resolve().parents[1] / "browser" / "render.mjs"
+
+
+def _caption_config(channel, episode):
+    return {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
+
+
+def _caption_offset(rows, height, position):
+    top = rows[0][0]["box"][1] if rows else 0
+    bottom = rows[-1][0]["box"][3] if rows else 0
+    if position == "top":
+        return round(height * 0.09) - top
+    if position == "center":
+        return round(height * 0.46) - top
+    return round(height * 0.80) - top
+
+
+def _save_caption_tile(tile, assets, name):
+    box = tile.getbbox()
+    if not box:
+        box = (0, 0, 1, 1)
+    tile.crop(box).save(assets / name)
+    return {"sprite": name, "x": box[0], "y": box[1]}
 
 
 def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channel_base, library, work, burn):
@@ -17,18 +39,27 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
     shots, scenes = [], {}
     width, height = canvas
     cover = episode["thumbnail"]
+    caption_config = _caption_config(channel, episode)
     data = {"width": width, "height": height, "fps": timeline["fps"],
             "frames": timeline["duration_frames"], "shots": shots, "scenes": scenes,
-            "captions": [], "cover": {"hide": cover.get("hide_layers", [])}}
-    models, vectors, caption_sprites = {}, {}, {}
+            "captions": [], "cover": {"hide": cover.get("hide_layers", [])},
+            "caption_style": caption_config.get("style", "box"),
+            "palette": channel.get("palette", {})}
+    models, vectors = {}, {}
 
     for source_scene, resolved_scene in zip(episode["scenes"], timeline["scenes"]):
         for shot, resolved in zip(source_scene["shots"], resolved_scene["shots"]):
             start, end = resolved["start"], resolved["end"]
+            duration = (end - start) / timeline["fps"]
             if shot["id"] == cover["shot"]:
                 data["cover"]["frame"] = start + round(cover.get("at", 0.5) * (end - start - 1))
-            prepared = {"start": start, "end": end, "transition": resolved.get("transition"),
+            prepared = {"start": start, "end": end, "duration": duration,
+                        "transition": resolved.get("transition"),
                         "background": shot.get("background", channel["palette"]["background"]),
+                        "camera": shot.get("camera"),
+                        "post": {**(channel.get("post") or {}), **(episode.get("post") or {}),
+                                 **(shot.get("post") or {})},
+                        "motion_blur": shot.get("motion_blur", episode.get("motion_blur", 0)),
                         "layers": [], "speech": [(a, b, speaker, values.tolist())
                                                  for a, b, speaker, values in levels[shot["id"]]]}
             if three := shot.get("three"):
@@ -45,10 +76,15 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                             obj = {**obj, "file": models[path]}
                         objects.append(obj)
                     scenes[scene_id] = {**scene, "objects": objects}
-                prepared["three"] = three
-            for index, layer in enumerate(shot["layers"]):
+                prepared["three"] = {**three, "duration": duration}
+            ordered = sorted(layer_order(shot["layers"]),
+                             key=lambda item: item.get("plane") != "background")
+            for index, layer in enumerate(ordered):
                 visual = {"id": layer["id"], "poses": poses(layer), "mouth": layer.get("mouth_for"),
-                          "plane": layer.get("plane", "foreground")}
+                          "plane": layer.get("plane", "foreground"),
+                          "parent": layer.get("parent"), "pivot": layer.get("pivot", [0.5, 0.5]),
+                          "blend": layer.get("blend", "normal"), "blur": layer.get("blur", 0),
+                          "parallax": layer.get("parallax", 1)}
                 if layer["kind"] == "svg":
                     path = svg_asset(layer, base, channel_base)
                     if path not in vectors:
@@ -65,16 +101,57 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             shots.append(prepared)
 
     if burn:
+        style = caption_config.get("style", "box")
         for cue in timeline["captions"]:
-            text = cue["text"]
-            if text not in caption_sprites:
+            if style == "karaoke":
+                text = cue["text"]
+                if caption_config.get("uppercase"):
+                    text = text.upper()
+                blank = Image.new("RGBA", canvas)
+                caption_font, rows, size = caption_layout(blank, text, font, caption_config)
+                offset = _caption_offset(rows, height, caption_config.get("position", "bottom"))
+                background = Image.new("RGBA", canvas)
+                draw = ImageDraw.Draw(background)
+                pad_x, pad_y = round(size * 0.65), round(size * 0.45)
+                left = round(width / 2 - width * 0.43) - pad_x
+                right = round(width / 2 + width * 0.43) + pad_x
+                top = rows[0][0]["box"][1] + offset - pad_y if rows else 0
+                bottom = rows[-1][0]["box"][3] + offset + pad_y if rows else 0
+                draw.rounded_rectangle((left, top, right, bottom), radius=max(2, round(size * 0.45)),
+                                       fill=channel["palette"]["background"])
+                background = _save_caption_tile(background, assets, f"caption-{len(data['captions'])}-bg.png")
+                words = []
+                index = 0
+                for row in rows:
+                    for word in row:
+                        box = (word["box"][0], word["box"][1] + offset,
+                               word["box"][2], word["box"][3] + offset)
+                        normal = Image.new("RGBA", canvas)
+                        active = Image.new("RGBA", canvas)
+                        ImageDraw.Draw(normal).text((box[0], box[1]), word["text"], font=caption_font,
+                                                    fill=channel["palette"]["foreground"])
+                        ImageDraw.Draw(active).text((box[0], box[1]), word["text"], font=caption_font,
+                                                    fill=channel["palette"]["background"])
+                        normal = _save_caption_tile(normal, assets, f"caption-{len(data['captions'])}-w{index}.png")
+                        active = _save_caption_tile(active, assets, f"caption-{len(data['captions'])}-a{index}.png")
+                        timing = cue.get("words", [])
+                        words.append({
+                            "start": timing[index]["start"] if index < len(timing) else cue["start"],
+                            "end": timing[index]["end"] if index < len(timing) else cue["end"],
+                            "normal": normal, "active": active,
+                            "box": [round(box[0]), round(box[1]), round(box[2]), round(box[3])],
+                        })
+                        index += 1
+                data["captions"].append({"start": cue["start"], "end": cue["end"],
+                                         "background": background, "words": words, "karaoke": True})
+            else:
+                text = cue["text"]
+                if caption_config.get("uppercase"):
+                    text = text.upper()
                 tile = Image.new("RGBA", canvas)
-                draw_caption(tile, text, channel, font)
-                x, y, right, bottom = tile.getbbox()
-                name = f"caption-{len(caption_sprites)}.png"
-                tile.crop((x, y, right, bottom)).save(assets / name)
-                caption_sprites[text] = {"sprite": name, "x": x, "y": y}
-            data["captions"].append({"start": cue["start"], "end": cue["end"], **caption_sprites[text]})
+                draw_caption(tile, {**cue, "text": text}, channel, font, config=caption_config)
+                caption_sprite = _save_caption_tile(tile, assets, f"caption-{len(data['captions'])}.png")
+                data["captions"].append({"start": cue["start"], "end": cue["end"], **caption_sprite})
     write_json(work / "visual-plan.json", data)
 
 
@@ -87,8 +164,12 @@ def render_browser(backend, episode, channel, timeline, levels, canvas, font, ba
     required = "@remotion/renderer" if backend == "remotion" else "hyperframes"
     if not (modules / required).is_dir():
         raise ValueError("Install browser renderer dependencies with npm ci from the repository root")
-    stage_visuals(episode, channel, timeline, levels, canvas, font, base, channel_base, library, work, burn)
+    scale = max(1, int(episode.get("supersample", 1)))
+    visual_canvas = (canvas[0] * scale, canvas[1] * scale)
+    stage_visuals(episode, channel, timeline, levels, visual_canvas, font, base, channel_base, library, work, burn)
     video_options = ["-c:v", "copy"]
+    if scale > 1:
+        video_options = [*encoder(canvas[0], canvas[1], timeline["fps"]), "-pix_fmt", "yuv420p"]
     picture_format = "mp4"
     if backend == "hyperframes":
         available_encoder = encoder(*canvas, timeline["fps"])
@@ -98,5 +179,7 @@ def render_browser(backend, episode, channel, timeline, levels, canvas, font, ba
     run("node", str(ENTRY), backend, str(work), picture_format, "preview" if preview else "final")
     with Image.open(work / "cover.png") as cover:
         thumbnail(cover.convert("RGB"), episode["thumbnail"]["text"], channel, font).save(out / "thumbnail.png")
+    picture_filter = (["-vf", f"scale={canvas[0]}:{canvas[1]}:flags=lanczos"] if scale > 1 else [])
     ffmpeg("-i", str(work / f"picture.{picture_format}"), "-i", str(work / "mix.wav"), "-map", "0:v:0", "-map", "1:a:0",
-           *video_options, "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out / "video.mp4"))
+           *picture_filter, *video_options, "-c:a", "aac", "-b:a", "192k", "-ac", "2",
+           "-movflags", "+faststart", str(out / "video.mp4"))

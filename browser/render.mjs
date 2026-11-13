@@ -27,7 +27,7 @@ async function remotion() {
   const licenseKey = process.env.REMOTION_LICENSE_KEY;
   const isProduction = mode !== "preview";
   await renderMedia({...common, composition, codec: "h264", muted: true, concurrency: 2,
-    imageFormat: "png", colorSpace: "bt601",
+    imageFormat: "png", colorSpace: "bt709", pixelFormat: "yuv420p", crf: 17,
     outputLocation: join(work, "picture.mp4"), licenseKey, isProduction});
   const coverProps = {...composition.props, cover: true};
   await renderStill({...common, composition: {...composition, props: coverProps},

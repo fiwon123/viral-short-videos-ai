@@ -142,6 +142,59 @@ def shake(t0, duration, amplitude, *, fps=24, decay=5.0, frequency=17.0, seed=3)
     return keys
 
 
+def spring(t0, start, end, *, stiffness=140.0, damping=12.0, fps=24, duration=1.4, mass=1.0):
+    """Damped spring between two positions, useful for overshoot and settle."""
+    start = [float(v) for v in start]
+    end = [float(v) for v in end]
+    velocity = [0.0, 0.0, 0.0]
+    position = list(start)
+    keys, dt = [{"t": round(t0, 5), "position": [round(v, 5) for v in position]}], MAX_STEP
+    next_sample = 0.0
+    t = 0.0
+    while t < duration:
+        force = [(end[i] - position[i]) * stiffness - velocity[i] * damping for i in range(3)]
+        velocity = [velocity[i] + force[i] / mass * dt for i in range(3)]
+        position = [position[i] + velocity[i] * dt for i in range(3)]
+        t += dt
+        if t >= next_sample:
+            next_sample += 1 / fps
+            keys.append({"t": round(t0 + t, 5), "position": [round(v, 5) for v in position]})
+    return merge(keys)
+
+
+def orbit(t0, duration, center, radius, *, start=0.0, turns=1.0, tilt=0.28, fps=24):
+    """Circular or elliptical motion around a center for floating props."""
+    keys, count = [], max(1, math.ceil(duration * fps))
+    for index in range(count + 1):
+        progress = index / count
+        angle = start + progress * turns * math.tau
+        keys.append({
+            "t": round(t0 + progress * duration, 5),
+            "position": [round(center[0] + math.cos(angle) * radius, 5),
+                         round(center[1] + math.sin(angle) * radius * tilt, 5),
+                         round(center[2] + math.sin(angle) * radius * 0.12, 5)],
+        })
+    return keys
+
+
+def pendulum(t0, duration, *, angle=24.0, cycles=2.0, fps=24, decay=0.0):
+    """Rotation keys for a hanging object or tail, in degrees."""
+    keys, count = [], max(1, math.ceil(duration * fps))
+    for index in range(count + 1):
+        progress = index / count
+        envelope = math.exp(-decay * progress)
+        keys.append({
+            "t": round(t0 + progress * duration, 5),
+            "rotation": [0.0, 0.0, round(angle * math.sin(progress * cycles * math.tau) * envelope, 5)],
+        })
+    return keys
+
+
+def to_rotation(track):
+    """(t, [pitch, yaw, roll]) samples for parts that only swing."""
+    return [(round(frame["t"], 5), frame["rotation"]) for frame in track if "rotation" in frame]
+
+
 def squash(t0, amount=0.3, *, fps=24, frames=2):
     """Standalone squash and stretch around a contact, in seconds."""
     keys = [{"t": round(t0 - 1 / fps, 5), "scale": [1.0, 1.0, 1.0]},

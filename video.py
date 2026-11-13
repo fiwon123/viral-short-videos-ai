@@ -128,7 +128,7 @@ def execute(args):
         from studio.render import export_srt
 
         with new_package(args.out) as out, TemporaryDirectory() as temp:
-            timeline, _ = prepare_audio(episode, args.episode.parent, out / "mix.wav", Path(temp), audio_library)
+            timeline, _ = prepare_audio(episode, args.episode.parent, out / "mix.wav", Path(temp), audio_library, channel=channel)
             report = {"duration_seconds": timeline["duration_frames"] / timeline["fps"], **audio_summary(timeline)}
             write_json(out / "timeline.json", timeline)
             write_json(out / "audio-qa.json", report)
@@ -152,7 +152,7 @@ def execute(args):
 
         with TemporaryDirectory() as temp:
             work = Path(temp)
-            timeline, _ = prepare_audio(episode, args.episode.parent, work / "mix.wav", work, audio_library)
+            timeline, _ = prepare_audio(episode, args.episode.parent, work / "mix.wav", work, audio_library, channel=channel)
             report = audit_visual(episode, library, timeline, include_cameras=True)
         return report, int(bool(report["issues"]))
     from studio.render import render

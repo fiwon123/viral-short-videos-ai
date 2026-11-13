@@ -6,9 +6,11 @@ from pathlib import Path
 import subprocess
 from tempfile import TemporaryDirectory
 
+from PIL import Image
+
 from .audio import audio_summary, prepare_audio
 from .core import MAX_SECONDS, new_package, probe, require, run, write_json
-from .design import Composition, draw_caption, resolve_font, thumbnail, transition_frame
+from .design import Composition, apply_post, draw_caption, resolve_font, thumbnail, transition_frame
 from .publishing import publishing_guide
 from .visual import audit_visual
 
@@ -17,7 +19,7 @@ def encoder(width, height, fps):
     entries = run("ffmpeg", "-hide_banner", "-encoders").decode()
     encoders = {fields[1] for line in entries.splitlines() if len(fields := line.split()) > 2}
     if "libx264" in encoders:
-        return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "19"]
+        return ["-c:v", "libx264", "-preset", "medium", "-crf", "17", "-tune", "animation"]
     if "libopenh264" in encoders:
         bitrate = max(1_000_000, round(width * height * fps * 0.15))
         return ["-c:v", "libopenh264", "-b:v", str(bitrate)]
@@ -64,6 +66,16 @@ def write_script(path, episode, channel, timeline):
                         rows.append(f"  - {clock(frame, fps)} · {subject} · {pose}")
             background = shot.get("background", channel["palette"]["background"])
             rows.append(f"- Background {background}.")
+            if camera := shot.get("camera"):
+                keys = ", ".join(f"{key['at']}:x={key.get('x', 0)},y={key.get('y', 0)},"
+                                 f"zoom={key.get('zoom', 1)},rotate={key.get('rotate', 0)}"
+                                 for key in camera.get("keyframes", []))
+                rows.append(f"- Camera {camera.get('x', 0)}, {camera.get('y', 0)}, zoom {camera.get('zoom', 1)}, "
+                            f"rotate {camera.get('rotate', 0)}" + (f"; keys {keys}." if keys else "."))
+            if post := shot.get("post"):
+                rows.append("- Post: " + ", ".join(f"{key}={value}" for key, value in post.items()) + ".")
+            if blur := shot.get("motion_blur"):
+                rows.append(f"- Motion blur {blur}.")
             if transition := resolved.get("transition"):
                 rows.append(f"- {transition['type']} from {clock(transition['start'], fps)} to {clock(transition['end'], fps)}.")
             elif start:
@@ -102,34 +114,59 @@ def write_script(path, episode, channel, timeline):
 
 
 def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn):
+    import numpy as np
+
     previous = None
     cues = iter(timeline["captions"])
     cue = next(cues, None)
+    supersample = max(1, int(episode.get("supersample", 1)))
+    render_canvas = (canvas[0] * supersample, canvas[1] * supersample)
+    caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
     for scene, scene_timing in zip(episode["scenes"], timeline["scenes"]):
         for shot, timing in zip(scene["shots"], scene_timing["shots"]):
-            composition = Composition(shot, canvas, channel, font, base)
+            composition = Composition(shot, render_canvas, channel, font, base,
+                                      episode_post=episode.get("post"),
+                                      motion_blur=episode.get("motion_blur", 0))
             frames = timing["end"] - timing["start"]
             transition = timing.get("transition")
             count = transition["end"] - transition["start"] if transition else 0
             cover = episode["thumbnail"]
             cover_frame = round(cover.get("at", 0.5) * (frames - 1)) if cover["shot"] == shot["id"] else None
+            blur = float(shot.get("motion_blur", episode.get("motion_blur", 0)) or 0)
+            subframes = 5 if blur >= 0.55 else 3 if blur >= 0.18 else 1
+            post = {**(channel.get("post") or {}), **(episode.get("post") or {}), **(shot.get("post") or {})}
             for frame in range(frames):
+                absolute = timing["start"] + frame
                 progress = frame / max(1, frames - 1)
                 speaking = {speaker: float(samples[frame - a])
                             for a, b, speaker, samples in levels[shot["id"]] if a <= frame < b}
-                visual = composition.frame(progress, speaking)
+                if subframes > 1:
+                    shutter = blur / max(frames, 1)
+                    stack = []
+                    for index in range(subframes):
+                        offset = (index - (subframes - 1) / 2) * shutter
+                        stack.append(np.asarray(composition.frame(
+                            max(0.0, min(1.0, progress + offset)), speaking,
+                            post=False, seed=absolute * 11 + index)))
+                    visual = Image.fromarray(np.uint8(np.mean(stack, axis=0)))
+                else:
+                    visual = composition.frame(progress, speaking, post=False, seed=absolute)
+                visual = apply_post(visual, post, seed=absolute)
                 if frame == cover_frame:
-                    clean = composition.frame(progress, {}, cover.get("hide_layers", []))
-                    thumbnail(clean, cover["text"], channel, font).save(out / "thumbnail.png")
+                    clean = composition.frame(progress, {}, cover.get("hide_layers", []), post=False,
+                                              seed=absolute)
+                    thumbnail(apply_post(clean, post, seed=absolute), cover["text"], channel, font).save(
+                        out / "thumbnail.png")
                 image = visual
                 if count and frame < count:
                     image = transition_frame(previous, visual, transition["type"], (frame + 1) / count)
-                absolute = timing["start"] + frame
                 while cue and absolute >= cue["end"]:
                     cue = next(cues, None)
                 if burn and cue and cue["start"] <= absolute < cue["end"]:
                     image = image.copy()
-                    draw_caption(image, cue["text"], channel, font)
+                    draw_caption(image, cue, channel, font, config=caption_config, frame=absolute)
+                if supersample > 1:
+                    image = image.resize(canvas, Image.Resampling.LANCZOS)
                 pipe.write(image.tobytes())
             previous = visual
 
@@ -144,7 +181,8 @@ def encode(episode, timeline, levels, canvas, channel, font, base, out, mix, bur
             process = subprocess.Popen(
                 ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-f", "rawvideo",
                  "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(fps), "-i", "pipe:0", "-i", str(mix),
-                 *options, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+                 *options, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ac", "2",
+                 "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
                  "-movflags", "+faststart", str(dest)], stdin=subprocess.PIPE, stderr=log,
             )
             try:
@@ -200,7 +238,7 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
     font = resolve_font(channel, channel_dir)
     with new_package(target) as out, TemporaryDirectory() as temp:
         work = Path(temp)
-        timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work, audio_library)
+        timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work, audio_library, channel=channel)
         visual_report = audit_visual(episode, library, timeline)
         if visual_report["issues"]:
             issues = []

@@ -1,6 +1,7 @@
 import {
-  AmbientLight, BoxGeometry, CylinderGeometry, DirectionalLight, Mesh, MeshStandardMaterial,
-  PCFShadowMap, PerspectiveCamera, Scene, SphereGeometry, TorusGeometry, WebGLRenderer,
+  ACESFilmicToneMapping, AmbientLight, AnimationMixer, BoxGeometry, Color, CylinderGeometry,
+  DirectionalLight, Mesh, MeshStandardMaterial, PCFShadowMap, PerspectiveCamera, Scene,
+  SphereGeometry, SRGBColorSpace, TorusGeometry, WebGLRenderer,
 } from "three";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {clone} from "three/addons/utils/SkeletonUtils.js";
@@ -12,6 +13,9 @@ export async function createThreeStage(specs, width, height, urlFor) {
   const renderer = new WebGLRenderer({alpha: true, antialias: true});
   renderer.setSize(width, height, false);
   renderer.setClearColor(0, 0);
+  renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.outputColorSpace = SRGBColorSpace;
   renderer.shadowMap.enabled = Object.values(specs).some((spec) => spec.lighting?.shadows);
   renderer.shadowMap.type = PCFShadowMap;
   const geometries = {
@@ -46,11 +50,20 @@ export async function createThreeStage(specs, width, height, urlFor) {
       const objects = new Map();
       for (const obj of spec.objects) {
         let node;
+        let animations = [];
         if (obj.kind === "glb") {
           if (!models.has(obj.file)) models.set(obj.file, await loader.loadAsync(urlFor(obj.file)));
-          node = clone(models.get(obj.file).scene);
+          const model = models.get(obj.file);
+          node = clone(model.scene);
+          animations = model.animations ?? [];
         } else {
-          node = new Mesh(geometries[obj.kind], new MeshStandardMaterial({color: obj.color ?? "#ffffff"}));
+          node = new Mesh(geometries[obj.kind], new MeshStandardMaterial({
+            color: obj.color ?? "#ffffff",
+            metalness: obj.metalness ?? 0,
+            roughness: obj.roughness ?? 0.62,
+            emissive: new Color(obj.emissive ?? "#000000"),
+            emissiveIntensity: obj.emissive_intensity ?? 1,
+          }));
         }
         if (light.shadowExtent !== null) {
           node.traverse((child) => {
@@ -61,7 +74,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
           });
         }
         scene.add(node);
-        objects.set(obj.id, {node, spec: obj});
+        objects.set(obj.id, {node, spec: obj, animations});
       }
       scenes.set(id, {scene, camera, initialCamera: {
         position: spec.camera.position, target: spec.camera.target,
@@ -76,19 +89,46 @@ export async function createThreeStage(specs, width, height, urlFor) {
     compile(shot) {
       const {scene, camera, initialCamera, objects} = scenes.get(shot.scene);
       const cameraTrack = poseTrack(initialCamera, shot.camera);
-      const tracks = Array.from(objects, ([id, {node, spec}]) => ({
-        node, poses: objectTrack(spec, Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : []),
-      }));
+      const duration = shot.duration ?? 1;
+      const tracks = Array.from(objects, ([id, {node, spec, animations}]) => {
+        const mixer = new AnimationMixer(node);
+        const actions = [];
+        for (const entry of (shot.animations?.[id] ?? [])) {
+          const clip = animations.find((item) => item.name === entry.clip);
+          if (!clip) continue;
+          const action = mixer.clipAction(clip);
+          action.play();
+          actions.push({action, clip, entry});
+        }
+        return {
+          node,
+          poses: objectTrack(spec, Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : []),
+          mixer: actions.length ? mixer : null,
+          actions,
+        };
+      });
       return (progress) => {
         const {position, target} = poseAt(cameraTrack, progress);
         camera.position.set(...position);
         camera.lookAt(...target);
-        for (const {node, poses} of tracks) {
+        for (const {node, poses, mixer, actions} of tracks) {
           const pose = poseAt(poses, progress);
           node.visible = pose.visible;
           node.position.set(...pose.position);
           node.rotation.set(...pose.rotation);
           node.scale.set(...pose.scale);
+          if (mixer) {
+            const now = progress * duration;
+            for (const {action, clip, entry} of actions) {
+              const offset = entry.at ?? 0;
+              const span = Math.min(clip.duration, entry.duration ?? clip.duration);
+              let time = (now - offset) * (entry.rate ?? 1);
+              if (entry.loop === false) time = Math.max(0, Math.min(span, time));
+              else time = ((time % span) + span) % span;
+              action.time = time;
+            }
+            mixer.update(0);
+          }
         }
         renderer.render(scene, camera);
         return renderer.domElement;

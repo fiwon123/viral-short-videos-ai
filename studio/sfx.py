@@ -355,6 +355,142 @@ def creak(seed):
     return normalize(room((tone + grain).astype(np.float32), 0.14, seed), 0.55)
 
 
+def squeak(seed):
+    """Tiny rubber or hinge squeak for a quick reaction."""
+    n = round(0.24 * SR)
+    t = np.arange(n) / SR
+    frequency = 820 + 260 * np.sin(2 * np.pi * 7.5 * t) + 180 * t
+    tone = np.sin(2 * np.pi * np.cumsum(frequency) / SR)
+    tone *= envelope(0.24, 0.01, 2.6) * (0.8 + 0.2 * np.sin(2 * np.pi * 19 * t))
+    return normalize(room(tone.astype(np.float32), 0.08, seed), 0.58)
+
+
+def zap(seed):
+    """Short descending electric zap with a bright noise edge."""
+    tone = sweep(0.22, 1800, 180, curve=0.45) * envelope(0.22, 0.001, 3.2)
+    edge = highpass(noise(0.06, seed), 2400) * envelope(0.06, 0.0004, 5) * 0.7
+    out = np.zeros(round(0.3 * SR), dtype=np.float32)
+    out[:len(tone)] += tone
+    out[:len(edge)] += edge
+    return normalize(room(out, 0.1, seed + 1), 0.6)
+
+
+def bell(seed):
+    """Small bell or notification with inharmonic partials."""
+    partials = [(880, 0.5), (1320, 0.3), (1980, 0.2), (2640, 0.12)]
+    out = np.zeros(round(0.9 * SR), dtype=np.float32)
+    for frequency, gain in partials:
+        tone = sweep(0.88, frequency, frequency * 0.998) * envelope(0.88, 0.001, 2.6) * gain
+        out[:len(tone)] += tone
+    return normalize(room(out, 0.2, seed), 0.62)
+
+
+def bubble(seed):
+    """A few rising water bubbles for liquid comedy."""
+    r = rng(seed)
+    out = np.zeros(round(0.65 * SR), dtype=np.float32)
+    for index in range(6):
+        start = round(r.uniform(0, 0.42) * SR)
+        length = r.uniform(0.05, 0.11)
+        tone = sweep(length, r.uniform(400, 650), r.uniform(900, 1500), curve=0.55)
+        tone *= envelope(length, 0.001, 3.4) * r.uniform(0.25, 0.7)
+        if start + len(tone) < len(out):
+            out[start:start + len(tone)] += tone
+    return normalize(room(out, 0.18, seed), 0.55)
+
+
+def splat(seed):
+    """Soft wet splat: low body, broad noise, tiny droplets."""
+    body = sweep(0.24, 150, 58, curve=0.5) * envelope(0.24, 0.002, 3.2)
+    wet = lowpass(noise(0.3, seed), 2600) * envelope(0.3, 0.003, 2.6) * 0.8
+    drops = grains(6, 0.3, seed + 2, low=1300, high=4200, decay=1.8) * 0.3
+    out = np.zeros(round(0.42 * SR), dtype=np.float32)
+    for part in (body, wet, drops):
+        out[:len(part)] += part
+    return normalize(room(out, 0.18, seed + 3), 0.62)
+
+
+def crumble(seed):
+    """Dry crumble or cereal pieces collapsing."""
+    cluster = grains(30, 0.8, seed, low=600, high=3600, decay=1.4, spread=0.7)
+    body = lowpass(noise(0.55, seed + 4), 900) * envelope(0.55, 0.01, 2.2) * 0.4
+    out = cluster
+    out[:len(body)] += body
+    return normalize(room(out, 0.2, seed + 2), 0.55)
+
+
+def wind(seed):
+    """Loopable air bed for exteriors and quiet tension."""
+    n = round(1.4 * SR)
+    t = np.arange(n) / SR
+    air = noise(1.4, seed)
+    shaped = sweep_filter(air, 260, 900, 0.8)
+    wobble = 0.55 + 0.45 * np.sin(2 * np.pi * 0.8 * t + 0.4)
+    shaped *= envelope(1.4, 0.18, 1.2, hold=0.4) * wobble
+    low = sweep(1.4, 90, 70) * envelope(1.4, 0.2, 1.4) * 0.08
+    out = shaped.astype(np.float32)
+    out[:len(low)] += low
+    return normalize(room(out, 0.08, seed), 0.48)
+
+
+def heartbeat(seed):
+    """Two low thumps for tension or a comic pause."""
+    out = np.zeros(round(0.85 * SR), dtype=np.float32)
+    for start, gain in ((0.0, 1.0), (0.24, 0.72)):
+        body = sweep(0.18, 86, 42, curve=0.5) * envelope(0.18, 0.004, 3.0) * gain
+        click = bandpass(noise(0.03, seed + int(start * 10)), 500, 2200) * envelope(0.03, 0.0005, 5) * 0.3
+        offset = round(start * SR)
+        out[offset:offset + len(body)] += body
+        out[offset:offset + len(click)] += click
+    return normalize(room(out, 0.12, seed), 0.66)
+
+
+def footstep(seed):
+    """A soft footfall with a short scuff."""
+    body = sweep(0.16, 110, 48, curve=0.55) * envelope(0.16, 0.003, 3.2)
+    scuff = bandpass(noise(0.1, seed), 700, 2800) * envelope(0.1, 0.004, 3.4) * 0.4
+    out = np.zeros(round(0.24 * SR), dtype=np.float32)
+    out[:len(body)] += body
+    out[:len(scuff)] += scuff
+    return normalize(room(out, 0.12, seed + 1), 0.6)
+
+
+def sparkle(seed):
+    """High, glittery cascade for reveals and magic."""
+    r = rng(seed)
+    out = np.zeros(round(0.9 * SR), dtype=np.float32)
+    for index in range(14):
+        start = round(r.uniform(0, 0.55) * SR)
+        length = r.uniform(0.04, 0.12)
+        tone = sweep(length, r.uniform(1800, 3200), r.uniform(3200, 6200), curve=0.6)
+        tone *= envelope(length, 0.001, 3.8) * r.uniform(0.12, 0.45)
+        if start + len(tone) < len(out):
+            out[start:start + len(tone)] += tone
+    return normalize(room(out, 0.2, seed), 0.5)
+
+
+def glass(seed):
+    """Bright glass contact, slightly different from metal."""
+    partials = [(1760, 0.4), (2630, 0.3), (3920, 0.2), (5400, 0.1)]
+    out = np.zeros(round(0.45 * SR), dtype=np.float32)
+    for frequency, gain in partials:
+        tone = sweep(0.42, frequency, frequency * 0.997) * envelope(0.42, 0.0006, 4.4) * gain
+        out[:len(tone)] += tone
+    return normalize(room(out, 0.16, seed), 0.6)
+
+
+def metal(seed):
+    """Larger metal ring for props and machinery."""
+    partials = [(620, 0.45), (940, 0.3), (1510, 0.2), (2380, 0.12)]
+    out = np.zeros(round(0.55 * SR), dtype=np.float32)
+    for frequency, gain in partials:
+        tone = sweep(0.5, frequency, frequency * 0.994) * envelope(0.5, 0.0008, 3.8) * gain
+        out[:len(tone)] += tone
+    impact = lowpass(noise(0.08, seed), 1800) * envelope(0.08, 0.0006, 5) * 0.35
+    out[:len(impact)] += impact
+    return normalize(room(out, 0.2, seed + 1), 0.62)
+
+
 RECIPES = {
     "thud": thud,
     "bonk": bonk,
@@ -376,6 +512,18 @@ RECIPES = {
     "click": click,
     "tap": tap,
     "creak": creak,
+    "squeak": squeak,
+    "zap": zap,
+    "bell": bell,
+    "bubble": bubble,
+    "splat": splat,
+    "crumble": crumble,
+    "wind": wind,
+    "heartbeat": heartbeat,
+    "footstep": footstep,
+    "sparkle": sparkle,
+    "glass": glass,
+    "metal": metal,
 }
 
 # Peaks are matched per file, so the mix gain carries the size of the event.
@@ -384,6 +532,9 @@ SUGGESTED_GAIN = {
     "thwack": 0.58, "boing": 0.42, "pop": 0.46, "whoosh": 0.4, "swish": 0.3,
     "drip": 0.4, "sip": 0.4, "gulp": 0.4, "slosh": 0.36, "pour": 0.4,
     "rattle": 0.36, "clink": 0.38, "click": 0.34, "tap": 0.3, "creak": 0.32,
+    "squeak": 0.38, "zap": 0.42, "bell": 0.4, "bubble": 0.34, "splat": 0.5,
+    "crumble": 0.38, "wind": 0.22, "heartbeat": 0.42, "footstep": 0.34,
+    "sparkle": 0.34, "glass": 0.4, "metal": 0.4,
 }
 
 

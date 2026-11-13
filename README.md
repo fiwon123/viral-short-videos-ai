@@ -94,7 +94,19 @@ Estimate time to eligibility only from stated assumptions or my own data.
 
 Save the approved identity, characters, voice references, subtitle style, thumbnail style, and repeatable episode format with the channel. Reuse those decisions while giving each episode a new premise, action, and payoff. Study references for staging, timing, and performance, then create your own characters, artwork, dialogue, and sound.
 
-Channels can also carry a generated Foley bank and a palette-matched effects kit: `python -m studio.sfx channels/<slug>` writes layered, variant-based sound effects, `python -m studio.vfx channels/<slug>` draws flash, dust, splash and shockwave art, and `studio/physics.py` samples falling, bouncing, splashing and shaking motion instead of hand-placed keys.
+Channels can also carry a generated Foley bank and a palette-matched effects kit: `python -m studio.sfx channels/<slug>` writes layered, variant-based sound effects, `python -m studio.vfx channels/<slug>` draws flash, dust, splash, shockwave and finishing art, and `studio/physics.py` samples falling, bouncing, splashing, springing and swinging motion instead of hand-placed keys.
+
+### ✨ Finishing controls
+
+Episodes can now direct the parts that usually make a render feel finished:
+
+- **Motion:** spring, back, elastic, bounce, sine, expo and hold easings; parented 2D rigs with pivots; a shot camera with push-in, pan and rotate keys; motion blur; and 2× supersampling for both renderers.
+- **Picture:** per-shot `post` controls for grade, bloom, blur, chromatic split, grain, vignette and letterbox; layer blend modes; and a larger transition set including whip pans, slides, iris, flash and dip-to-black.
+- **Sound:** stereo mixing, panning, convolution reverb, layered Foley stacks, pitch variation, room tone, music ducking, and a two-pass loudness master targeting −14 LUFS with a true-peak limiter.
+- **Captions:** `box`, `karaoke`, and `minimal` styles with word-level timing, configurable position, uppercase, highlight colour and word grouping.
+- **3D:** ACES tone mapping, sRGB output, PBR material controls, and glTF animation clip playback.
+
+All of these are optional. Existing manifests render with the same defaults and gain the safer transform maths, louder master and animated captions automatically.
 
 Try a 15–30 second first cut for a single visual gag, then adjust the length to fit the beats and the platform. Review it on a phone. Check where the eye goes in the opening, whether the payoff reads when muted, and whether captions and effects line up in playback. Each render includes `publishing.md` with YouTube title, description, and tags, plus a TikTok caption with hashtags. [Shorts planning](.agents/skills/viral-video-studio/references/shorts.md)
 

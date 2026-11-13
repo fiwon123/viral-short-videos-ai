@@ -97,10 +97,29 @@ def validate_episode(episode, base, channel_base=None, *, check_visual_assets=Tr
             if len(set(layer_ids)) != len(layer_ids):
                 raise ValueError(f"{shot_id} has duplicate layer IDs")
             shots[shot_id] = set(layer_ids)
+            by_id = {layer["id"]: layer for layer in shot["layers"]}
             for layer in shot["layers"]:
                 times = [point["at"] for point in layer.get("keyframes", [])]
                 if times != sorted(set(times)):
                     raise ValueError(f"{shot_id}/{layer['id']} requires increasing keyframe times")
+                parent = layer.get("parent")
+                if parent and parent not in by_id:
+                    raise ValueError(f"{shot_id}/{layer['id']} references unknown parent layer: {parent}")
+                if parent == layer["id"]:
+                    raise ValueError(f"{shot_id}/{layer['id']} cannot parent itself")
+                if parent and (by_id[parent].get("plane", "foreground") != layer.get("plane", "foreground")):
+                    raise ValueError(f"{shot_id}/{layer['id']} and its parent must share a plane")
+                seen = {layer["id"]}
+                walk = parent
+                while walk:
+                    if walk in seen:
+                        raise ValueError(f"{shot_id} has a parent cycle at {walk}")
+                    seen.add(walk)
+                    walk = (by_id.get(walk) or {}).get("parent")
+            camera = shot.get("camera", {})
+            camera_times = [key["at"] for key in camera.get("keyframes", [])]
+            if camera_times != sorted(set(camera_times)):
+                raise ValueError(f"{shot_id} requires increasing camera keyframe times")
             visual_assets = shot["layers"] if check_visual_assets else []
             for item in (*visual_assets, *shot.get("speech", []), *shot.get("sfx", [])):
                 if item.get("kind") == "svg":

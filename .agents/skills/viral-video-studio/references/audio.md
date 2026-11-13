@@ -39,7 +39,23 @@ For richer acting or an original recorded identity, use a `recorded` profile wit
 
 Spot the episode by action, material, scale, perspective, and frame. Choose which moments benefit from silence. Record or create a specific sound for the signature reveal. For generated Foley, specify the action, materials, distance, and decay, then choose a dry take with a clear contact sound. For recurring physical actions, group several meaningfully different takes under a shared ID. For instance, record a wood latch with a gentle close, a firm snap, and a loose rattle. Keep source, creator, and license notes next to each imported asset. A recognizable brand sting can deliberately keep one fixed take.
 
-Use `"sound": "wood-latch"` in a shot's SFX cue to select from the channel library. The starting variant depends on the episode folder, then variants rotate for repeated uses. Set `variant` with a one-based index to lock a take. Use a shot-local `file` for a new hero effect. Combine a contact transient and a short tail with two cues when the action needs both. Set gain per cue. An optional `rate` changes pitch and duration together, so recheck timing after changing it. Use low room tone where it helps continuity. Leave the legacy synth presets for scratch work.
+Use `"sound": "wood-latch"` in a shot's SFX cue to select from the channel library. The starting variant depends on the episode folder, then variants rotate for repeated uses. Set `variant` with a one-based index to lock a take. Use a shot-local `file` for a new hero effect. Combine a contact transient and a short tail with two cues when the action needs both. Set gain per cue. An optional `rate` changes pitch and duration together, so recheck timing after changing it.
+
+Place sounds in space and depth with `pan` (−1 left to 1 right) and `reverb` (0 dry to 1 wet). `pitch_variance` adds a deterministic small pitch change so repeated cues do not stack identically. `fade_in`, `fade_out`, `loop` and `duration` shape ambience and tails. For a compound impact, use `layers` with an `offset` per layer instead of hand-placing several cues:
+
+```json
+{
+  "at": 1.2,
+  "gain": 0.7,
+  "layers": [
+    {"sound": "thud", "gain": 0.65, "pan": 0},
+    {"sound": "debris", "gain": 0.4, "offset": 0.02, "pan": 0.25, "pitch_variance": 0.06},
+    {"sound": "clink", "gain": 0.25, "offset": 0.06, "pan": -0.3, "reverb": 0.18}
+  ]
+}
+```
+
+Set channel or episode `audio.reverb` for a shared room, and `audio.room_tone` with a library `sound` or a `file` plus gain. Use low room tone where it helps continuity. Leave the legacy synth presets for scratch work.
 
 ## Generate fresh Foley
 
@@ -54,6 +70,22 @@ Every sound is layered from a transient, a body, and a tail, then filtered and p
 
 Split the bank into impact, liquid, destruction, and comedy families and layer two or three cues per beat: contact, then debris, then settle. Put the contact on the exact frame. Keep music 6–12 dB under speech. If a real recording matters for a hero moment, import it as a shot-local `file` and leave the generated bank as the consistent bed.
 
+
+## Master for the platform
+
+The mixer writes stereo and then masters the episode by default: a high-pass, gentle bus compression, a two-pass loudness normalisation to −14 LUFS, and a true-peak limiter at −1.5 dBTP. Override it when a platform or a musical delivery needs a different target:
+
+```json
+{
+  "audio": {
+    "master": {"enabled": true, "loudness": -14, "true_peak": -1.5, "compress": true},
+    "reverb": {"mix": 0.10, "size": 0.35},
+    "room_tone": {"sound": "wind", "gain": 0.03}
+  }
+}
+```
+
+Read the measured `loudness` block in `audio-qa.json` or `timeline.json` before delivery. Keep dialogue forward, leave the limiter room for impacts, and check the result on headphones and a phone speaker. Use `master.enabled: false` only for a deliberate raw master.
 
 ## Approve audio before animation
 

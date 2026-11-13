@@ -60,8 +60,14 @@ def validate_three(shot, library):
     if scene is None:
         raise ValueError(f"{shot['id']} references an unknown channel 3D scene: {spec['scene']}")
     paths = spec.get("objects", {})
-    if unknown := paths.keys() - {obj["id"] for obj in scene["objects"]}:
+    object_ids = {obj["id"] for obj in scene["objects"]}
+    if unknown := paths.keys() - object_ids:
         raise ValueError(f"{shot['id']} references unknown 3D objects: {', '.join(sorted(unknown))}")
+    if unknown := spec.get("animations", {}).keys() - object_ids:
+        raise ValueError(f"{shot['id']} animates unknown 3D objects: {', '.join(sorted(unknown))}")
+    for keys in spec.get("animations", {}).values():
+        if [key.get("at", 0) for key in keys] != sorted(key.get("at", 0) for key in keys):
+            raise ValueError(f"{shot['id']} requires increasing animation offsets")
     for keys in (spec.get("camera", []), *paths.values()):
         times = [key["at"] for key in keys]
         if times != sorted(set(times)):
