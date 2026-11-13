@@ -1,0 +1,12 @@
+{
+  "id": "{{id}}",
+  "duration": "{{duration}}",
+  "direction": "Title card: one line lands, then the scene starts.",
+  "layers": [
+    {"id": "bg", "kind": "rect", "x": 0.5, "y": 0.5, "width": 1.2, "height": 1.2, "fill": "background", "plane": "background"},
+    {"id": "title", "kind": "text", "x": 0.5, "y": 0.46, "width": 0.82, "height": 0.16, "fill": "foreground", "text": "{{title}}"},
+    {"id": "rule", "kind": "rect", "x": 0.5, "y": 0.56, "width": 0.28, "height": 0.008, "fill": "accent", "radius": 0.4,
+     "keyframes": [{"at": 1, "width": 0.55, "ease": "sine"}]}
+  ],
+  "sfx": [{"at": 0.05, "cue": "chime", "gain": 0.14}]
+}

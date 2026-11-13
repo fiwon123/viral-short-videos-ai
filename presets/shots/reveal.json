@@ -1,0 +1,14 @@
+{
+  "id": "{{id}}",
+  "duration": "{{duration}}",
+  "direction": "Reveal: a prop enters, the camera pushes in, and a short flash finishes the beat.",
+  "camera": {"preset": "push-in"},
+  "layers": [
+    {"id": "bg", "kind": "rect", "x": 0.5, "y": 0.5, "width": 1.2, "height": 1.2, "fill": "background", "plane": "background"},
+    {"id": "prop", "kind": "ellipse", "x": "{{x}}", "y": "{{y}}", "width": "{{size}}", "height": "{{size}}", "fill": "accent", "opacity": 0,
+     "keyframes": [{"at": 0.35, "opacity": 0, "scale": 0.2}, {"at": 0.55, "opacity": 1, "scale": 1.08, "ease": "back"}, {"at": 1, "opacity": 1, "scale": 1, "ease": "smooth"}]},
+    {"id": "flash", "kind": "svg", "file": "vfx/flash.svg", "asset_scope": "channel", "plane": "foreground", "x": "{{x}}", "y": "{{y}}", "width": 0.4, "height": 0.4, "opacity": 0,
+     "keyframes": [{"at": 0.32, "opacity": 0}, {"at": 0.38, "opacity": 0.85}, {"at": 0.62, "opacity": 0}]}
+  ],
+  "sfx": [{"at": 0.32, "cue": "whoosh", "gain": 0.18}]
+}

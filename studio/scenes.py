@@ -72,3 +72,6 @@ def validate_three(shot, library):
         times = [key["at"] for key in keys]
         if times != sorted(set(times)):
             raise ValueError(f"{shot['id']} requires increasing 3D keyframe times")
+    focus_times = [key["at"] for key in spec.get("focus", [])]
+    if focus_times != sorted(set(focus_times)):
+        raise ValueError(f"{shot['id']} requires increasing 3D focus times")

@@ -18,6 +18,17 @@ const translate = (x, y) => [1, 0, 0, 1, x, y];
 const scale = (x, y = x) => [x, 0, 0, y, 0, 0];
 const rotate = (radians) => [Math.cos(radians), Math.sin(radians), -Math.sin(radians), Math.cos(radians), 0, 0];
 
+function apply(m, x, y) {
+  return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+}
+
+function inverse(m) {
+  const [a, b, c, d, e, f] = m;
+  const determinant = a * d - b * c;
+  return [d / determinant, -b / determinant, -c / determinant, a / determinant,
+    (c * f - d * e) / determinant, (b * e - a * f) / determinant];
+}
+
 function layerMatrix(pose, width, height, pivot, {parent = null, parentOrigin = null, camera = null, parallax = 1, mouth = 1, box = null} = {}) {
   const boxWidth = box?.[0] ?? width;
   const boxHeight = box?.[1] ?? height;
@@ -110,7 +121,10 @@ function noiseTile(size = 192, seed = 17) {
 export async function createPainter(canvas, data, urlFor) {
   const {width, height, captions, shots, scenes, cover} = data;
   const names = new Set([
-    ...shots.flatMap(({layers}) => layers.map((layer) => layer.sprite)),
+    ...shots.flatMap(({layers, transition}) => [
+      ...layers.flatMap((layer) => [layer.sprite, layer.mask?.sprite].filter(Boolean)),
+      ...(transition?.mask_sprite ? [transition.mask_sprite] : []),
+    ]),
     ...captions.flatMap((cue) => cue.karaoke
       ? [cue.background.sprite, ...cue.words.flatMap((word) => [word.normal.sprite, word.active.sprite])]
       : [cue.sprite]),
@@ -166,7 +180,42 @@ export async function createPainter(canvas, data, urlFor) {
   fx.width = width;
   fx.height = height;
   const fxCtx = fx.getContext("2d");
+  const maskCanvas = document.createElement("canvas");
+  const maskCtx = maskCanvas.getContext("2d");
+  const layerMaskCanvas = document.createElement("canvas");
+  layerMaskCanvas.width = width;
+  layerMaskCanvas.height = height;
+  const layerMaskCtx = layerMaskCanvas.getContext("2d");
   const grain = noiseTile(192, 29);
+
+  function lumaMask(progress, softness, invert, seed) {
+    const scale = 4;
+    const mw = Math.max(4, Math.ceil(width / scale));
+    const mh = Math.max(4, Math.ceil(height / scale));
+    if (maskCanvas.width !== mw || maskCanvas.height !== mh) {
+      maskCanvas.width = mw;
+      maskCanvas.height = mh;
+    }
+    const image = maskCtx.createImageData(mw, mh);
+    const threshold = -0.8 + progress * 2.2;
+    const feather = Math.max(0.015, softness);
+    for (let y = 0; y < mh; y++) {
+      const ny = y / Math.max(1, mh - 1);
+      for (let x = 0; x < mw; x++) {
+        const nx = x / Math.max(1, mw - 1);
+        const noise = 0.5 + 0.5 * Math.sin(nx * 17.3 + ny * 9.7 + seed)
+          * Math.sin(nx * 5.1 - ny * 13.9 + seed * 0.7);
+        const ramp = nx * 0.55 + (1 - ny) * 0.25 + noise * 0.20;
+        let alpha = Math.max(0, Math.min(1, (ramp - threshold) / feather + 0.5));
+        if (invert) alpha = 1 - alpha;
+        const offset = (y * mw + x) * 4;
+        image.data[offset] = image.data[offset + 1] = image.data[offset + 2] = 255;
+        image.data[offset + 3] = Math.round(alpha * 255);
+      }
+    }
+    maskCtx.putImageData(image, 0, 0);
+    return maskCanvas;
+  }
   const hiddenOnCover = new Set(cover.hide);
   for (const {layers} of shots) {
     for (const layer of layers) {
@@ -175,10 +224,75 @@ export async function createPainter(canvas, data, urlFor) {
   }
   const palette = data.palette ?? {};
 
-  function paintLayers(target, layers, progress, offset, speech, isCover, camera) {
+  function maskSpecsFor(layer, byId) {
+    const specs = [];
+    const seen = new Set();
+    let current = layer;
+    while (current) {
+      if (seen.has(current.id)) throw new Error(`Mask cycle at ${current.id}`);
+      seen.add(current.id);
+      if (current.mask) specs.push(current.mask);
+      current = current.parent ? byId.get(current.parent) : null;
+    }
+    return specs;
+  }
+
+  function preLayerMatrix(layer, progress, camera, byId, origins) {
+    const state = layer.getPose(progress);
+    const parent = layer.parent ? byId.get(layer.parent) : null;
+    const parentMatrix = parent ? preLayerMatrix(parent, progress, camera, byId, origins) : null;
+    const matrix = layerMatrix(state, width, height, layer.pivot, {
+      parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
+      camera, box: [layer.width, layer.height],
+    });
+    origins.set(layer.id, [(layer.pivot?.[0] ?? 0.5) * layer.width,
+      (layer.pivot?.[1] ?? 0.5) * layer.height]);
+    return matrix;
+  }
+
+  function maskBuffer(spec, progress, camera, byId, origins) {
+    maskCanvas.width = width;
+    maskCanvas.height = height;
+    maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+    maskCtx.clearRect(0, 0, width, height);
+    maskCtx.globalCompositeOperation = "source-over";
+    const feather = Number(spec.feather ?? 0);
+    maskCtx.filter = feather ? `blur(${Math.max(0.5, Math.min(width, height) * feather * 0.08)}px)` : "none";
+    const source = String(spec.source ?? "");
+    if (source.startsWith("layer:")) {
+      const layer = byId.get(source.split(":", 2)[1]);
+      if (!layer) throw new Error(`Mask references unknown layer: ${source}`);
+      const matrix = preLayerMatrix(layer, progress, camera, byId, origins);
+      maskCtx.setTransform(...matrix);
+      maskCtx.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+    } else {
+      const sprite = images.get(spec.sprite);
+      if (!sprite) throw new Error(`Mask image was not prepared: ${spec.sprite}`);
+      maskCtx.drawImage(sprite, 0, 0, width, height);
+    }
+    maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+    maskCtx.filter = "none";
+    if (spec.mode === "luma" || spec.invert) {
+      const pixels = maskCtx.getImageData(0, 0, width, height);
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        let alpha = pixels.data[i + 3];
+        if (spec.mode === "luma") {
+          alpha = (pixels.data[i] * 0.299 + pixels.data[i + 1] * 0.587
+            + pixels.data[i + 2] * 0.114) * (alpha / 255);
+        }
+        if (spec.invert) alpha = 255 - alpha;
+        pixels.data[i + 3] = alpha;
+      }
+      maskCtx.putImageData(pixels, 0, 0);
+    }
+    return maskCanvas;
+  }
+
+  function paintLayers(target, layers, progress, offset, speech, isCover, camera, visemes = {}) {
     const matrices = new Map();
     const alphas = new Map();
     const origins = new Map();
+    const byId = new Map(layers.map((layer) => [layer.id, layer]));
     const states = new Map(layers.map((layer) => [layer.id, layer.getPose(progress)]));
     const chosen = new Map();
     for (const layer of layers) {
@@ -189,6 +303,10 @@ export async function createPainter(canvas, data, urlFor) {
       if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
       const pose = states.get(layer.id);
       if (!(pose.visible ?? true)) continue;
+      if (layer.viseme_for) {
+        const shape = visemes[layer.viseme_for];
+        if (shape && layer.viseme && layer.viseme !== shape) continue;
+      }
       if (layer.variant_group && chosen.get(layer.variant_group) !== layer.id) continue;
       if (layer.parent && !(states.get(layer.parent)?.visible ?? true)) continue;
       const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
@@ -206,13 +324,40 @@ export async function createPainter(canvas, data, urlFor) {
       alphas.set(layer.id, alpha);
       origins.set(layer.id, [(layer.pivot?.[0] ?? 0.5) * layer.width,
         (layer.pivot?.[1] ?? 0.5) * layer.height * mouth]);
-      if (alpha <= 0) continue;
+      if (layer.kind === "group" || alpha <= 0) continue;
+      const masks = maskSpecsFor(layer, byId);
+      if (!masks.length) {
+        target.save();
+        target.setTransform(...matrix);
+        target.globalAlpha = alpha;
+        target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
+        target.filter = layer.blur ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
+        target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+        target.restore();
+        continue;
+      }
+      layerMaskCtx.setTransform(1, 0, 0, 1, 0, 0);
+      layerMaskCtx.globalCompositeOperation = "source-over";
+      layerMaskCtx.globalAlpha = 1;
+      layerMaskCtx.clearRect(0, 0, width, height);
+      layerMaskCtx.save();
+      layerMaskCtx.setTransform(...matrix);
+      layerMaskCtx.globalAlpha = alpha;
+      layerMaskCtx.filter = layer.blur
+        ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
+      layerMaskCtx.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+      layerMaskCtx.restore();
+      layerMaskCtx.filter = "none";
+      for (const spec of masks) {
+        const mask = maskBuffer(spec, progress, camera, byId, origins);
+        layerMaskCtx.globalCompositeOperation = "destination-in";
+        layerMaskCtx.drawImage(mask, 0, 0);
+      }
+      layerMaskCtx.globalCompositeOperation = "source-over";
       target.save();
-      target.setTransform(...matrix);
-      target.globalAlpha = alpha;
+      target.globalAlpha = 1;
       target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
-      target.filter = layer.blur ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
-      target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+      target.drawImage(layerMaskCanvas, 0, 0);
       target.restore();
     }
   }
@@ -294,20 +439,60 @@ export async function createPainter(canvas, data, urlFor) {
     }
   }
 
+  function trackedCamera(index, progress) {
+    const shot = shots[index];
+    if (!shot.camera) return null;
+    const base = poseAt(poseTrack({
+      x: shot.camera.x ?? 0, y: shot.camera.y ?? 0,
+      zoom: shot.camera.zoom ?? 1, rotate: shot.camera.rotate ?? 0,
+    }, shot.camera.keyframes ?? []), progress);
+    const track = shot.camera.track;
+    if (!track) return base;
+    const all = [...planes[index].background, ...planes[index].foreground];
+    const byId = new Map(all.map((layer) => [layer.id, layer]));
+    const subject = byId.get(track.layer);
+    if (!subject) return base;
+    const origins = new Map();
+    const pre = (layer) => {
+      const state = layer.getPose(progress);
+      const parent = layer.parent ? byId.get(layer.parent) : null;
+      const parentMatrix = parent ? pre(parent)[0] : null;
+      const matrix = layerMatrix(state, width, height, layer.pivot, {
+        parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
+        camera: null, box: [layer.width, layer.height],
+      });
+      origins.set(layer.id, [(layer.pivot?.[0] ?? 0.5) * layer.width,
+        (layer.pivot?.[1] ?? 0.5) * layer.height]);
+      return [matrix, layer];
+    };
+    const [matrix, layer] = pre(subject);
+    const [subjectX, subjectY] = apply(matrix, layer.width / 2, layer.height / 2);
+    const desired = [Number(track.x ?? 0.5) * width, Number(track.y ?? 0.5) * height];
+    const inv = inverse(cameraMatrix({...base, x: 0, y: 0}, width, height));
+    const [targetX, targetY] = apply(inv, desired[0], desired[1]);
+    return {...base, x: (base.x ?? 0) + (targetX - subjectX) / width,
+      y: (base.y ?? 0) + (targetY - subjectY) / height};
+  }
+
   function paintShot(target, index, frame, isCover) {
     const shot = shots[index];
     const offset = frame - shot.start;
     const progress = offset / Math.max(1, shot.end - shot.start - 1);
     const speech = isCover ? null : shot.speech.find(([start, end]) => start <= offset && offset < end);
-    const camera = shot.camera ? poseAt(poseTrack({
-      x: shot.camera.x ?? 0, y: shot.camera.y ?? 0,
-      zoom: shot.camera.zoom ?? 1, rotate: shot.camera.rotate ?? 0,
-    }, shot.camera.keyframes ?? []), progress) : null;
+    const visemes = {};
+    if (!isCover) {
+      for (const item of shot.visemes ?? []) {
+        if (item.start <= frame && frame < item.end && item.at <= frame) {
+          visemes[item.speaker] = item.shape;
+        }
+      }
+    }
+    const camera = trackedCamera(index, progress);
     target.fillStyle = shot.background;
     target.fillRect(0, 0, width, height);
-    paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera);
+    paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera, visemes);
     if (three[index]) target.drawImage(three[index](progress), 0, 0);
-    paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera);
+    paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera, visemes);
     applyPost(target.canvas, shot.post, frame);
   }
 
@@ -353,11 +538,68 @@ export async function createPainter(canvas, data, urlFor) {
     ctx.restore();
   }
 
-  function transition(t, type, easeMode = "smooth") {
+  function transitionMask(maskSprite, progress, softness, invert, mode) {
+    const sprite = images.get(maskSprite);
+    if (!sprite) throw new Error(`Transition mask was not prepared: ${maskSprite}`);
+    maskCanvas.width = width;
+    maskCanvas.height = height;
+    maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+    maskCtx.clearRect(0, 0, width, height);
+    maskCtx.drawImage(sprite, 0, 0, width, height);
+    const pixels = maskCtx.getImageData(0, 0, width, height);
+    const feather = Math.max(0.015, softness);
+    for (let i = 0; i < pixels.data.length; i += 4) {
+      let alpha = pixels.data[i + 3];
+      if (mode === "alpha") {
+        alpha = alpha * progress;
+      } else {
+        const luma = pixels.data[i] * 0.299 + pixels.data[i + 1] * 0.587
+          + pixels.data[i + 2] * 0.114;
+        alpha = Math.max(0, Math.min(1, (luma / 255 - (1 - progress)) / feather + 0.5)) * 255;
+      }
+      if (invert) alpha = 255 - alpha;
+      pixels.data[i + 3] = alpha;
+    }
+    maskCtx.putImageData(pixels, 0, 0);
+    return maskCanvas;
+  }
+
+  function transition(t, type, easeMode = "smooth", edge = {}) {
     t = easing(t, easeMode);
     if (type === "dissolve") {
       ctx.globalAlpha = t;
       ctx.drawImage(incoming, 0, 0);
+      return;
+    }
+    if (type === "luma-wipe") {
+      const mask = lumaMask(t, edge.softness ?? 0.08, edge.invert ?? false, edge.seed ?? 17);
+      fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+      fxCtx.clearRect(0, 0, width, height);
+      fxCtx.globalCompositeOperation = "source-over";
+      fxCtx.drawImage(incoming, 0, 0);
+      fxCtx.globalCompositeOperation = "destination-in";
+      fxCtx.drawImage(mask, 0, 0, width, height);
+      fxCtx.globalCompositeOperation = "source-over";
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.drawImage(fx, 0, 0);
+      ctx.restore();
+      return;
+    }
+    if (type === "mask" && edge.mask_sprite) {
+      const mask = transitionMask(edge.mask_sprite, t, edge.softness ?? 0.08,
+        edge.invert ?? false, edge.mask_mode ?? "luma");
+      fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+      fxCtx.clearRect(0, 0, width, height);
+      fxCtx.globalCompositeOperation = "source-over";
+      fxCtx.drawImage(incoming, 0, 0);
+      fxCtx.globalCompositeOperation = "destination-in";
+      fxCtx.drawImage(mask, 0, 0);
+      fxCtx.globalCompositeOperation = "source-over";
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.drawImage(fx, 0, 0);
+      ctx.restore();
       return;
     }
     if (type === "flash" || type === "dip-to-black") {
@@ -423,7 +665,7 @@ export async function createPainter(canvas, data, urlFor) {
         const t = (frame - edge.start + 1) / (edge.end - edge.start);
         ctx.save();
         ctx.globalAlpha = 1;
-        transition(t, edge.type, edge.ease ?? "smooth");
+        transition(t, edge.type, edge.ease ?? "smooth", edge);
         ctx.restore();
       } else {
         paintShot(ctx, index, frame, isCover);

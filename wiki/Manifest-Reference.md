@@ -215,6 +215,34 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `cast_shadow`, `receive_shadow` | boolean | Shadows |
 | `variant_group`, `visible` | text/boolean | Pose swaps |
 
+## 🧪 Advanced additions
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `layer.kind: "group"` | enum | Container that inherits transforms and masks to children |
+| `layer.mask` | object | `source`, `mode` alpha/luma, `invert`, `feather`, `scope` |
+| `layer.kind: "particles"` | enum | Expands into deterministic particle layers |
+| `particles.count/rate/life` | numbers | Total count, rate-based count, lifespan |
+| `particles.velocity/gravity/spread/size/area/seed` | numbers | Motion and look |
+| `layer.viseme_for/viseme` | text | Mouth-shape switching from measured visemes |
+| `camera.track` | object | Keep a layer at a screen point |
+| `camera.shakes` | array | Timed camera shakes |
+| `three.camera[].fov` | number | Keyframeable 3D field of view |
+| `three.focus[]` | array | 3D focus distance and aperture |
+| `three.animations[].weight` | 0–1 | Blend multiple GLB clips |
+| `speech.lead` | seconds | Start dialogue before the picture cut |
+| `speech.words` | arrays | Measured word timings |
+| `speech.visemes` | arrays | Measured viseme timings |
+| `sfx.lead` | seconds | Start a sound before the cut |
+| `episode.ambience` | array | Room, wind or city bed across shots |
+| `episode.markers` | array | Named SFX, shake and effect bundles |
+| `render.stems` | boolean | Write dialogue/music/ambience/SFX stems |
+| `transition.mask` | path | Custom luma or alpha matte |
+| `transition.mask_mode` | enum | `luma` or `alpha` |
+| `transition.softness` | 0–1 | Matte edge feather |
+
+Full examples: [Advanced Controls](Advanced-Controls).
+
 ## 🔗 Related guides
 
 - [Creative Controls](Creative-Controls)

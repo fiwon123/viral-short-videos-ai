@@ -19,9 +19,9 @@
     "caption_cues": 0,
     "caption_words": 0,
     "loudness": {
-      "integrated_lufs": "-14.50",
+      "integrated_lufs": "-14.43",
       "true_peak_db": "-1.60",
-      "loudness_range": "0.50"
+      "loudness_range": "0.40"
     },
     "music": {
       "kind": "preset",
@@ -30,9 +30,9 @@
     }
   },
   "render": {
-    "crf": 16,
-    "preset": "slow",
-    "tune": "film",
+    "crf": 18,
+    "preset": "medium",
+    "tune": "animation",
     "supersample": 1,
     "motion_blur": 0.28
   }

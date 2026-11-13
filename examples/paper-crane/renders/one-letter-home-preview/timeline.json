@@ -78,6 +78,8 @@
           ],
           "transition": {
             "type": "whip-left",
+            "duration": 0.28,
+            "ease": "expo",
             "start": 82,
             "end": 89
           }
@@ -90,6 +92,7 @@
     {
       "start": 8,
       "end": 71,
+      "speaker": "Narrator",
       "text": "The letter was ready. The wind was\nnot.",
       "words": [
         {
@@ -132,11 +135,13 @@
           "start": 63,
           "end": 71
         }
-      ]
+      ],
+      "visemes": []
     },
     {
       "start": 95,
       "end": 143,
+      "speaker": "Narrator",
       "text": "A small delay is still a delivery.",
       "words": [
         {
@@ -174,7 +179,8 @@
           "start": 126,
           "end": 143
         }
-      ]
+      ],
+      "visemes": []
     }
   ],
   "audio": {
@@ -192,8 +198,9 @@
     "gain": 0.06
   },
   "loudness": {
-    "integrated_lufs": "-13.44",
-    "true_peak_db": "-1.51",
-    "loudness_range": "0.80"
-  }
+    "integrated_lufs": "-13.49",
+    "true_peak_db": "-1.60",
+    "loudness_range": "0.60"
+  },
+  "stems": true
 }

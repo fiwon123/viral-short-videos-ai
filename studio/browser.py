@@ -55,16 +55,30 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             duration = (end - start) / timeline["fps"]
             if shot["id"] == cover["shot"]:
                 data["cover"]["frame"] = start + round(cover.get("at", 0.5) * (end - start - 1))
+            transition = dict(resolved.get("transition") or {})
+            if transition.get("type") == "mask" and transition.get("mask"):
+                mask_base = channel_base if transition.get("mask_scope") == "channel" else base
+                mask_path = asset(mask_base, transition["mask"])
+                mask_name = f"transition-{len(shots)}-{mask_path.name}"
+                shutil.copyfile(mask_path, assets / mask_name)
+                transition["mask_sprite"] = mask_name
             prepared = {"start": start, "end": end, "duration": duration,
-                        "transition": resolved.get("transition"),
+                        "transition": transition,
                         "background": shot.get("background", channel["palette"]["background"]),
                         "camera": resolve_camera(shot) if shot.get("camera") else None,
                         "post": {**(channel.get("post") or {}), **(episode.get("post") or {}),
                                  **(shot.get("post") or {})},
                         "motion_blur": shot.get("motion_blur",
                                                 (config or {}).get("motion_blur", episode.get("motion_blur", 0))),
-                        "layers": [], "speech": [(a, b, speaker, values.tolist())
-                                                 for a, b, speaker, values in levels[shot["id"]]]}
+                        "layers": [], "visemes": [],
+                        "speech": [(a, b, speaker, values.tolist())
+                                   for a, b, speaker, values in levels[shot["id"]]]}
+            prepared["visemes"] = [
+                {"start": cue["start"], "end": cue["end"], "speaker": cue.get("speaker"),
+                 "shape": item["shape"], "at": item["at"]}
+                for cue in timeline["captions"] for item in cue.get("visemes", [])
+                if start <= item["at"] < end
+            ]
             if three := shot.get("three"):
                 scene_id = three["scene"]
                 if scene_id not in scenes:
@@ -83,12 +97,21 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             ordered = sorted(layer_order(shot["layers"]),
                              key=lambda item: item.get("plane") != "background")
             for index, layer in enumerate(ordered):
-                visual = {"id": layer["id"], "poses": poses(layer), "mouth": layer.get("mouth_for"),
+                mask = layer.get("mask")
+                if mask and not str(mask.get("source", "")).startswith("layer:"):
+                    mask_base = channel_base if mask.get("scope") == "channel" else base
+                    mask_path = asset(mask_base, mask["source"])
+                    mask_name = f"mask-{len(shots)}-{index}-{mask_path.name}"
+                    shutil.copyfile(mask_path, assets / mask_name)
+                    mask = {**mask, "sprite": mask_name}
+                visual = {"id": layer["id"], "kind": layer["kind"], "poses": poses(layer),
+                          "mouth": layer.get("mouth_for"),
                           "plane": layer.get("plane", "foreground"),
                           "parent": layer.get("parent"), "variant_group": layer.get("variant_group"),
                           "pivot": layer.get("pivot", [0.5, 0.5]),
                           "blend": layer.get("blend", "normal"), "blur": layer.get("blur", 0),
-                          "parallax": layer.get("parallax", 1)}
+                          "parallax": layer.get("parallax", 1), "mask": mask,
+                          "viseme_for": layer.get("viseme_for"), "viseme": layer.get("viseme")}
                 if layer["kind"] == "svg":
                     path = svg_asset(layer, base, channel_base)
                     if path not in vectors:
@@ -99,7 +122,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                                      max(1, round(layer.get("height", 0.2) * height))]
                 else:
                     name = f"shot-{len(shots)}-layer-{index}.png"
-                    sprite(layer, canvas, channel["palette"], font, base).save(assets / name)
+                    sprite(layer, canvas, channel["palette"], font, base, channel_base).save(assets / name)
                     visual["sprite"] = name
                 prepared["layers"].append(visual)
             shots.append(prepared)

@@ -21,9 +21,9 @@
     "caption_cues": 3,
     "caption_words": 24,
     "loudness": {
-      "integrated_lufs": "-14.13",
+      "integrated_lufs": "-14.19",
       "true_peak_db": "-1.51",
-      "loudness_range": "2.70"
+      "loudness_range": "2.60"
     },
     "music": {
       "kind": "preset",

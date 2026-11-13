@@ -3,6 +3,7 @@
 from fractions import Fraction
 import math
 from pathlib import Path
+import shutil
 import subprocess
 from tempfile import TemporaryDirectory
 
@@ -133,7 +134,7 @@ def write_script(path, episode, channel, timeline):
 
 
 def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn,
-                 config=None, make_thumbnail=True):
+                 config=None, make_thumbnail=True, channel_base=None):
     import numpy as np
 
     config = config or render_config(channel, episode)
@@ -147,7 +148,8 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
         for shot, timing in zip(scene["shots"], scene_timing["shots"]):
             composition = Composition(shot, render_canvas, channel, font, base,
                                       episode_post=episode.get("post"),
-                                      motion_blur=config.get("motion_blur", 0))
+                                      motion_blur=config.get("motion_blur", 0),
+                                      channel_base=channel_base)
             frames = timing["end"] - timing["start"]
             transition = timing.get("transition")
             count = transition["end"] - transition["start"] if transition else 0
@@ -156,11 +158,22 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
             blur = float(shot.get("motion_blur", config.get("motion_blur", 0)) or 0)
             subframes = 5 if blur >= 0.55 else 3 if blur >= 0.18 else 1
             post = {**(channel.get("post") or {}), **(episode.get("post") or {}), **(shot.get("post") or {})}
+            transition_mask = None
+            if transition and transition.get("type") == "mask" and transition.get("mask"):
+                mask_base = channel_base if transition.get("mask_scope") == "channel" else base
+                with Image.open(asset(mask_base, transition["mask"])) as source:
+                    transition_mask = source.convert("L").copy()
             for frame in range(frames):
                 absolute = timing["start"] + frame
                 progress = frame / max(1, frames - 1)
                 speaking = {speaker: float(samples[frame - a])
                             for a, b, speaker, samples in levels[shot["id"]] if a <= frame < b}
+                visemes = {}
+                for caption in timeline["captions"]:
+                    if caption.get("start", 0) <= absolute < caption.get("end", 0):
+                        for item in caption.get("visemes", []):
+                            if item.get("at", 0) <= absolute:
+                                visemes[caption["speaker"]] = item["shape"]
                 if subframes > 1:
                     shutter = blur / max(frames, 1)
                     stack = []
@@ -168,10 +181,11 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
                         offset = (index - (subframes - 1) / 2) * shutter
                         stack.append(np.asarray(composition.frame(
                             max(0.0, min(1.0, progress + offset)), speaking,
-                            post=False, seed=absolute * 11 + index)))
+                            post=False, seed=absolute * 11 + index, visemes=visemes)))
                     visual = Image.fromarray(np.uint8(np.mean(stack, axis=0)))
                 else:
-                    visual = composition.frame(progress, speaking, post=False, seed=absolute)
+                    visual = composition.frame(progress, speaking, post=False, seed=absolute,
+                                               visemes=visemes)
                 visual = apply_post(visual, post, seed=absolute)
                 if make_thumbnail and frame == cover_frame:
                     clean = composition.frame(progress, {}, cover.get("hide_layers", []), post=False,
@@ -181,7 +195,12 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
                 image = visual
                 if count and frame < count:
                     image = transition_frame(previous, visual, transition["type"], (frame + 1) / count,
-                                             transition.get("ease", "smooth"))
+                                             transition.get("ease", "smooth"),
+                                             softness=transition.get("softness", 0.08),
+                                             invert=transition.get("invert", False),
+                                             seed=transition.get("seed", 17),
+                                             mask_image=transition_mask,
+                                             mask_mode=transition.get("mask_mode", "luma"))
                 while cue and absolute >= cue["end"]:
                     cue = next(cues, None)
                 if burn and cue and cue["start"] <= absolute < cue["end"]:
@@ -194,7 +213,7 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
 
 
 def encode(episode, timeline, levels, canvas, channel, font, base, out, mix, burn, *,
-           config=None, make_thumbnail=True):
+           config=None, make_thumbnail=True, channel_base=None):
     w, h = canvas
     fps = timeline["fps"]
     config = config or render_config(channel, episode)
@@ -213,7 +232,8 @@ def encode(episode, timeline, levels, canvas, channel, font, base, out, mix, bur
             try:
                 with process.stdin as pipe:
                     write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, out, burn,
-                                 config=config, make_thumbnail=make_thumbnail)
+                                 config=config, make_thumbnail=make_thumbnail,
+                                 channel_base=channel_base)
             except BrokenPipeError:
                 pass
             except BaseException:
@@ -255,6 +275,8 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
     make_thumbnail = bool(config.get("thumbnail", True))
     make_publishing = bool(config.get("publishing", True))
     burn = bool(burn and config.get("captions", True))
+    if config.get("stems"):
+        episode["render"] = {**(episode.get("render") or {}), "stems": True}
     shots = [shot for scene in episode["scenes"] for shot in scene["shots"]]
     has_three = any("three" in shot for shot in shots)
     if backend == "python":
@@ -274,6 +296,11 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
     with new_package(target) as out, TemporaryDirectory() as temp:
         work = Path(temp)
         timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work, audio_library, channel=channel)
+        if (work / "mix.wav").is_file():
+            shutil.copyfile(work / "mix.wav", out / "mix.wav")
+        if config.get("stems"):
+            for stem in work.glob("stem-*.wav"):
+                shutil.copyfile(stem, out / stem.name)
         visual_report = audit_visual(episode, library, timeline)
         if visual_report["issues"]:
             issues = []
@@ -283,7 +310,7 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
             raise ValueError("Visual checks failed. Run check-visual for the full report. " + " | ".join(issues))
         if backend == "python":
             encode(episode, timeline, levels, canvas, channel, font, episode_dir, out, work / "mix.wav", burn,
-                   config=config, make_thumbnail=make_thumbnail)
+                   config=config, make_thumbnail=make_thumbnail, channel_base=channel_dir)
         else:
             from .browser import render_browser
 

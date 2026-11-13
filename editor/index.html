@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Viral Short Videos AI · Shot Editor</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <strong>🎬 Viral Short Videos AI</strong>
+    <span>Shot inspector</span>
+    <button id="save">Save episode</button>
+    <span id="status">Loading…</span>
+  </header>
+  <main>
+    <aside id="shots"></aside>
+    <section id="stage">
+      <div id="preview-wrap">
+        <img id="preview" alt="Shot preview">
+        <div id="safearea" class="hidden"></div>
+      </div>
+      <div class="stage-actions">
+        <button id="refresh">Refresh still</button>
+        <label><input type="checkbox" id="guides"> Safe area</label>
+        <span id="hint">Edit the shot, then save and re-render the preview.</span>
+      </div>
+    </section>
+    <aside id="inspector">
+      <h2 id="shot-title">Select a shot</h2>
+      <label>Duration <input id="duration" type="number" step="0.05" min="0.1"></label>
+      <label>Camera preset <input id="camera-preset" placeholder="push-in"></label>
+      <div class="grid">
+        <label>Camera x <input id="cam-x" type="number" step="0.01"></label>
+        <label>Camera y <input id="cam-y" type="number" step="0.01"></label>
+        <label>Camera zoom <input id="cam-zoom" type="number" step="0.01"></label>
+        <label>Camera rotate <input id="cam-rotate" type="number" step="1"></label>
+      </div>
+      <p class="note">Camera keyframes override the base. Use the manifest for complex moves.</p>
+      <h3>Markers</h3>
+      <div id="markers"></div>
+      <button id="add-marker">Add impact marker</button>
+      <p class="note">A marker writes an SFX, camera shake and dust burst together.</p>
+    </aside>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

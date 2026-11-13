@@ -21,6 +21,8 @@
 - [Workspace layout](Workspace-Layout)
 - [Core concepts](Core-Concepts)
 - [Manifest reference](Manifest-Reference)
+- [Advanced controls](Advanced-Controls)
+- [Renderer support](Renderer-Support)
 - [Creative controls](Creative-Controls)
 - [Motion, camera and rigs](Motion-Camera-and-Rigs)
 - [Audio and sound design](Audio-and-Sound-Design)

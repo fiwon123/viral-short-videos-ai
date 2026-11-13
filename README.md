@@ -9,6 +9,10 @@
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-15803D?style=flat-square"></a>
 </p>
 
+<p align="center">
+  <img src="docs/assets/ai-channel-flow.svg" alt="From idea to AI-run channel" width="880">
+</p>
+
 ## 🤖 Build with AI
 
 Open this repository in an AI assistant that can read and edit local files and run commands. Choose a starting point and copy the matching prompt.
@@ -70,6 +74,20 @@ After I approve the plan, prepare previews and publishing copy.
 
 [See the full monetization guide, including watch-hour routes and application checklists](https://github.com/fiwon123/viral-short-videos-ai/wiki/YouTube-and-TikTok-Monetization).
 
+## 🎯 Focus a Short so it can travel
+
+<p align="center">
+  <img src="docs/assets/short-anatomy.svg" alt="Hook, setup, escalation, payoff and loop" width="880">
+</p>
+
+- **One question** in the first frame.
+- **One visible change** every few seconds.
+- **One payoff** that answers the title, thumbnail and hook.
+- **A loop** that makes the last frame lead back to the first.
+- **A phone test** with sound and muted.
+
+No one can guarantee a viral video. These choices make the story easier to stop for, finish and share. [Full guide](https://github.com/fiwon123/viral-short-videos-ai/wiki/Make-Shorts-Travel).
+
 ## 🎞️ See what you can make
 
 <table>
@@ -94,6 +112,14 @@ npm ci --ignore-scripts   # SVG and 3D renderers
 python video.py doctor
 ```
 
+Useful checks:
+
+```sh
+make support   # renderer support matrix
+make parity    # shared visual fixture across renderers
+make editor EPISODE=workspace/<channel>/episodes/<episode>/episode.json
+```
+
 Each channel has its own workspace. A finished episode goes to `workspace/<channel>/renders/<episode>-v1/` with the MP4, thumbnail, publishing guide, QA report, and captions when present. Existing projects using `channels/` and `episodes/` can continue exporting to `output/<channel>/`.
 
 | Find | Guide |
@@ -102,6 +128,8 @@ Each channel has its own workspace. A finished episode goes to `workspace/<chann
 | Multiple channels and migration | [Workspace Layout](https://github.com/fiwon123/viral-short-videos-ai/wiki/Workspace-Layout) |
 | Camera, captions, sound, and effects | [Creative Controls](https://github.com/fiwon123/viral-short-videos-ai/wiki/Creative-Controls) |
 | Schema and validation | [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) |
+| Masks, markers, particles, stems, visemes | [Advanced Controls](https://github.com/fiwon123/viral-short-videos-ai/wiki/Advanced-Controls) |
+| What each renderer supports | [Renderer Support](https://github.com/fiwon123/viral-short-videos-ai/wiki/Renderer-Support) |
 | Upload package and fixes | [QA, Export and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
 
 MIT licensed. [LICENSE](LICENSE)

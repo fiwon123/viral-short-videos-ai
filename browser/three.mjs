@@ -5,6 +5,9 @@ import {
 } from "three";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {clone} from "three/addons/utils/SkeletonUtils.js";
+import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
+import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
+import {BokehPass} from "three/addons/postprocessing/BokehPass.js";
 
 import {lightingFor} from "./lighting.mjs";
 import {objectTrack, poseAt, poseTrack} from "./pose.mjs";
@@ -78,6 +81,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
       }
       scenes.set(id, {scene, camera, initialCamera: {
         position: spec.camera.position, target: spec.camera.target,
+        fov: spec.camera.fov ?? 37,
       }, objects});
     }
   } catch (error) {
@@ -90,6 +94,16 @@ export async function createThreeStage(specs, width, height, urlFor) {
       const {scene, camera, initialCamera, objects} = scenes.get(shot.scene);
       const cameraTrack = poseTrack(initialCamera, shot.camera);
       const duration = shot.duration ?? 1;
+      const focusTrack = shot.focus?.length
+        ? poseTrack({distance: 2, aperture: 1}, shot.focus) : null;
+      let composer = null;
+      let bokeh = null;
+      if (focusTrack) {
+        composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        bokeh = new BokehPass(scene, camera, {focus: 2, aperture: 0.0001, maxblur: 0.01});
+        composer.addPass(bokeh);
+      }
       const tracks = Array.from(objects, ([id, {node, spec, animations}]) => {
         const mixer = new AnimationMixer(node);
         const actions = [];
@@ -98,6 +112,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
           if (!clip) continue;
           const action = mixer.clipAction(clip);
           action.play();
+          action.setEffectiveWeight(entry.weight ?? 1);
           actions.push({action, clip, entry});
         }
         return {
@@ -108,9 +123,13 @@ export async function createThreeStage(specs, width, height, urlFor) {
         };
       });
       return (progress) => {
-        const {position, target} = poseAt(cameraTrack, progress);
+        const {position, target, fov} = poseAt(cameraTrack, progress);
         camera.position.set(...position);
         camera.lookAt(...target);
+        if (fov !== undefined && camera.fov !== fov) {
+          camera.fov = fov;
+          camera.updateProjectionMatrix();
+        }
         for (const {node, poses, mixer, actions} of tracks) {
           const pose = poseAt(poses, progress);
           node.visible = pose.visible;
@@ -130,7 +149,16 @@ export async function createThreeStage(specs, width, height, urlFor) {
             mixer.update(0);
           }
         }
-        renderer.render(scene, camera);
+        if (composer && bokeh) {
+          const focus = poseAt(focusTrack, progress);
+          bokeh.uniforms["focus"].value = focus.distance;
+          bokeh.uniforms["aperture"].value = focus.aperture * 0.0001;
+          bokeh.uniforms["maxblur"].value = 0.01;
+          composer.setSize(width, height);
+          composer.render();
+        } else {
+          renderer.render(scene, camera);
+        }
         return renderer.domElement;
       };
     },

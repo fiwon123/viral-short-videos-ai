@@ -19,6 +19,10 @@ FILE_NOTES = {
     "captions.srt": "Subtitles for upload or review.",
     "thumbnail.png": "Cover image.",
     "mix.wav": "Mixed soundtrack before encoding.",
+    "stem-dialogue.wav": "Dialogue stem for editing.",
+    "stem-music.wav": "Music stem for editing.",
+    "stem-ambience.wav": "Ambience stem for editing.",
+    "stem-sfx.wav": "Sound-effects stem for editing.",
 }
 
 PACKAGE_ORDER = ("thumbnail.png", "captions.srt", "publishing.md", "publishing.json",

@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from .camera import resolve_camera
-from .core import asset
+from .core import asset, scoped_asset
 from .transform import apply as apply_matrix
 from .transform import bbox as matrix_bbox
 from .transform import camera_matrix, inverse, layer_matrix, multiply, translate
@@ -295,17 +295,23 @@ def apply_post(image, config, *, seed=0):
 
 
 class Composition:
-    def __init__(self, shot, canvas, channel, font, base, *, episode_post=None, motion_blur=0):
+    def __init__(self, shot, canvas, channel, font, base, *, episode_post=None, motion_blur=0,
+                 channel_base=None):
         self.canvas = canvas
+        self.base = base
+        self.channel_base = channel_base
         palette = channel["palette"]
         self.background = shot.get("background", palette["background"])
         self.post = _merge(channel.get("post"), episode_post, shot.get("post"))
         self.motion_blur = shot.get("motion_blur", motion_blur)
-        self.camera_points = camera_points({**shot, "camera": resolve_camera(shot)}) if shot.get("camera") else None
+        self.camera = resolve_camera(shot) if shot.get("camera") else None
+        self.camera_points = camera_points({**shot, "camera": self.camera}) if shot.get("camera") else None
+        self.track = (self.camera or {}).get("track")
         layers = sorted(layer_order(shot["layers"]), key=lambda item: item.get("plane") != "background")
         self.layers = [{
             "id": layer["id"],
-            "tile": sprite(layer, canvas, palette, font, base),
+            "kind": layer["kind"],
+            "tile": sprite(layer, canvas, palette, font, base, channel_base),
             "points": poses(layer),
             "mouth_for": layer.get("mouth_for"),
             "parent": layer.get("parent"),
@@ -315,12 +321,132 @@ class Composition:
             "blur": layer.get("blur", 0),
             "parallax": layer.get("parallax", 1),
             "plane": layer.get("plane", "foreground"),
+            "mask": layer.get("mask"),
+            "viseme_for": layer.get("viseme_for"),
+            "viseme": layer.get("viseme"),
+            "spec": layer,
         } for layer in layers]
+        self.layer_map = {layer["id"]: layer for layer in self.layers}
+        self.masks = {}
+        for layer in self.layers:
+            inherited = list(self.masks.get(layer["parent"], []))
+            if layer.get("mask"):
+                inherited.append(layer["mask"])
+            self.masks[layer["id"]] = inherited
 
-    def frame(self, progress, speaking, hidden=(), *, post=True, seed=0):
+    def _world(self, layer_id, progress, camera, seen=None):
+        seen = set(seen or ())
+        if layer_id in seen:
+            raise ValueError(f"Mask cycle at {layer_id}")
+        seen.add(layer_id)
+        layer = self.layer_map[layer_id]
+        state = pose_at(layer["points"], progress)
+        parent = layer["parent"]
+        parent_matrix = None
+        parent_origin = None
+        if parent in self.layer_map:
+            parent_matrix, parent_tile = self._world(parent, progress, camera, seen)
+            parent_origin = (float(self.layer_map[parent]["pivot"][0]) * parent_tile.width,
+                             float(self.layer_map[parent]["pivot"][1]) * parent_tile.height)
+        tile = layer["tile"]
+        matrix = layer_matrix(state, self.canvas[0], self.canvas[1], layer["pivot"],
+                              parent=parent_matrix, parent_origin=parent_origin, camera=camera,
+                              parallax=layer["parallax"], box=(tile.width, tile.height))
+        return matrix, tile
+
+    def _mask_buffer(self, spec, progress, camera, cache):
+        source = spec.get("source", "")
+        key = (source, spec.get("mode", "alpha"), bool(spec.get("invert", False)),
+               float(spec.get("feather", 0)))
+        if key in cache:
+            return cache[key]
+        width, height = self.canvas
+        if source.startswith("layer:"):
+            layer = self.layer_map.get(source.split(":", 1)[1])
+            if layer is None:
+                raise ValueError(f"Mask references unknown layer: {source}")
+            matrix, tile = self._world(layer["id"], progress, camera)
+            placed, left, top = _transformed(tile, matrix)
+            if spec.get("mode") == "luma":
+                channel = ImageChops.multiply(ImageOps.grayscale(placed.convert("RGB")),
+                                              placed.getchannel("A"))
+            else:
+                channel = placed.getchannel("A")
+            mask = Image.new("L", (width, height), 0)
+            mask.paste(channel, (left, top))
+        else:
+            base = self.channel_base if spec.get("scope") == "channel" else self.base
+            if base is None:
+                raise ValueError("Channel-scoped masks require a channel path")
+            with Image.open(asset(base, source)) as image:
+                rgba = image.convert("RGBA")
+                if spec.get("mode") == "alpha":
+                    mask = rgba.getchannel("A")
+                else:
+                    mask = ImageChops.multiply(ImageOps.grayscale(rgba), rgba.getchannel("A"))
+                mask = mask.resize((width, height), Image.Resampling.BILINEAR)
+        if spec.get("invert"):
+            mask = ImageOps.invert(mask)
+        if feather := float(spec.get("feather", 0)):
+            mask = mask.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * feather * 0.08)))
+        cache[key] = mask
+        return mask
+
+    def _apply_masks(self, placed, left, top, specs, progress, camera, cache):
+        if not specs:
+            return placed
+        width, height = self.canvas
+        alpha = placed.getchannel("A")
+        for spec in specs:
+            mask = self._mask_buffer(spec, progress, camera, cache)
+            patch = Image.new("L", placed.size, 0)
+            sx0, sy0 = max(0, left), max(0, top)
+            sx1, sy1 = min(width, left + placed.width), min(height, top + placed.height)
+            if sx1 > sx0 and sy1 > sy0:
+                patch.paste(mask.crop((sx0, sy0, sx1, sy1)), (sx0 - left, sy0 - top))
+            alpha = ImageChops.multiply(alpha, patch)
+        placed = placed.copy()
+        placed.putalpha(alpha)
+        return placed
+
+    def _tracked_camera(self, progress):
+        width, height = self.canvas
+        base = pose_at(self.camera_points, progress) if self.camera_points else {
+            "x": 0, "y": 0, "zoom": 1, "rotate": 0}
+        if not self.track:
+            return base
+        layer = self.layer_map.get(self.track.get("layer"))
+        if layer is None:
+            return base
+        origins = {}
+
+        def pre_matrix(item):
+            state = pose_at(item["points"], progress)
+            parent = item["parent"]
+            parent_matrix = pre_matrix(self.layer_map[parent])[0] if parent in self.layer_map else None
+            parent_origin = origins.get(parent)
+            tile = item["tile"]
+            matrix = layer_matrix(state, width, height, item["pivot"], parent=parent_matrix,
+                                  parent_origin=parent_origin, camera=None,
+                                  box=(tile.width, tile.height))
+            origins[item["id"]] = (float(item["pivot"][0]) * tile.width,
+                                   float(item["pivot"][1]) * tile.height)
+            return matrix, tile
+
+        matrix, tile = pre_matrix(layer)
+        subject_x, subject_y = apply_matrix(matrix, tile.width / 2, tile.height / 2)
+        desired = (float(self.track.get("x", 0.5)) * width,
+                   float(self.track.get("y", 0.5)) * height)
+        inverse_camera = inverse(camera_matrix({**base, "x": 0, "y": 0}, width, height))
+        target_x, target_y = apply_matrix(inverse_camera, *desired)
+        return {**base,
+                "x": float(base.get("x", 0)) + (target_x - subject_x) / width,
+                "y": float(base.get("y", 0)) + (target_y - subject_y) / height}
+
+    def frame(self, progress, speaking, hidden=(), *, post=True, seed=0, visemes=None):
         width, height = self.canvas
         image = Image.new("RGBA", self.canvas, self.background)
-        camera = pose_at(self.camera_points, progress) if self.camera_points else None
+        camera = self._tracked_camera(progress) if self.camera_points else None
         hidden_ids = set(hidden)
         for layer in self.layers:
             if layer["parent"] in hidden_ids:
@@ -336,9 +462,13 @@ class Composition:
             group = layer.get("variant_group")
             if group and chosen.get(group) != layer["id"]:
                 state["visible"] = False
+            if layer.get("viseme_for"):
+                shape = (visemes or {}).get(layer["viseme_for"])
+                if shape and layer.get("viseme") and layer["viseme"] != shape:
+                    state["visible"] = False
             if layer["parent"] and not states[layer["parent"]]["visible"]:
                 state["visible"] = False
-        matrices, alphas, origins = {}, {}, {}
+        matrices, alphas, origins, mask_cache = {}, {}, {}, {}
         for layer in self.layers:
             state = states[layer["id"]]
             if layer["id"] in hidden_ids or not state["visible"]:
@@ -362,12 +492,14 @@ class Composition:
             matrices[layer["id"]], alphas[layer["id"]] = matrix, alpha
             origins[layer["id"]] = (float(layer["pivot"][0]) * tile.width,
                                     float(layer["pivot"][1]) * tile.height)
-            if alpha <= 0:
+            if layer["kind"] == "group" or alpha <= 0:
                 continue
             placed, left, top = _transformed(tile, matrix)
             if alpha < 1:
                 placed = placed.copy()
                 placed.putalpha(placed.getchannel("A").point(lambda value: round(value * alpha)))
+            placed = self._apply_masks(placed, left, top, self.masks.get(layer["id"], []),
+                                       progress, camera, mask_cache)
             if layer["blend"] == "normal":
                 image = Image.alpha_composite(image, placed) if placed.size == image.size else _paste(image, placed, left, top)
             else:
@@ -391,15 +523,21 @@ def _blend_at(base, layer, left, top, mode):
     return _blend(base, patch, mode)
 
 
-def sprite(layer, canvas, palette, font, base):
+def sprite(layer, canvas, palette, font, base, channel_base=None):
     cw, ch = canvas
     w = max(1, round(layer.get("width", 0.55) * cw))
     h = max(1, round(layer.get("height", 0.2) * ch))
     fill = layer.get("fill", "foreground")
     fill = palette.get(fill, fill)
     kind = layer["kind"]
+    if kind == "group":
+        if "width" not in layer or "height" not in layer:
+            w, h = cw, ch
+        return Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    if kind == "particles":
+        return Image.new("RGBA", (w, h), (0, 0, 0, 0))
     if kind == "image":
-        with Image.open(asset(base, layer["file"])) as source:
+        with Image.open(scoped_asset(layer, base, channel_base)) as source:
             return ImageOps.contain(ImageOps.exif_transpose(source).convert("RGBA"), (w, h))
     tile = Image.new("RGBA", (w, h))
     draw = ImageDraw.Draw(tile)
@@ -415,8 +553,39 @@ def sprite(layer, canvas, palette, font, base):
     return tile
 
 
-def transition_frame(previous, current, mode, progress, ease_mode="smooth"):
+def luma_mask(width, height, progress, *, softness=0.08, invert=False, seed=17):
+    """Deterministic diagonal luma matte shared with the browser renderer."""
+    x, y = np.meshgrid(np.linspace(0, 1, width, dtype=np.float32),
+                       np.linspace(0, 1, height, dtype=np.float32))
+    noise = 0.5 + 0.5 * np.sin(x * 17.3 + y * 9.7 + seed) * np.sin(x * 5.1 - y * 13.9 + seed * 0.7)
+    ramp = x * 0.55 + (1 - y) * 0.25 + noise * 0.20
+    threshold = -0.8 + progress * 2.2
+    feather = max(0.015, softness)
+    alpha = np.clip((ramp - threshold) / feather + 0.5, 0, 1)
+    if invert:
+        alpha = 1 - alpha
+    return Image.fromarray(np.uint8(alpha * 255), mode="L")
+
+
+def transition_frame(previous, current, mode, progress, ease_mode="smooth", *,
+                     softness=0.08, invert=False, seed=17, mask_image=None, mask_mode="luma"):
     t = ease(progress, ease_mode)
+    if mode == "luma-wipe":
+        mask = luma_mask(max(4, current.width // 4), max(4, current.height // 4),
+                         t, softness=softness, invert=invert, seed=seed)
+        mask = mask.resize(current.size, Image.Resampling.BILINEAR)
+        return Image.composite(current, previous, mask)
+    if mode == "mask" and mask_image is not None:
+        matte = mask_image.convert("L").resize(current.size, Image.Resampling.BILINEAR)
+        if invert:
+            matte = ImageOps.invert(matte)
+        values = np.asarray(matte, dtype=np.float32) / 255
+        if mask_mode == "alpha":
+            alpha = values * t
+        else:
+            alpha = np.clip((values - (1 - t)) / max(0.015, softness) + 0.5, 0, 1)
+        mask = Image.fromarray(np.uint8(alpha * 255), mode="L")
+        return Image.composite(current, previous, mask)
     if mode == "dissolve":
         return Image.blend(previous, current, t)
     if mode in {"wipe-left", "wipe-right", "wipe-up", "wipe-down"}:

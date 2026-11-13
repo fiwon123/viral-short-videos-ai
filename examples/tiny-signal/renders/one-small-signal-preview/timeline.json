@@ -126,6 +126,8 @@
           ],
           "transition": {
             "type": "dissolve",
+            "duration": 0.35,
+            "ease": "sine",
             "start": 77,
             "end": 86
           },
@@ -227,10 +229,11 @@
     "gain": 0.06
   },
   "loudness": {
-    "integrated_lufs": "-14.50",
+    "integrated_lufs": "-14.43",
     "true_peak_db": "-1.60",
-    "loudness_range": "0.50"
+    "loudness_range": "0.40"
   },
+  "stems": false,
   "scene_library": {
     "file": "scene-library/station-v1.json",
     "version": 1

@@ -1,0 +1,14 @@
+{
+  "name": "Parity Lab",
+  "handle": "@ParityLab",
+  "tagline": "Same controls. Honest output.",
+  "description": "A visual parity fixture for the studio renderers.",
+  "tags": ["parity", "test"],
+  "mark": "PL",
+  "palette": {
+    "background": "#0B1020",
+    "foreground": "#F8FAFC",
+    "accent": "#6EE7B7",
+    "secondary": "#26324A"
+  }
+}

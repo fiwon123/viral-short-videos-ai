@@ -1,4 +1,6 @@
-<p align="center"><strong>Viral Short Videos AI · Studio documentation</strong></p>
+<h1 align="center">🎬 Viral Short Videos AI</h1>
+
+<p align="center"><strong>An AI-first studio for original animated Shorts · Studio documentation</strong></p>
 
 <p align="center">
   <a href="Create-a-Channel"><img alt="Build a channel" src="https://img.shields.io/badge/Build_a_Channel-7C3AED?style=flat-square"></a>
@@ -31,4 +33,5 @@
 
 - **Project structure** · [Workspace Layout](Workspace-Layout), [Core Concepts](Core-Concepts), [Manifest Reference](Manifest-Reference)
 - **Production controls** · [Creative Controls](Creative-Controls), [Audio and Sound Design](Audio-and-Sound-Design), [3D and Renderers](3D-and-Renderers)
+- **Advanced controls** · [Masks and markers](Advanced-Controls), [Renderer Support](Renderer-Support)
 - **Get unstuck** · [Troubleshooting](Troubleshooting), [FAQ](FAQ), [Contributing](Contributing)

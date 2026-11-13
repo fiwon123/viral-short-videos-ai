@@ -26,6 +26,7 @@ VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
 .PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect \
+        support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -42,6 +43,10 @@ help:
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make channel-doc            write channel.md from channel.json"
 	@echo "  make migrate                dry-run a legacy channel move; APPLY=1 to move"
+	@echo "  make support                write the renderer support matrix"
+	@echo "  make parity                 render the shared renderer parity fixture"
+	@echo "  make safearea               write a platform safe-area guide"
+	@echo "  make editor                 open the local shot inspector"
 	@echo "  make doctor                 check ffmpeg, node, Chrome, Kokoro"
 	@echo "  make list                   channel folders and episodes"
 	@echo
@@ -101,6 +106,19 @@ channel-doc:
 migrate:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
 	@$(PYTHON) -m studio.migrate $(CHANNEL) $(if $(EPISODE),--episode $(EPISODE),) $(if $(APPLY),--apply,)
+
+support:
+	@$(PYTHON) video.py support --markdown --out docs/RENDERER-SUPPORT.md
+
+parity:
+	@$(PYTHON) video.py parity
+
+safearea:
+	@$(PYTHON) video.py safearea --platform $(or $(PLATFORM),youtube-shorts) --out $(or $(OUT),docs/assets/safearea.png)
+
+editor:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
+	@$(PYTHON) video.py editor $(EPISODE) $(CHANNEL_ARG)
 
 doctor:
 	@$(PYTHON) video.py doctor

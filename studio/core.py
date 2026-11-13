@@ -39,6 +39,13 @@ def asset(base, name):
     return path
 
 
+def scoped_asset(layer, base, channel_base=None):
+    target = channel_base if layer.get("asset_scope") == "channel" else base
+    if target is None:
+        raise ValueError("A channel-scoped asset requires a channel manifest")
+    return asset(target, layer["file"])
+
+
 def svg_asset(layer, base, channel_base):
     if layer.get("asset_scope") == "channel":
         if channel_base is None:
@@ -116,6 +123,28 @@ def validate_episode(episode, base, channel_base=None, *, check_visual_assets=Tr
                         raise ValueError(f"{shot_id} has a parent cycle at {walk}")
                     seen.add(walk)
                     walk = (by_id.get(walk) or {}).get("parent")
+                if mask := layer.get("mask"):
+                    source = mask.get("source", "")
+                    if source.startswith("layer:"):
+                        mask_layer = by_id.get(source.split(":", 1)[1])
+                        if mask_layer is None:
+                            raise ValueError(f"{shot_id}/{layer['id']} mask references an unknown layer")
+                        if mask_layer.get("plane", "foreground") != layer.get("plane", "foreground"):
+                            raise ValueError(f"{shot_id}/{layer['id']} and its mask must share a plane")
+                    if source and not source.startswith("layer:"):
+                        mask_base = channel_base if mask.get("scope") == "channel" else base
+                        asset(mask_base, source)
+            if transition := shot.get("transition", {}):
+                if transition.get("type") == "mask" and transition.get("mask"):
+                    mask_base = channel_base if transition.get("mask_scope") == "channel" else base
+                    asset(mask_base, transition["mask"])
+            for line in shot.get("speech", []):
+                times = [word.get("start") for word in line.get("words", [])]
+                if times and times != sorted(times):
+                    raise ValueError(f"{shot_id}/{line['speaker']} requires increasing word times")
+                viseme_times = [item.get("at") for item in line.get("visemes", [])]
+                if viseme_times and viseme_times != sorted(viseme_times):
+                    raise ValueError(f"{shot_id}/{line['speaker']} requires increasing viseme times")
             camera = shot.get("camera", {})
             camera_times = [key["at"] for key in camera.get("keyframes", [])]
             if camera_times != sorted(set(camera_times)):
@@ -125,7 +154,7 @@ def validate_episode(episode, base, channel_base=None, *, check_visual_assets=Tr
                 if item.get("kind") == "svg":
                     validate_svg(svg_asset(item, base, channel_base))
                 elif "file" in item:
-                    asset(base, item["file"])
+                    scoped_asset(item, base, channel_base)
     if total_frames / fps > limit:
         raise ValueError(f"Planned runtime exceeds {limit:g} seconds")
     cover = episode["thumbnail"]
@@ -135,6 +164,18 @@ def validate_episode(episode, base, channel_base=None, *, check_visual_assets=Tr
         raise ValueError(f"Unknown thumbnail layers: {', '.join(sorted(unknown))}")
     if (music := episode.get("music")) and "file" in music:
         asset(base, music["file"])
+    marker_ids = set()
+    for marker in episode.get("markers", []):
+        if marker["id"] in marker_ids:
+            raise ValueError(f"Duplicate marker ID: {marker['id']}")
+        marker_ids.add(marker["id"])
+        if marker["shot"] not in shots:
+            raise ValueError(f"Marker {marker['id']} references an unknown shot: {marker['shot']}")
+    for ambience in episode.get("ambience", []):
+        if ambience.get("end", 0) <= ambience.get("start", 0):
+            raise ValueError("Ambience end must be after start")
+        if "file" in ambience:
+            asset(base, ambience["file"])
 
 
 def require(name):

@@ -258,6 +258,117 @@ def add_clip(mixed, clip, offset, gain, pan=0.0, reverb_amount=0.0, reverb_size=
         mixed[start:end] += dry[:end - start]
 
 
+def write_stereo_wav(path, samples):
+    peak = float(np.max(np.abs(samples))) if len(samples) else 0
+    if peak > 0.99:
+        samples = samples * (0.99 / peak)
+    pcm = np.rint(np.clip(samples, -1, 1) * 32767).astype("<i2")
+    with wave.open(str(path), "wb") as stream:
+        stream.setparams((2, 2, SAMPLE_RATE, 0, "NONE", "not compressed"))
+        stream.writeframes(pcm.tobytes())
+
+
+def ambience_clip(cue, base, audio_library, seconds):
+    if "file" in cue:
+        clip = read_audio(asset(base, cue["file"]))
+    elif audio_library and cue.get("sound") in audio_library[0].get("sounds", {}):
+        variants = audio_library[0]["sounds"][cue["sound"]]
+        clip = read_audio(asset(audio_library[1].parent, variants[0]))
+    else:
+        raise ValueError(f"Unknown ambience sound: {cue.get('sound')}")
+    target = max(1, round(seconds * SAMPLE_RATE))
+    if cue.get("loop", True) and len(clip) < target:
+        clip = np.tile(clip, math.ceil(target / len(clip)))[:target]
+    else:
+        clip = clip[:target]
+    fade_in = float(cue.get("fade_in", 0.2) or 0)
+    fade_out = float(cue.get("fade_out", 0.2) or 0)
+    if fade_in:
+        edge = min(len(clip), max(1, round(fade_in * SAMPLE_RATE)))
+        clip = clip.copy()
+        clip[:edge] *= np.linspace(0, 1, edge, dtype=np.float32)
+    if fade_out:
+        edge = min(len(clip), max(1, round(fade_out * SAMPLE_RATE)))
+        clip = clip.copy()
+        clip[-edge:] *= np.linspace(1, 0, edge, dtype=np.float32)
+    return clip
+
+
+def _duck_abs(intervals, length, config):
+    amount = float((config or {}).get("amount", 0.58))
+    attack = max(1, round(float((config or {}).get("attack", 0.045)) * SAMPLE_RATE))
+    release = max(1, round(float((config or {}).get("release", 0.16)) * SAMPLE_RATE))
+    envelope = np.ones(length, dtype=np.float32)
+    for start, end in intervals:
+        a, b = max(0, start), min(length, end)
+        if b <= a:
+            continue
+        floor = max(0.0, 1 - amount)
+        envelope[a:b] = np.minimum(envelope[a:b], floor)
+        pre, post = min(a, attack), min(length - b, release)
+        if pre:
+            envelope[a - pre:a] = np.minimum(envelope[a - pre:a], np.linspace(1, floor, pre, endpoint=False))
+        if post:
+            envelope[b:b + post] = np.minimum(envelope[b:b + post], np.linspace(floor, 1, post, endpoint=False))
+    return envelope
+
+
+def mix_global(path, total_frames, fps, dialogue, sfx, bed, music_config, ambience,
+               room_tone, audio_library, base, *, stems=False):
+    step = SAMPLE_RATE // fps
+    length = total_frames * step
+    tracks = {name: np.zeros((length, 2), dtype=np.float32)
+              for name in ("dialogue", "music", "ambience", "sfx")}
+    intervals = []
+    for offset, clip, line, seed in dialogue:
+        add_clip(tracks["dialogue"], clip, offset, line.get("gain", 1),
+                 pan=line.get("pan", 0), reverb_amount=line.get("reverb", 0),
+                 reverb_size=(music_config or {}).get("reverb_size", 0.3), seed=seed)
+        intervals.append((offset, offset + len(clip)))
+    for offset, clip, cue, seed in sfx:
+        add_clip(tracks["sfx"], clip, offset, cue.get("gain", 0.24),
+                 pan=cue.get("pan", 0), reverb_amount=cue.get("reverb", 0),
+                 reverb_size=(music_config or {}).get("reverb_size", 0.3), seed=seed)
+    if bed is not None and music_config.get("gain", 0):
+        stereo = bed if bed.ndim > 1 else np.stack([bed, bed], axis=1)
+        absolute = np.arange(length, dtype=np.int64)
+        indices = absolute % len(stereo)
+        music = stereo[indices] * float(music_config.get("gain", 0.1))
+        if not music_config.get("loop", True):
+            music = music.copy()
+            music[absolute >= len(stereo)] = 0
+        music *= _duck_abs(intervals, length, music_config.get("duck"))[:, None]
+        fade_in = float(music_config.get("fade_in", 0) or 0)
+        fade_out = float(music_config.get("fade_out", 0) or 0)
+        fade = np.ones(length, dtype=np.float32)
+        if fade_in:
+            fade *= np.clip(np.arange(length) / max(1.0, fade_in * SAMPLE_RATE), 0, 1)
+        if fade_out:
+            fade *= np.clip((length - np.arange(length)) / max(1.0, fade_out * SAMPLE_RATE), 0, 1)
+        tracks["music"] += music * fade[:, None]
+    for cue in ambience:
+        start = max(0, round(float(cue.get("start", 0)) * SAMPLE_RATE))
+        end = min(length, round(float(cue.get("end", total_frames / fps)) * SAMPLE_RATE))
+        if end <= start:
+            continue
+        clip = ambience_clip(cue, base, audio_library, (end - start) / SAMPLE_RATE)
+        add_clip(tracks["ambience"], clip, start, cue.get("gain", 0.05),
+                 pan=cue.get("pan", 0), reverb_amount=cue.get("reverb", 0),
+                 reverb_size=(music_config or {}).get("reverb_size", 0.3), seed=7)
+    if room_tone is not None and room_tone.size:
+        indices = np.arange(length, dtype=np.int64) % len(room_tone)
+        tracks["ambience"] += np.stack([room_tone[indices], room_tone[indices]], axis=1)
+    mixed = sum(tracks.values())
+    peak = float(np.max(np.abs(mixed)))
+    if peak:
+        mixed = mixed * min(1.0, 0.95 / peak)
+    write_stereo_wav(path, mixed)
+    if stems:
+        for name, track in tracks.items():
+            write_stereo_wav(path.parent / f"stem-{name}.wav", track)
+    return mixed
+
+
 def plan_shot(shot, fps, voice, base, temp, profiles, takes, sound_bank):
     step = SAMPLE_RATE // fps
     frames = frame_count(shot["duration"], fps)
@@ -265,7 +376,9 @@ def plan_shot(shot, fps, voice, base, temp, profiles, takes, sound_bank):
     previous_end = -round(0.18 * fps)
     for line in shot.get("speech", []):
         at = round(line["at"] * fps) if "at" in line else previous_end + round(0.18 * fps)
-        if at < previous_end:
+        lead = round(float(line.get("lead", 0) or 0) * fps)
+        at += lead
+        if "lead" not in line and at < previous_end:
             raise ValueError(f"{shot['id']} has overlapping speech. Move the line by {previous_end - at} frames or omit at.")
         clip, source, detail = spoken_take(line, voice, base, temp, profiles.get(line["speaker"]), takes)
         end = at + math.ceil(len(clip) / step)
@@ -275,7 +388,8 @@ def plan_shot(shot, fps, voice, base, temp, profiles, takes, sound_bank):
         previous_end = end
     for cue in shot.get("sfx", []):
         for layer in flatten_cue(cue):
-            at = round((float(cue["at"]) + float(layer.get("offset", 0) or 0)) * fps)
+            at = round((float(cue["at"]) + float(layer.get("offset", 0) or 0)
+                        + float(cue.get("lead", 0) or 0)) * fps)
             clip, detail = sound_bank.cue(layer, base)
             end = at + math.ceil(len(clip) / step)
             frames = max(frames, end)
@@ -407,53 +521,69 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
     if total_frames / fps > limit:
         raise ValueError(f"Audio extends the video beyond {limit:g} seconds")
     levels = {}
+    dialogue, sfx_events = [], []
+    step = SAMPLE_RATE // fps
     cursor = 0
-    with wave.open(str(path), "wb") as writer:
-        writer.setparams((2, 2, SAMPLE_RATE, 0, "NONE", "not compressed"))
-        for scene, scene_plan in plans:
-            scene_timing = {"id": scene["id"], "purpose": scene["purpose"], "start": cursor, "shots": []}
-            for shot, frames, voices, effects, transition_frames in scene_plan:
-                transition = shot.get("transition")
-                timing = {"id": shot["id"], "start": cursor, "end": cursor + frames,
-                          "speech": [], "sfx": []}
-                if transition:
-                    timing["transition"] = {"type": transition["type"], "start": cursor,
-                                            "end": cursor + transition_frames}
-                levels[shot["id"]] = []
-                for start, end, line, clip, source, detail in voices:
-                    entry = {"speaker": line["speaker"], "text": line["text"], "source": source,
-                             "start": cursor + start, "end": cursor + end, **detail}
-                    for key in ("spoken_text", "delivery", "pan", "reverb", "gain"):
-                        if key in line:
-                            entry[key] = line[key]
-                    timing["speech"].append(entry)
-                    text = line.get("caption", line["text"])
-                    timeline["captions"].append({
-                        "start": cursor + start, "end": cursor + end,
-                        "text": caption_lines(text),
-                        "words": caption_words(text, cursor + start, cursor + end, fps),
-                    })
-                    levels[shot["id"]].append((start, end, line["speaker"], mouth_levels(clip, SAMPLE_RATE // fps)))
-                for start, end, cue, _, detail in effects:
-                    entry = {"start": cursor + start, "end": cursor + end,
-                             "gain": cue.get("gain", 0.24), **detail}
-                    for key in ("pan", "reverb", "pitch_variance"):
-                        if key in cue:
-                            entry[key] = cue[key]
-                    timing["sfx"].append(entry)
-                mix_shot(writer, frames, cursor, fps, voices, effects, bed,
-                         music.get("gain", 0.10) if music else 0,
-                         preserve_dynamics=audio_library is not None,
-                         music_config={**(music or {}), "reverb_size": config.get("reverb", {}).get("size", 0.3),
-                                       "reverb_mix": config.get("reverb", {}).get("mix", 0)},
-                         room_tone=room, total_frames=total_frames)
-                cursor += frames
-                scene_timing["shots"].append(timing)
-            scene_timing["end"] = cursor
-            timeline["scenes"].append(scene_timing)
+    for scene, scene_plan in plans:
+        scene_timing = {"id": scene["id"], "purpose": scene["purpose"], "start": cursor, "shots": []}
+        for shot, frames, voices, effects, transition_frames in scene_plan:
+            transition = shot.get("transition")
+            timing = {"id": shot["id"], "start": cursor, "end": cursor + frames,
+                      "speech": [], "sfx": []}
+            if transition:
+                timing["transition"] = {**transition, "start": cursor,
+                                        "end": cursor + transition_frames}
+            levels[shot["id"]] = []
+            for start, end, line, clip, source, detail in voices:
+                absolute_start = cursor + start
+                entry = {"speaker": line["speaker"], "text": line["text"], "source": source,
+                         "start": absolute_start, "end": cursor + end, **detail}
+                for key in ("spoken_text", "delivery", "pan", "reverb", "gain", "lead"):
+                    if key in line:
+                        entry[key] = line[key]
+                timing["speech"].append(entry)
+                text = line.get("caption", line["text"])
+                words = line.get("words")
+                timeline["captions"].append({
+                    "start": max(0, absolute_start), "end": cursor + end,
+                    "speaker": line["speaker"],
+                    "text": caption_lines(text),
+                    "words": ([{"text": word["text"],
+                                "start": max(0, absolute_start) + round(word["start"] * fps),
+                                "end": max(0, absolute_start) + round(word["end"] * fps)}
+                               for word in words] if words else
+                              caption_words(text, max(0, absolute_start), cursor + end, fps)),
+                    "visemes": ([{"at": max(0, absolute_start) + round(item["at"] * fps),
+                                  "shape": item["shape"]} for item in line.get("visemes", [])]
+                                if line.get("visemes") else []),
+                })
+                levels[shot["id"]].append((start, end, line["speaker"], mouth_levels(clip, SAMPLE_RATE // fps)))
+                dialogue.append((absolute_start * step, clip, line,
+                                 int.from_bytes(sha256(f"{line['speaker']}:{absolute_start}".encode()).digest()[:4], "big")))
+            for start, end, cue, clip, detail in effects:
+                absolute_start = cursor + start
+                entry = {"start": absolute_start, "end": cursor + end,
+                         "gain": cue.get("gain", 0.24), **detail}
+                for key in ("pan", "reverb", "pitch_variance", "lead"):
+                    if key in cue:
+                        entry[key] = cue[key]
+                timing["sfx"].append(entry)
+                sfx_events.append((absolute_start * step, clip, cue, 7 + len(sfx_events)))
+            cursor += frames
+            scene_timing["shots"].append(timing)
+        scene_timing["end"] = cursor
+        timeline["scenes"].append(scene_timing)
     timeline["duration_frames"] = cursor
+    music_config = {**(music or {}),
+                    "gain": music.get("gain", 0.10) if music else 0,
+                    "reverb_size": config.get("reverb", {}).get("size", 0.3),
+                    "reverb_mix": config.get("reverb", {}).get("mix", 0)}
+    mix_global(path, cursor, fps, dialogue, sfx_events, bed, music_config,
+               episode.get("ambience", []), room, audio_library, base,
+               stems=bool(render_options.get("stems", False)))
     master_audio(path, master)
     timeline["loudness"] = measure_loudness(path)
+    timeline["stems"] = bool(render_options.get("stems", False))
     return timeline, levels
 
 

@@ -38,6 +38,7 @@ def options():
             captions.add_argument("--no-captions", action="store_true", help="disable burned captions and SRT")
             command.add_argument("--no-thumbnail", action="store_true", help="skip thumbnail.png")
             command.add_argument("--no-publishing", action="store_true", help="skip publishing.md and publishing.json")
+            command.add_argument("--stems", action="store_true", help="write dialogue/music/ambience/sfx stems")
             command.add_argument("--crf", type=int, help="override the H.264 CRF quality")
             command.add_argument("--preset", help="override the x264 preset")
             command.add_argument("--audio-bitrate", type=int, help="override the AAC bitrate in kbps")
@@ -46,6 +47,32 @@ def options():
     brand.add_argument("--out", required=True, type=Path)
     doc = commands.add_parser("channel-doc", help="write channel.md from the channel manifest")
     doc.add_argument("channel", type=Path)
+    resolve = commands.add_parser("resolve", help="show the effective preset, render and audio settings")
+    resolve.add_argument("episode", type=Path)
+    resolve.add_argument("--channel", type=Path)
+    resolve.add_argument("--json", action="store_true")
+    align = commands.add_parser("align", help="import measured word timings into an episode")
+    align.add_argument("episode", type=Path)
+    align.add_argument("--json", required=True, type=Path)
+    safearea = commands.add_parser("safearea", help="write a platform safe-area guide image")
+    safearea.add_argument("--platform", choices=("youtube-shorts", "tiktok", "generic"), default="youtube-shorts")
+    safearea.add_argument("--out", required=True, type=Path)
+    shot_template = commands.add_parser("shot-template", help="emit a parameterised reusable shot")
+    shot_template.add_argument("template", help="template name under presets/shots")
+    shot_template.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
+    shot_template.add_argument("--channel", type=Path)
+    shot_template.add_argument("--out", type=Path)
+    editor = commands.add_parser("editor", help="open the local shot inspector")
+    editor.add_argument("episode", type=Path)
+    editor.add_argument("--channel", type=Path)
+    editor.add_argument("--port", type=int, default=8765)
+    editor.add_argument("--no-open", action="store_true")
+    support = commands.add_parser("support", help="show the renderer support matrix")
+    support.add_argument("--markdown", action="store_true")
+    support.add_argument("--out", type=Path)
+    parity = commands.add_parser("parity", help="render the shared renderer-parity fixture")
+    parity.add_argument("--renderers", default="python,hyperframes")
+    parity.add_argument("--out", type=Path)
     sound = commands.add_parser("sound", help="synthesize a custom Sound Lab recipe")
     sound.add_argument("channel", type=Path)
     sound.add_argument("--recipe", required=True, type=Path)
@@ -112,6 +139,54 @@ def execute(args):
             raise ValueError("Provide a local reference video file")
         return reference(args.video.resolve(), args.out, args.threshold, focus_shorts=args.focus_shorts), 0
 
+    if args.command == "align":
+        from studio.alignment import apply, load as load_alignment
+        from studio.core import load, write_json
+
+        episode = load(args.episode, "episode")
+        apply(episode, load_alignment(args.json))
+        write_json(args.episode, episode)
+        return {"episode": str(args.episode.resolve()), "lines": len(load_alignment(args.json).get("lines", []))}, 0
+    if args.command == "safearea":
+        from studio.safearea import build
+
+        return build(args.platform, args.out), 0
+    if args.command == "shot-template":
+        from studio.core import write_json
+        from studio.templates import build
+
+        params = {}
+        for item in args.set:
+            if "=" not in item:
+                raise ValueError(f"Use KEY=VALUE for --set: {item}")
+            key, value = item.split("=", 1)
+            params[key] = value
+        data = build(args.template, params, args.channel.parent if args.channel else None)
+        if args.out:
+            write_json(args.out, data)
+        else:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+        return {"template": args.template, "out": str(args.out.resolve()) if args.out else None}, 0
+    if args.command == "support":
+        from studio.core import write_json
+        from studio.support import markdown, matrix
+
+        if args.markdown:
+            text = markdown()
+            if args.out:
+                args.out.write_text(text, encoding="utf-8")
+            else:
+                print(text, end="")
+            return {"out": str(args.out.resolve()) if args.out else None}, 0
+        data = matrix()
+        if args.out:
+            write_json(args.out, data)
+        print(json.dumps(data, indent=2))
+        return data, 0
+    if args.command == "parity":
+        from studio.parity import run
+
+        return run(tuple(item.strip() for item in args.renderers.split(",") if item.strip()), args.out), 0
     if args.command == "sound":
         from studio.soundlab import build
 
@@ -129,6 +204,30 @@ def execute(args):
         args.channel = resolve_channel(Path(__file__).resolve().parent)
     channel = load(args.channel, "channel")
     validate_channel(channel, args.channel.parent)
+    if args.command == "editor":
+        from studio.editor import serve
+
+        serve(args.episode, args.channel, args.port, not args.no_open)
+        return 0
+    if args.command == "resolve":
+        from studio.presets import apply_style, resolved_config
+
+        episode = load(args.episode, "episode")
+        episode = apply_style(episode, channel, args.channel.parent)
+        from studio.markers import expand as expand_markers
+        from studio.particles import expand as expand_particles
+
+        episode = expand_particles(expand_markers(episode, args.channel.parent))
+        data = resolved_config(episode, channel)
+        if args.json:
+            return data, 0
+        rows = ["# Resolved episode", "", f"Channel: **{channel['name']}**", ""]
+        for section in ("style", "render", "audio", "post", "captions"):
+            value = data[section]
+            rows.extend([f"## {section}", "", "```json",
+                         json.dumps(value, indent=2, ensure_ascii=False), "```", ""])
+        print("\n".join(rows).rstrip())
+        return 0
     if args.command in {"brand", "channel-doc"}:
         from studio.publishing import channel_guide
 
@@ -153,6 +252,11 @@ def execute(args):
 
     episode = load(args.episode, "episode")
     episode = apply_style(episode, channel, args.channel.parent)
+    from studio.markers import expand as expand_markers
+    from studio.particles import expand as expand_particles
+
+    episode = expand_markers(episode, args.channel.parent)
+    episode = expand_particles(episode)
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
@@ -204,6 +308,8 @@ def execute(args):
         options["thumbnail"] = False
     if args.no_publishing:
         options["publishing"] = False
+    if args.stems:
+        options["stems"] = True
     if args.crf is not None:
         options["crf"] = args.crf
     if args.preset:

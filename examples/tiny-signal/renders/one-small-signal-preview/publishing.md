@@ -51,3 +51,4 @@ Folder: `/home/felipeinoue/Documents/projects-codex/viral-short-videos/examples/
 - `timed-script.md` — Per-shot staging, speech, and sound record.
 - `timeline.json` — Resolved frame timeline for re-editing.
 - `qa.json` — Verified runtime, resolution, codecs, and caption count.
+- `mix.wav` — Mixed soundtrack before encoding.

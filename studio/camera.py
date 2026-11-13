@@ -92,34 +92,39 @@ def resolve_camera(shot, samples=30):
     keyframes = [dict(key) for key in source.get("keyframes", [])]
     shake = source.get("shake")
     handheld = source.get("handheld")
-    if shake or handheld or preset == "handheld":
+    shakes = list(source.get("shakes") or [])
+    if shake:
+        shakes.append({"at": 0, "duration": 1, **shake})
+    if handheld or preset == "handheld":
+        info = handheld or {}
+        shakes.append({"at": 0, "duration": 1, "amplitude": float(info.get("amplitude", 0.004)),
+                       "frequency": float(info.get("frequency", 1.7)),
+                       "decay": 0.0, "seed": float(info.get("seed", 2.0))})
+    if shakes:
         base = _base(source)
-        amplitude = 0.006
-        frequency = 8.0
-        decay = 0.0
-        seed = 0.0
-        if shake:
-            amplitude = float(shake.get("amplitude", 0.008))
-            frequency = float(shake.get("frequency", 11.0))
-            decay = float(shake.get("decay", 0.35))
-            seed = float(shake.get("seed", 1.0))
-        if handheld or preset == "handheld":
-            info = handheld or {}
-            amplitude = max(amplitude, float(info.get("amplitude", 0.004)))
-            frequency = float(info.get("frequency", 1.7))
-            seed += float(info.get("seed", 2.0))
         generated = []
         for index in range(samples + 1):
             at = index / samples
             state = _sample(keyframes, base, at)
-            envelope = math.exp(-decay * at * 4.0)
-            state["x"] = state["x"] + _jitter(at, amplitude=amplitude * envelope,
-                                               frequency=frequency, phase=seed)
-            state["y"] = state["y"] + _jitter(at, amplitude=amplitude * 0.7 * envelope,
-                                               frequency=frequency * 1.31, phase=seed + 1.2)
-            state["rotate"] = state.get("rotate", 0) + _jitter(
-                at, amplitude=amplitude * 180 * envelope, frequency=frequency * 0.73,
-                phase=seed + 2.4)
+            for item in shakes:
+                start = float(item.get("at", 0))
+                duration = max(1e-4, float(item.get("duration", 1)))
+                local = at - start
+                if local < 0 or local > duration:
+                    continue
+                phase = local / duration
+                amplitude = float(item.get("amplitude", 0.008))
+                frequency = float(item.get("frequency", 11.0))
+                decay = float(item.get("decay", 0.35))
+                seed = float(item.get("seed", 1.0))
+                envelope = math.exp(-decay * phase * 4.0)
+                state["x"] = state["x"] + _jitter(local, amplitude=amplitude * envelope,
+                                                   frequency=frequency, phase=seed)
+                state["y"] = state["y"] + _jitter(local, amplitude=amplitude * 0.7 * envelope,
+                                                   frequency=frequency * 1.31, phase=seed + 1.2)
+                state["rotate"] = state.get("rotate", 0) + _jitter(
+                    local, amplitude=amplitude * 180 * envelope, frequency=frequency * 0.73,
+                    phase=seed + 2.4)
             generated.append({"at": round(at, 6), **{key: round(value, 6) for key, value in state.items()}})
         keyframes = generated
     return {**source, "keyframes": keyframes}
