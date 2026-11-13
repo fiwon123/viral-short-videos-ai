@@ -45,6 +45,7 @@ Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D s
 - Add named `thumbnails` for A/B covers. Variants share the primary shot and time so Python and browser renderers write the same files.
 - Track a batch in `season.json` and run `python video.py batch season.json --dry-run` first, then `--validate-only`, then a preview or full render. Use `--status` and `--only` to focus on approved episodes.
 - Use `three.bloom`, `three.bloom_radius` and `three.bloom_threshold` for glowing 3D props and signs. It combines with the existing focus pull.
+- Add 3D sparks, embers or dust with `three_scene.particles`; use `emit: "continuous"` for ambience and `"burst"` for impacts, with `blending: "additive"` for glow.
 - Check `python video.py support` before promising a feature. The matrix is honest about Python versus browser coverage.
 
 ## Run and deliver

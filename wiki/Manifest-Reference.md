@@ -279,6 +279,18 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `three.bloom` | 0–1 | 3D bloom strength |
 | `three.bloom_radius` | 0–2 | Bloom spread |
 | `three.bloom_threshold` | 0–1 | Brightness threshold for bloom |
+| `three_scene.particles` | array | Deterministic 3D particle emitters |
+| `three_particles.position` | vector3 | Emitter origin |
+| `three_particles.count` | 1–5000 | Particle count |
+| `three_particles.spread` | vector3 | Spawn box around the origin |
+| `three_particles.velocity` | vector3 | Initial velocity |
+| `three_particles.gravity` | vector3 | Acceleration |
+| `three_particles.life` | seconds | Particle lifetime |
+| `three_particles.size` | number | Point size |
+| `three_particles.color`, `opacity` | paint/unit | Appearance |
+| `three_particles.emit` | burst/continuous | One burst or ongoing emission |
+| `three_particles.loop` | boolean | Repeat each particle's lifetime |
+| `three_particles.blending` | normal/additive | Glow-friendly blending |
 | `three.animations[].weight` | 0–1 | Blend multiple GLB clips |
 | `speech.lead` | seconds | Start dialogue before the picture cut |
 | `speech.words` | arrays | Measured word timings |

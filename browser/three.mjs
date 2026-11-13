@@ -1,7 +1,8 @@
 import {
-  ACESFilmicToneMapping, AmbientLight, AnimationMixer, BoxGeometry, Color, CylinderGeometry,
-  DirectionalLight, Mesh, MeshStandardMaterial, PCFShadowMap, PerspectiveCamera, Scene,
-  SphereGeometry, SRGBColorSpace, TorusGeometry, Vector2, WebGLRenderer,
+  ACESFilmicToneMapping, AdditiveBlending, AmbientLight, AnimationMixer, BoxGeometry,
+  BufferGeometry, CanvasTexture, Color, CylinderGeometry, DirectionalLight, Float32BufferAttribute, Mesh,
+  MeshStandardMaterial, NormalBlending, PCFShadowMap, PerspectiveCamera, Points, PointsMaterial,
+  Scene, SphereGeometry, SRGBColorSpace, TorusGeometry, Vector2, WebGLRenderer,
 } from "three";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {clone} from "three/addons/utils/SkeletonUtils.js";
@@ -12,6 +13,31 @@ import {UnrealBloomPass} from "three/addons/postprocessing/UnrealBloomPass.js";
 
 import {lightingFor} from "./lighting.mjs";
 import {objectTrack, poseAt, poseTrack} from "./pose.mjs";
+
+function randomizer(seed) {
+  let state = (Number(seed) || 1) >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+}
+
+let spark = null;
+function sparkTexture() {
+  if (spark || typeof document === "undefined") return spark;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const context = canvas.getContext("2d");
+  const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 30);
+  gradient.addColorStop(0, "rgba(255,255,255,1)");
+  gradient.addColorStop(0.45, "rgba(255,255,255,.8)");
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 64, 64);
+  spark = new CanvasTexture(canvas);
+  spark.colorSpace = SRGBColorSpace;
+  return spark;
+}
 
 export async function createThreeStage(specs, width, height, urlFor) {
   const renderer = new WebGLRenderer({alpha: true, antialias: true});
@@ -80,10 +106,51 @@ export async function createThreeStage(specs, width, height, urlFor) {
         scene.add(node);
         objects.set(obj.id, {node, spec: obj, animations});
       }
+      const particleSystems = [];
+      for (const particles of spec.particles ?? []) {
+        const count = Math.min(5000, Number(particles.count ?? 60));
+        const life = Number(particles.life ?? 1.2);
+        const random = randomizer(particles.seed ?? 17);
+        const positions = new Float32Array(count * 3);
+        const data = [];
+        for (let index = 0; index < count; index += 1) {
+          const start = particles.start ?? (particles.emit === "continuous" ? random() * 12 : 0);
+          data.push({
+            start,
+            offset: [
+              (random() * 2 - 1) * (particles.spread?.[0] ?? 0),
+              (random() * 2 - 1) * (particles.spread?.[1] ?? 0),
+              (random() * 2 - 1) * (particles.spread?.[2] ?? 0),
+            ],
+            velocity: [
+              (particles.velocity?.[0] ?? 0) * (0.75 + random() * 0.5),
+              (particles.velocity?.[1] ?? 0) * (0.75 + random() * 0.5),
+              (particles.velocity?.[2] ?? 0) * (0.75 + random() * 0.5),
+            ],
+          });
+        }
+        const geometry = new BufferGeometry();
+        geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+        const material = new PointsMaterial({
+          color: particles.color ?? "#ffffff",
+          map: sparkTexture(),
+          alphaTest: 0.02,
+          size: particles.size ?? 0.04,
+          transparent: true,
+          opacity: particles.opacity ?? 0.8,
+          depthWrite: false,
+          sizeAttenuation: true,
+          blending: particles.blending === "additive" ? AdditiveBlending : NormalBlending,
+        });
+        const points = new Points(geometry, material);
+        points.frustumCulled = false;
+        scene.add(points);
+        particleSystems.push({points, data, spec: particles, life});
+      }
       scenes.set(id, {scene, camera, initialCamera: {
         position: spec.camera.position, target: spec.camera.target,
         fov: spec.camera.fov ?? 37,
-      }, objects});
+      }, objects, particles: particleSystems});
     }
   } catch (error) {
     renderer.dispose();
@@ -92,7 +159,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
 
   return {
     compile(shot) {
-      const {scene, camera, initialCamera, objects} = scenes.get(shot.scene);
+      const {scene, camera, initialCamera, objects, particles} = scenes.get(shot.scene);
       const cameraTrack = poseTrack(initialCamera, shot.camera);
       const duration = shot.duration ?? 1;
       const focusTrack = shot.focus?.length
@@ -157,6 +224,34 @@ export async function createThreeStage(specs, width, height, urlFor) {
             }
             mixer.update(0);
           }
+        }
+        const now = progress * duration;
+        for (const system of particles ?? []) {
+          const {points, data, spec} = system;
+          const array = points.geometry.attributes.position.array;
+          for (let index = 0; index < data.length; index += 1) {
+            const item = data[index];
+            let start = item.start;
+            if (spec.start === undefined && spec.emit === "continuous") start = item.start * duration;
+            let local = now - start;
+            if (spec.loop) local = ((local % system.life) + system.life) % system.life;
+            const alive = local >= 0 && local <= system.life;
+            const offset = index * 3;
+            if (!alive) {
+              array[offset] = 0;
+              array[offset + 1] = -9999;
+              array[offset + 2] = 0;
+              continue;
+            }
+            const gravity = spec.gravity ?? [0, 0, 0];
+            array[offset] = spec.position[0] + item.offset[0]
+              + item.velocity[0] * local + 0.5 * gravity[0] * local * local;
+            array[offset + 1] = spec.position[1] + item.offset[1]
+              + item.velocity[1] * local + 0.5 * gravity[1] * local * local;
+            array[offset + 2] = spec.position[2] + item.offset[2]
+              + item.velocity[2] * local + 0.5 * gravity[2] * local * local;
+          }
+          points.geometry.attributes.position.needsUpdate = true;
         }
         if (composer) {
           if (bokeh) {

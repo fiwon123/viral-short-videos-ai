@@ -69,6 +69,7 @@ SUPPORT = {
     "three.fov-keys": {"python": False, "hyperframes": True, "remotion": True},
     "three.focus-pull": {"python": False, "hyperframes": True, "remotion": True},
     "three.bloom": {"python": False, "hyperframes": True, "remotion": True},
+    "three.particles": {"python": False, "hyperframes": True, "remotion": True},
     "alignment.words": {"python": True, "hyperframes": True, "remotion": True},
     "visemes": {"python": True, "hyperframes": True, "remotion": True},
     "review.still": {"python": True, "hyperframes": True, "remotion": True},

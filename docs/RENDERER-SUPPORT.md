@@ -63,6 +63,7 @@
 | `three.fov-keys` | ❌ | ✅ | ✅ |
 | `three.focus-pull` | ❌ | ✅ | ✅ |
 | `three.bloom` | ❌ | ✅ | ✅ |
+| `three.particles` | ❌ | ✅ | ✅ |
 | `alignment.words` | ✅ | ✅ | ✅ |
 | `visemes` | ✅ | ✅ | ✅ |
 | `review.still` | ✅ | ✅ | ✅ |
