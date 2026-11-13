@@ -74,6 +74,8 @@ make migrate CHANNEL=channels/my-channel/channel.json EPISODE=episodes/my-episod
 
 ![YouTube and TikTok monetization ladder](docs/assets/monetization-ladder.svg)
 
+> Checked **November 13, 2026**. Rules and country availability change; verify in YouTube Studio and TikTok Studio.
+
 | Platform | Current milestone | What it unlocks |
 | --- | --- | --- |
 | **YouTube** | 500 subscribers + 3 public uploads/90 days + 3,000 watch hours/12 months **or** 3M Shorts views/90 days | Fan funding and Shopping features (eligible countries) |
