@@ -19,6 +19,9 @@ Open this repository in an AI assistant that can read and edit local files and r
 | 🎬 **Make a video** | Turn an idea into an animated Short with captions, sound, a thumbnail, and publishing copy. |
 | 📅 **Grow an existing channel** | Reuse the cast and visual style, plan a batch of episodes, and test one change at a time. |
 
+<details>
+<summary>🎨 Start a channel</summary>
+  
 ```text
 Read AGENTS.md and .agents/skills/viral-video-studio/SKILL.md.
 Help me build an animated Shorts channel for [audience] on [YouTube or TikTok].
@@ -26,6 +29,8 @@ Propose three original series formats. For each, give me a recurring hook,
 a sample episode, and an estimate of the work per video. Let me pick one.
 Then build its brand kit and render a preview of the first episode.
 ```
+
+</details>
 
 <details>
 <summary>🎬 Make one video for an existing channel</summary>
