@@ -106,6 +106,13 @@ class MotionTests(unittest.TestCase):
         self.assertEqual(hand["parent"], "left/upper")
         self.assertEqual(hand["variant_group"], "left/grip")
 
+    def test_animated_blur(self):
+        layer = self._layer([
+            {"at": 0, "blur": 0},
+            {"at": 1, "blur": 0.4, "ease": "sine"},
+        ])
+        self.assertAlmostEqual(pose_at(poses(layer), 0.5)["blur"], 0.2, places=3)
+
     def test_sprite_sheet_frame_step(self):
         layer = self._layer([
             {"at": 0, "frame": 0},

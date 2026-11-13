@@ -118,11 +118,11 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `frame` | integer | Animatable sheet cell; steps at each key |
 | `mouth_for` | text | Speaker whose audio drives mouth height |
 | `blend` | enum | `normal`, `add`, `screen`, `multiply`, `overlay`, `soft-light` |
-| `blur` | 0–1 | Layer blur |
+| `blur` | 0–1 | Layer blur; animatable in keyframes |
 | `parallax` | 0–2 | Camera parallax amount |
 | `hitbox` | `[w,h]` | 2D QA box |
 | `points` | array | Polygon points |
-| `keyframes` | array | Pose keys; `ease`, `ease_props`, and `auto` supported |
+| `keyframes` | array | Pose keys; `ease`, `ease_props`, `auto`, `blur`, `frame` supported |
 
 ## 🎥 Camera
 

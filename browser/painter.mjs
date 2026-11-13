@@ -319,6 +319,7 @@ export async function createPainter(canvas, data, urlFor) {
       const tile = layer.frames?.length
         ? layer.frames[Math.max(0, Math.min(layer.frames.length - 1, Math.round(pose.frame ?? 0)))]
         : layer.tile;
+      const blur = pose.blur ?? layer.blur;
       if (layer.viseme_for) {
         const shape = visemes[layer.viseme_for];
         if (shape && layer.viseme && layer.viseme !== shape) continue;
@@ -347,7 +348,7 @@ export async function createPainter(canvas, data, urlFor) {
         target.setTransform(...matrix);
         target.globalAlpha = alpha;
         target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
-        target.filter = layer.blur ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
+        target.filter = blur ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
         const shadow = layer.shadow;
         const glow = layer.glow;
         if (shadow) {
@@ -380,8 +381,8 @@ export async function createPainter(canvas, data, urlFor) {
       layerMaskCtx.save();
       layerMaskCtx.setTransform(...matrix);
       layerMaskCtx.globalAlpha = alpha;
-      layerMaskCtx.filter = layer.blur
-        ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
+      layerMaskCtx.filter = blur
+        ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
       layerMaskCtx.drawImage(tile, 0, 0, layer.width, layer.height);
       layerMaskCtx.restore();
       layerMaskCtx.filter = "none";

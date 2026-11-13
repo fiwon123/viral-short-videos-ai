@@ -330,6 +330,7 @@ def poses(layer):
         "skew_x": layer.get("skew_x", 0),
         "skew_y": layer.get("skew_y", 0),
         "frame": layer.get("frame", 0),
+        "blur": layer.get("blur", 0),
         "rotate": layer.get("rotate", 0),
         "opacity": layer.get("opacity", 1),
         "visible": layer.get("visible", True),
@@ -698,8 +699,8 @@ class Composition:
                 if mouth < 0.999:
                     tile = tile.resize((tile.width, max(1, round(tile.height * mouth))),
                                        Image.Resampling.BILINEAR)
-            if layer["blur"]:
-                tile = tile.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * layer["blur"] * 0.02)))
+            if state.get("blur"):
+                tile = tile.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * float(state["blur"]) * 0.02)))
             matrix = layer_matrix(state, width, height, layer["pivot"], parent=parent_matrix,
                                   parent_origin=origins.get(layer["parent"]),
                                   camera=camera, parallax=layer["parallax"],

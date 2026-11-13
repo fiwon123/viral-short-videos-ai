@@ -96,8 +96,9 @@ more character:
  "ease_props": {"opacity": "linear"}}
 ```
 
-`auto` smooths a multi-key move through its neighbours. Camera shake now
-respects the keyframe easing instead of flattening it.
+`auto` smooths a multi-key move through its neighbours. `blur` is also
+animatable, so a rack focus or impact smear can live on the layer itself.
+Camera shake now respects the keyframe easing instead of flattening it.
 
 ## 🌫️ Motion blur
 

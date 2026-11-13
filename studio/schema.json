@@ -361,6 +361,7 @@
         "skew_x": {"type": "number", "minimum": -89, "maximum": 89},
         "skew_y": {"type": "number", "minimum": -89, "maximum": 89},
         "frame": {"type": "integer", "minimum": 0, "maximum": 100000},
+        "blur": {"$ref": "#/$defs/unit"},
         "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
         "opacity": {"$ref": "#/$defs/unit"},
         "visible": {"type": "boolean"}
@@ -376,7 +377,7 @@
         "ease_props": {
           "description": "Per-property easing overrides for this keyframe.",
           "type": "object",
-          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "rotate", "opacity"]},
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "rotate", "opacity"]},
           "additionalProperties": {"$ref": "#/$defs/ease"}
         }
       }
