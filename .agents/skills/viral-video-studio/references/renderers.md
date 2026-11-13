@@ -48,6 +48,10 @@ Anchor screen-space effects to 3D contacts with `studio.lens.screen(point, camer
 
 Keyframe 3D motion through `studio.physics`: `drop()` for falling props, `burst()` and `splash()` for debris and droplets, `spring()` for overshoot, `orbit()` for floating props, `pendulum()` for swings, and `shake()` for decaying camera jitter. The renderer interpolates linearly between keys, so sample the curve at the frame rate instead of trusting two distant keys. Contact frames should be exact; `drop()` places them on the floor and emits squash on the same object keys. Bias debris upward and keep speeds modest so pieces stay in frame. Hide one-off particles after their last key, or they hang in the air.
 
+## Adjust type, colour and weight
+
+Text is rasterized from the same font resolution in every renderer, so `font` roles, alignment, tracking, line height, stroke and shadow stay consistent. Use `channel.fonts` for a display/body pair and `channel.fonts` roles in captions. A layer `fill` can be a gradient, and `stroke`, `shadow` and `glow` are applied before the layer transform. For 2D weight, use `scale_x`/`scale_y` and `skew_x`/`skew_y`; `scale` remains the uniform fallback. `trail` expands into delayed layers at load time, so it works identically in Python, HyperFrames and Remotion.
+
 ## Finish the frame
 
 Use a shot `camera` for push-ins, pans and rotations instead of moving every layer by hand. Camera `x` and `y` are canvas-fraction offsets, `zoom` is a multiplier, and keyframes use the same easings as layers. Give background layers a lower `parallax` so they move less.

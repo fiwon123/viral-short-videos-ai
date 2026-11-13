@@ -27,14 +27,24 @@ Captions are part of the edit. They should land on the beat, fit the phone safe 
 
 | Field | Range | Meaning |
 | --- | --- | --- |
-| `foreground` | color | Text colour |
-| `background` | color | Box colour |
-| `highlight` | color | Active word background |
-| `font` | path | Optional font file, relative to the channel |
+| `foreground` | paint | Text colour or palette role |
+| `background` | paint | Box colour or palette role |
+| `highlight` | paint | Active word background or palette role |
+| `highlight_text` | paint | Active word text colour |
+| `font` | role or path | Font role from `channel.fonts`, or a channel-relative file |
 | `font_size` | 0.5–2 | Scale factor |
 | `stroke` | 0–1 | Outline width |
 | `shadow` | boolean | Soft shadow |
+| `shadow_color` | paint | Shadow colour |
 | `radius` | 0–1 | Box corner radius |
+| `max_lines` | 1–8 | Maximum wrapped lines |
+| `align` | left/center/right | Text alignment |
+| `line_height` | 0.8–2.5 | Line spacing multiplier |
+| `letter_spacing` | -0.2–0.5 | Tracking as a fraction of font size |
+| `offset` | -0.5–0.5 | Extra vertical offset as a canvas fraction |
+| `padding_x` / `padding_y` | 0–0.25 | Box padding as a canvas fraction |
+| `background_opacity` | 0–1 | Box opacity |
+| `animation` | none/pop/slide/fade/rise | Cue entrance |
 
 ## ⏱️ Word timing
 

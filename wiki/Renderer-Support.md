@@ -14,7 +14,20 @@
 | `layers.blend` | ✅ | ✅ | ✅ |
 | `layers.blur` | ✅ | ✅ | ✅ |
 | `layers.mask` | ✅ | ✅ | ✅ |
+| `layers.scale_x_y` | ✅ | ✅ | ✅ |
+| `layers.skew` | ✅ | ✅ | ✅ |
+| `layers.gradient` | ✅ | ✅ | ✅ |
+| `layers.stroke` | ✅ | ✅ | ✅ |
+| `layers.shadow_glow` | ✅ | ✅ | ✅ |
+| `layers.trail` | ✅ | ✅ | ✅ |
+| `layers.use` | ✅ | ✅ | ✅ |
+| `text.fonts` | ✅ | ✅ | ✅ |
+| `text.typography` | ✅ | ✅ | ✅ |
 | `easings` | ✅ | ✅ | ✅ |
+| `easings.cubic-bezier` | ✅ | ✅ | ✅ |
+| `easings.spring-object` | ✅ | ✅ | ✅ |
+| `easings.auto` | ✅ | ✅ | ✅ |
+| `easings.per-property` | ✅ | ✅ | ✅ |
 | `camera.keyframes` | ✅ | ✅ | ✅ |
 | `camera.presets` | ✅ | ✅ | ✅ |
 | `camera.shake` | ✅ | ✅ | ✅ |
@@ -31,6 +44,11 @@
 | `captions.karaoke` | ✅ | ✅ | ✅ |
 | `captions.minimal` | ✅ | ✅ | ✅ |
 | `captions.animation` | ✅ | ✅ | ✅ |
+| `captions.layout` | ✅ | ✅ | ✅ |
+| `captions.palette-roles` | ✅ | ✅ | ✅ |
+| `captions.fade-rise` | ✅ | ✅ | ✅ |
+| `thumbnails.styles` | ✅ | ✅ | ✅ |
+| `thumbnails.variants` | ✅ | ✅ | ✅ |
 | `audio.master` | ✅ | ✅ | ✅ |
 | `audio.stems` | ✅ | ✅ | ✅ |
 | `audio.cross_cut` | ✅ | ✅ | ✅ |
@@ -43,6 +61,8 @@
 | `three.focus-pull` | ❌ | ✅ | ✅ |
 | `alignment.words` | ✅ | ✅ | ✅ |
 | `visemes` | ✅ | ✅ | ✅ |
+| `review.still` | ✅ | ✅ | ✅ |
+| `review.contact-sheet` | ✅ | ✅ | ✅ |
 
 Python is the raster-2D path. SVG, Three.js and browser-only
 finishing are marked honestly rather than approximated.

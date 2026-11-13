@@ -163,7 +163,7 @@ def build(channel, recipe_path, *, folder="vfx"):
     if not effect_id:
         raise ValueError("Effect Lab recipe needs an id")
     if base not in BASE:
-        raise ValueError(f"Unknown Effect Lab base: {base}")
+        raise ValueError(f"Unknown Effect Lab base: {base}. Available: {', '.join(sorted(BASE))}")
     manifest = channel / "channel.json"
     data = json.loads(manifest.read_text(encoding="utf-8")) if manifest.is_file() else {}
     palette = {**DEFAULT, **(data.get("palette") or {})}

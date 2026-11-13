@@ -3,8 +3,22 @@
 import json
 from pathlib import Path
 
+from .core import validate
+
 ROOT = Path(__file__).resolve().parents[1]
 STYLE_DIR = ROOT / "presets" / "styles"
+
+
+def available_styles(channel_base=None):
+    found = {}
+    folders = [Path(channel_base) / "presets" / "styles"] if channel_base else []
+    folders.append(STYLE_DIR)
+    for folder in folders:
+        if not folder.is_dir():
+            continue
+        for path in sorted(folder.glob("*.json")):
+            found.setdefault(path.stem, path)
+    return found
 
 
 def deep_merge(base, override):
@@ -27,8 +41,11 @@ def load_style(name, channel_base=None):
     candidates.append(STYLE_DIR / f"{name}.json")
     for path in candidates:
         if path.is_file():
-            return json.loads(path.read_text(encoding="utf-8"))
-    raise ValueError(f"Unknown style preset: {name}")
+            preset = json.loads(path.read_text(encoding="utf-8"))
+            return validate(preset, "style_preset", f"Style preset {path.name}")
+    found = available_styles(channel_base)
+    names = ", ".join(sorted(found)) or "none"
+    raise ValueError(f"Unknown style preset: {name}. Available: {names}")
 
 
 def apply_style(episode, channel, channel_base=None):

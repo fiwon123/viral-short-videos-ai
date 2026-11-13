@@ -3,8 +3,22 @@
 import json
 from pathlib import Path
 
+from .core import validate
+
 ROOT = Path(__file__).resolve().parents[1]
 SHOT_DIR = ROOT / "presets" / "shots"
+
+
+def available(channel_base=None):
+    found = {}
+    folders = [Path(channel_base) / "presets" / "shots"] if channel_base else []
+    folders.append(SHOT_DIR)
+    for folder in folders:
+        if not folder.is_dir():
+            continue
+        for path in sorted(folder.glob("*.json")):
+            found.setdefault(path.stem, path)
+    return found
 
 
 def load(name, channel_base=None):
@@ -15,7 +29,9 @@ def load(name, channel_base=None):
     for path in candidates:
         if path.is_file():
             return json.loads(path.read_text(encoding="utf-8"))
-    raise ValueError(f"Unknown shot template: {name}")
+    found = available(channel_base)
+    names = ", ".join(sorted(found)) or "none"
+    raise ValueError(f"Unknown shot template: {name}. Available: {names}")
 
 
 def _literal(value):
@@ -41,4 +57,6 @@ def substitute(value, params):
 
 
 def build(name, params=None, channel_base=None):
-    return substitute(load(name, channel_base), params or {})
+    data = substitute(load(name, channel_base), params or {})
+    validate(data, "shot", f"Shot template {name}")
+    return data

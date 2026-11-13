@@ -21,6 +21,27 @@ Load the versioned channel cast and sound bank. Follow the [audio guide](audio.m
 - Use `camera` presets or keys, layer `pivot`/`parent`, `visible`/`variant_group`, `blend`, `blur` and shot `post` for the finish. Add `motion_blur` only after the timing is locked, and use `supersample: 2` for a clean master when render time allows. `captions.style: "karaoke"` uses the word timings the audio pass already writes. Use `render` to set CRF, preset, tune, audio bitrate and output switches; use `--no-captions`, `--no-thumbnail` and `--no-publishing` for review cuts.
 - Create new audio with Sound Lab (`python video.py sound`) and new palette-matched effects with Effect Lab (`python video.py effect`) when the channel bank has no suitable cue or shape. Keep generated files inside the channel.
 
+## Review one frame before the full render
+
+Use `python video.py still` while composing. It resolves the same preset, audio clock and captions as the final render but writes one PNG:
+
+```sh
+python video.py still workspace/<channel>/episodes/<episode>/episode.json \
+  --shot A --progress 0.5 --out review.png
+```
+
+Add `--sheet 5` for a contact sheet and `--renderer hyperframes` for SVG or 3D shots. Fix composition, type, captions, glow, contacts and squash here before spending time on a full render.
+
+## Use the adjustable finishing controls
+
+- Define recurring rigs, props and badges once under `episode.defs`, then instance them with `{"kind": "use", "ref": "..."}`. The studio prefixes IDs, parents and variant groups so several instances can share a shot.
+- Give the channel `fonts` roles and use per-layer `font`, `align`, `line_height`, `letter_spacing`, `max_lines`, `uppercase`, `stroke` and `shadow` instead of rasterized titles.
+- Use `palette` extras for a wider brand kit. `fill` accepts a gradient; `stroke`, `shadow`, `glow` and `trail` are per-layer controls.
+- Use `scale_x`/`scale_y` for squash and stretch, `skew_x`/`skew_y` for lean, and `ease_props` when one property needs a different curve. `ease` accepts cubic-bezier and spring objects; `auto` smooths long moves.
+- `make motion MOTION=impact` emits keyframes for `pop`, `impact`, `anticipate`, `settle`, `float`, `breathe`, `enter` and `exit`.
+- Add named `thumbnails` for A/B covers. Variants share the primary shot and time so Python and browser renderers write the same files.
+- Check `python video.py support` before promising a feature. The matrix is honest about Python versus browser coverage.
+
 ## Run and deliver
 
 Run `validate` and `check-visual` for the declared shot checks, then render a small preview with `--preview` when it aids inspection. Check the full preview for clear narrative beats, legible and well-placed text, continuity, intentional sound, pronunciation, and speech/caption sync. Fix the inputs, then run the full-size render. Let the tool choose `output/<channel-slug>/<episode-slug>-v1` from the selected channel and episode folders. For revisions or source archives, keep the same channel folder and choose a fresh package name. Use FFprobe QA from the tool and inspect final frames, transitions, caption cues, and audio. Open the rendered thumbnail at feed size. Adjust the cover frame, copy, or assets if needed. Use `thumbnail.hide_layers` to omit on-screen headlines or overlays from the thumbnail only. Verify upload specifications for the chosen destination. Report any playback or listening checks you could not complete.

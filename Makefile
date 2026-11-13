@@ -25,8 +25,8 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect \
-        support parity safearea editor \
+.PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect motion \
+        still presets templates schema test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -41,6 +41,12 @@ help:
 	@echo "  make vfx                    redraw the channel VFX kit from its palette"
 	@echo "  make sound RECIPE=...       synthesize a custom Sound Lab recipe"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
+	@echo "  make motion MOTION=pop      emit a manifest-ready motion recipe"
+	@echo "  make still EPISODE=... SHOT=A PROGRESS=0.5 [NOAUDIO=1]  render one review frame"
+	@echo "  make presets                list style presets"
+	@echo "  make templates              list shot templates"
+	@echo "  make schema                 write per-manifest schema wrappers"
+	@echo "  make test                   run the local test suite"
 	@echo "  make channel-doc            write channel.md from channel.json"
 	@echo "  make support                write the renderer support matrix"
 	@echo "  make parity                 render the shared renderer parity fixture"
@@ -97,6 +103,36 @@ effect:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
 	@test -n "$(RECIPE)" || { echo "Set RECIPE=vfx/my-effect.json"; exit 1; }
 	@$(PYTHON) -m studio.effectlab $(CHANNEL_DIR) --recipe $(RECIPE)
+
+motion:
+	@$(PYTHON) video.py motion $(MOTION) \
+		$(if $(DURATION),--duration $(DURATION),) \
+		$(if $(T0),--t0 $(T0),) \
+		$(if $(AMOUNT),--amount $(AMOUNT),)
+
+still:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
+	@$(PYTHON) video.py still $(EPISODE) $(CHANNEL_ARG) \
+		$(if $(SHOT),--shot $(SHOT),) \
+		$(if $(PROGRESS),--progress $(PROGRESS),) \
+		$(if $(AT),--at $(AT),) \
+		$(if $(SCALE),--scale $(SCALE),) \
+		$(if $(SHEET),--sheet $(SHEET),) \
+		$(if $(NOAUDIO),--no-audio,) \
+		$(if $(NOCAPTIONS),--no-captions,) \
+		$(if $(OUT),--out "$(OUT)",)
+
+presets:
+	@$(PYTHON) video.py presets $(CHANNEL_ARG)
+
+templates:
+	@$(PYTHON) video.py templates $(CHANNEL_ARG)
+
+schema:
+	@$(PYTHON) video.py schema
+
+test:
+	@$(PYTHON) -m unittest discover -s tests -v
 
 channel-doc:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }

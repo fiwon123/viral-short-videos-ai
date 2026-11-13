@@ -16,9 +16,11 @@ from PIL import Image
 
 from .core import load, validate_episode
 from .design import Composition, apply_post, resolve_font
+from .expand import expand as expand_defs
 from .markers import expand as expand_markers
 from .particles import expand as expand_particles
 from .presets import apply_style
+from .trails import expand as expand_trails
 
 EDITOR = Path(__file__).resolve().parents[1] / "editor"
 
@@ -78,8 +80,9 @@ class Handler(BaseHTTPRequestHandler):
         channel_dir = self.channel_path.parent
         import copy
 
-        episode = apply_style(copy.deepcopy(self.episode), self.channel, channel_dir)
-        episode = expand_particles(expand_markers(episode, channel_dir))
+        episode = expand_defs(copy.deepcopy(self.episode))
+        episode = apply_style(episode, self.channel, channel_dir)
+        episode = expand_particles(expand_trails(expand_markers(episode, channel_dir)))
         styled = next((item for scene in episode["scenes"] for item in scene["shots"]
                        if item["id"] == shot_id), shot)
         font = resolve_font(self.channel, channel_dir)
@@ -88,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
                                   episode_post=episode.get("post"),
                                   channel_base=channel_dir)
         image = composition.frame(max(0, min(1, progress)), {}, post=False)
-        image = apply_post(image, composition.post)
+        image = apply_post(image, composition.post, palette=self.channel["palette"])
         image.save("/tmp/viral-editor-still.png")
         self._file(Path("/tmp/viral-editor-still.png"), "image/png")
 

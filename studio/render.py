@@ -101,15 +101,19 @@ def write_script(path, episode, channel, timeline):
             elif start:
                 rows.append("- Cut at the shot boundary.")
             for layer in shot["layers"]:
+                scale = layer.get("scale", 1)
+                scale_x = layer.get("scale_x", scale)
+                scale_y = layer.get("scale_y", scale)
                 stage = (f"- {layer['id']} ({layer['kind']}, {layer.get('plane', 'foreground')}) at ({layer['x']}, {layer['y']}), "
                          f"box {layer.get('width', 0.55)} × {layer.get('height', 0.2)}, "
-                         f"scale {layer.get('scale', 1)}, rotation {layer.get('rotate', 0)}°, "
+                         f"scale {scale_x} × {scale_y}, rotation {layer.get('rotate', 0)}°, "
                          f"opacity {layer.get('opacity', 1)}.")
                 if "file" in layer:
                     stage += f" {layer.get('asset_scope', 'episode').capitalize()} asset `{layer['file']}`."
                 else:
                     fill = layer.get("fill", "foreground")
-                    stage += f" Fill {channel['palette'].get(fill, fill)}."
+                    fill = "gradient" if isinstance(fill, dict) else channel["palette"].get(fill, fill)
+                    stage += f" Fill {fill}."
                 if "text" in layer:
                     stage += f" Screen text: {layer['text']}"
                 if "mouth_for" in layer:
@@ -144,6 +148,10 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
     supersample = max(1, int(config.get("supersample", 1)))
     render_canvas = (canvas[0] * supersample, canvas[1] * supersample)
     caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
+    thumbnail_font = resolve_font(channel, channel_base or base)
+    primary_at = episode["thumbnail"].get("at", 0.5)
+    covers = [{**cover, "at": cover.get("at", primary_at)}
+              for cover in [episode["thumbnail"], *episode.get("thumbnails", [])]]
     for scene, scene_timing in zip(episode["scenes"], timeline["scenes"]):
         for shot, timing in zip(scene["shots"], scene_timing["shots"]):
             composition = Composition(shot, render_canvas, channel, font, base,
@@ -153,8 +161,11 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
             frames = timing["end"] - timing["start"]
             transition = timing.get("transition")
             count = transition["end"] - transition["start"] if transition else 0
-            cover = episode["thumbnail"]
-            cover_frame = round(cover.get("at", 0.5) * (frames - 1)) if cover["shot"] == shot["id"] else None
+            cover_frames = {}
+            for index, cover in enumerate(covers):
+                if cover["shot"] == shot["id"]:
+                    cover_frames.setdefault(round(cover.get("at", 0.5) * (frames - 1)),
+                                            []).append((index, cover))
             blur = float(shot.get("motion_blur", config.get("motion_blur", 0)) or 0)
             subframes = 5 if blur >= 0.55 else 3 if blur >= 0.18 else 1
             post = {**(channel.get("post") or {}), **(episode.get("post") or {}), **(shot.get("post") or {})}
@@ -186,12 +197,21 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
                 else:
                     visual = composition.frame(progress, speaking, post=False, seed=absolute,
                                                visemes=visemes)
-                visual = apply_post(visual, post, seed=absolute)
-                if make_thumbnail and frame == cover_frame:
-                    clean = composition.frame(progress, {}, cover.get("hide_layers", []), post=False,
-                                              seed=absolute)
-                    thumbnail(apply_post(clean, post, seed=absolute), cover["text"], channel, font).save(
-                        out / "thumbnail.png")
+                visual = apply_post(visual, post, seed=absolute, palette=channel["palette"])
+                if make_thumbnail:
+                    for cover_index, cover in cover_frames.get(frame, []):
+                        clean = composition.frame(progress, {}, cover.get("hide_layers", []),
+                                                  post=False, seed=absolute)
+                        image_cover = thumbnail(apply_post(clean, post, seed=absolute,
+                                                           palette=channel["palette"]),
+                                                cover["text"], channel, thumbnail_font, cover,
+                                                channel_base or base)
+                        if cover_index == 0:
+                            image_cover.save(out / "thumbnail.png")
+                        else:
+                            name = "".join(character if character.isalnum() or character in "-_" else "-"
+                                           for character in str(cover.get("name", cover_index))).strip("-")
+                            image_cover.save(out / f"thumbnail-{name or cover_index}.png")
                 image = visual
                 if count and frame < count:
                     image = transition_frame(previous, visual, transition["type"], (frame + 1) / count,
@@ -286,13 +306,14 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
             raise ValueError("SVG layers require --renderer hyperframes or --renderer remotion")
     require("ffmpeg")
     require("ffprobe")
-    canvas = episode["width"], episode["height"]
+    scale = float(config.get("scale", 1) or 1)
     if preview:
-        canvas = tuple(max(2, size // 4 * 2) for size in canvas)
+        scale *= 0.25
+    canvas = tuple(max(2, round(size * scale) // 2 * 2) for size in (episode["width"], episode["height"]))
     font = resolve_font(channel, channel_dir)
     caption_font = (episode.get("captions") or {}).get("font") or (channel.get("captions") or {}).get("font")
     if caption_font:
-        font = str(asset(channel_dir, caption_font))
+        font = resolve_font(channel, channel_dir, caption_font)
     with new_package(target) as out, TemporaryDirectory() as temp:
         work = Path(temp)
         timeline, levels = prepare_audio(episode, episode_dir, work / "mix.wav", work, audio_library, channel=channel)

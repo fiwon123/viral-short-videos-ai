@@ -69,6 +69,36 @@ Presets:
 
 Per-layer `parallax` scales the camera move: backgrounds move less, foregrounds more.
 
+## 🫧 Squash, stretch and skew
+
+Use independent axes for weight and impact:
+
+```json
+{"at": 0.45, "scale_x": 1.18, "scale_y": 0.82, "ease": "back"}
+```
+
+`skew_x` and `skew_y` add lean, wind-up, and smear shapes. `scale` remains the
+uniform fallback for older episodes.
+
+## 📈 Easing
+
+Named easings still work. Add a cubic-bezier or spring when the timing needs
+more character:
+
+```json
+{"at": 1, "x": 0.7, "ease": {"type": "cubic-bezier", "points": [0.2, 0, 0, 1]}}
+```
+
+`ease_props` lets one property use a different curve:
+
+```json
+{"at": 1, "scale_x": 1.1, "ease": "back",
+ "ease_props": {"opacity": "linear"}}
+```
+
+`auto` smooths a multi-key move through its neighbours. Camera shake now
+respects the keyframe easing instead of flattening it.
+
 ## 🌫️ Motion blur
 
 ```json
@@ -88,6 +118,37 @@ The Python renderer accumulates subframes. The browser renderer blends the previ
 - `spring()` — overshoot between positions
 - `orbit()` — floating props
 - `pendulum()` — swings and tails
+
+## 🌠 Trails and echoes
+
+Add a delayed echo without extra layers:
+
+```json
+{"trail": {"count": 3, "spacing": 0.05, "opacity": 0.55, "scale_falloff": 0.9}}
+```
+
+The studio expands the trail into ordinary layers, so every renderer sees the
+same result.
+
+## 🎛️ Motion recipes
+
+`make motion MOTION=impact` emits ready-to-paste keyframes. Available recipes:
+`pop`, `impact`, `anticipate`, `settle`, `float`, `breathe`, `enter`, and
+`exit`. Combine recipes that animate different properties with
+`studio.motion.merge`.
+
+`studio.physics.to_layer_keys()` and `to_object_keys()` convert sampled physics
+tracks into manifest keyframes, including 2D squash.
+
+## 👁️ Review a frame first
+
+```sh
+make still EPISODE=... SHOT=A PROGRESS=0.5
+make still EPISODE=... SHOT=A SHEET=5
+```
+
+This is the fastest way to check a contact, a caption, a glow, or a squash
+before committing to a full render.
 
 ## ✅ Review
 

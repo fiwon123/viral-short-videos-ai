@@ -17,6 +17,8 @@ function multiply(first, second) {
 const translate = (x, y) => [1, 0, 0, 1, x, y];
 const scale = (x, y = x) => [x, 0, 0, y, 0, 0];
 const rotate = (radians) => [Math.cos(radians), Math.sin(radians), -Math.sin(radians), Math.cos(radians), 0, 0];
+const skew = (xDegrees, yDegrees) => [1, Math.tan(yDegrees * Math.PI / 180),
+  Math.tan(xDegrees * Math.PI / 180), 1, 0, 0];
 
 function apply(m, x, y) {
   return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
@@ -37,11 +39,16 @@ function layerMatrix(pose, width, height, pivot, {parent = null, parentOrigin = 
   const translation = parentOrigin
     ? translate(parentOrigin[0] + pose.x * width, parentOrigin[1] + pose.y * height)
     : translate(pose.x * width, pose.y * height);
+  const uniform = pose.scale ?? 1;
   let local = multiply(
     translation,
     multiply(
       rotate(-(pose.rotate ?? 0) * Math.PI / 180),
-      multiply(scale(pose.scale ?? 1, (pose.scale ?? 1) * mouth), translate(-px, -py)),
+      multiply(
+        skew(pose.skew_x ?? 0, pose.skew_y ?? 0),
+        multiply(scale(pose.scale_x ?? uniform, (pose.scale_y ?? uniform) * mouth),
+          translate(-px, -py)),
+      ),
     ),
   );
   if (parent) local = multiply(parent, local);
@@ -223,6 +230,10 @@ export async function createPainter(canvas, data, urlFor) {
     }
   }
   const palette = data.palette ?? {};
+  const paintColor = (value, fallback) => {
+    if (!value) return palette[fallback] ?? fallback;
+    return palette[value] ?? value;
+  };
 
   function maskSpecsFor(layer, byId) {
     const specs = [];
@@ -332,7 +343,28 @@ export async function createPainter(canvas, data, urlFor) {
         target.globalAlpha = alpha;
         target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
         target.filter = layer.blur ? `blur(${Math.max(0.4, Math.min(width, height) * layer.blur * 0.02)}px)` : "none";
+        const shadow = layer.shadow;
+        const glow = layer.glow;
+        if (shadow) {
+          target.shadowColor = paintColor(shadow.color, "background");
+          target.shadowBlur = Math.max(1, Math.min(width, height) * (shadow.blur ?? 0.18) * 0.16);
+          target.shadowOffsetX = (shadow.offset_x ?? 0) * width;
+          target.shadowOffsetY = (shadow.offset_y ?? 0) * height;
+          target.globalAlpha = (shadow.opacity ?? 0.55);
+          target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+          target.shadowColor = "transparent";
+          target.shadowBlur = 0;
+          target.shadowOffsetX = 0;
+          target.shadowOffsetY = 0;
+        }
+        target.globalAlpha = alpha;
         target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+        if (glow) {
+          target.globalCompositeOperation = "screen";
+          target.globalAlpha = alpha * (glow.opacity ?? 0.6);
+          target.filter = `blur(${Math.max(1, Math.min(width, height) * (glow.size ?? 0.18) * 0.16)}px)`;
+          target.drawImage(layer.tile, 0, 0, layer.width, layer.height);
+        }
         target.restore();
         continue;
       }
@@ -379,6 +411,14 @@ export async function createPainter(canvas, data, urlFor) {
       ctx2.setTransform(1, 0, 0, 1, 0, 0);
       ctx2.clearRect(0, 0, width, height);
       ctx2.drawImage(fx, 0, 0);
+    }
+    if (post.tint) {
+      ctx2.save();
+      ctx2.globalCompositeOperation = "overlay";
+      ctx2.globalAlpha = 0.12;
+      ctx2.fillStyle = paintColor(post.tint, "accent");
+      ctx2.fillRect(0, 0, width, height);
+      ctx2.restore();
     }
     if (post.bloom) {
       fxCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -511,6 +551,10 @@ export async function createPainter(canvas, data, urlFor) {
         ctx.translate(-width / 2, -height / 2);
       } else if (animation === "slide") {
         ctx.translate(0, (1 - t) * height * 0.035);
+      } else if (animation === "rise") {
+        ctx.translate(0, (1 - t) * height * 0.06);
+      } else if (animation === "fade") {
+        ctx.globalAlpha = t;
       }
     }
     if (caption.karaoke) {
@@ -519,9 +563,11 @@ export async function createPainter(canvas, data, urlFor) {
       for (const word of caption.words) {
         if (frame >= word.start && frame < word.end) {
           ctx.save();
-          ctx.fillStyle = palette.accent ?? "#FFBD54";
+          ctx.fillStyle = caption.highlight ?? palette.accent ?? "#FFBD54";
           const [x0, y0, x1, y1] = word.box;
-          roundRect(ctx, x0 - 3, y0 - 2, (x1 - x0) + 6, (y1 - y0) + 6, 5);
+          const pad = caption.highlight_pad ?? 3;
+          roundRect(ctx, x0 - pad, y0 - pad, (x1 - x0) + pad * 2, (y1 - y0) + pad * 2,
+            caption.highlight_radius ?? 5);
           ctx.fill();
           ctx.restore();
           const active = images.get(word.active.sprite);

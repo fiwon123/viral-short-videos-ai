@@ -42,6 +42,32 @@ def options():
             command.add_argument("--crf", type=int, help="override the H.264 CRF quality")
             command.add_argument("--preset", help="override the x264 preset")
             command.add_argument("--audio-bitrate", type=int, help="override the AAC bitrate in kbps")
+            command.add_argument("--scale", type=float, help="scale the output canvas, for example 0.5")
+    still = commands.add_parser("still", help="render one frame or a contact sheet for fast review")
+    still.add_argument("episode", type=Path)
+    still.add_argument("--channel", type=Path)
+    still.add_argument("--shot", help="shot ID; defaults to the thumbnail shot")
+    still.add_argument("--at", type=float, default=0.0, help="seconds from the shot start")
+    still.add_argument("--progress", type=float, help="0 to 1 through the shot")
+    still.add_argument("--scale", type=float, default=1.0)
+    still.add_argument("--renderer", choices=("auto", "python", "remotion", "hyperframes"), default="auto")
+    still.add_argument("--out", type=Path)
+    still.add_argument("--sheet", type=int, help="render this many evenly spaced frames as a contact sheet")
+    still.add_argument("--times", help="comma separated seconds for a contact sheet")
+    still.add_argument("--no-captions", action="store_true")
+    still.add_argument("--no-audio", action="store_true")
+    presets = commands.add_parser("presets", help="list style presets")
+    presets.add_argument("--channel", type=Path)
+    presets.add_argument("--json", action="store_true")
+    templates = commands.add_parser("templates", help="list shot templates")
+    templates.add_argument("--channel", type=Path)
+    templates.add_argument("--json", action="store_true")
+    motion = commands.add_parser("motion", help="list or emit manifest-ready motion recipes")
+    motion.add_argument("recipe", nargs="?")
+    motion.add_argument("--list", action="store_true")
+    motion.add_argument("--duration", type=float, default=1.0)
+    motion.add_argument("--t0", type=float, default=0.0)
+    motion.add_argument("--amount", type=float)
     brand = commands.add_parser("brand", help="generate a logo, banner, and channel metadata")
     brand.add_argument("channel", type=Path)
     brand.add_argument("--out", required=True, type=Path)
@@ -67,6 +93,8 @@ def options():
     editor.add_argument("--channel", type=Path)
     editor.add_argument("--port", type=int, default=8765)
     editor.add_argument("--no-open", action="store_true")
+    schema = commands.add_parser("schema", help="write per-manifest schema wrappers for editors")
+    schema.add_argument("--out", type=Path, default=Path("schema"))
     support = commands.add_parser("support", help="show the renderer support matrix")
     support.add_argument("--markdown", action="store_true")
     support.add_argument("--out", type=Path)
@@ -164,9 +192,58 @@ def execute(args):
         data = build(args.template, params, args.channel.parent if args.channel else None)
         if args.out:
             write_json(args.out, data)
-        else:
-            print(json.dumps(data, indent=2, ensure_ascii=False))
-        return {"template": args.template, "out": str(args.out.resolve()) if args.out else None}, 0
+            return {"template": args.template, "out": str(args.out.resolve())}, 0
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+        return 0
+    if args.command in {"presets", "templates"}:
+        from studio.presets import available_styles
+        from studio.templates import available as available_templates
+
+        base = args.channel.parent if getattr(args, "channel", None) else None
+        found = available_styles(base) if args.command == "presets" else available_templates(base)
+        rows = [{"name": name, "path": str(path.resolve())} for name, path in sorted(found.items())]
+        if args.json:
+            return {"kind": args.command, "items": rows}, 0
+        print(f"{args.command}: " + (", ".join(row["name"] for row in rows) or "none"))
+        for row in rows:
+            print(f"  {row['name']:24} {row['path']}")
+        return 0
+    if args.command == "motion":
+        import inspect
+        from studio import motion
+
+        recipes = {
+            "pop": motion.pop, "anticipate": motion.anticipate, "impact": motion.impact,
+            "settle": motion.settle, "float": motion.float_loop, "breathe": motion.breathe,
+            "enter": motion.enter, "exit": motion.exit,
+        }
+        if not args.recipe or args.list:
+            print("motion recipes: " + ", ".join(sorted(recipes)))
+            return 0
+        if args.recipe not in recipes:
+            raise ValueError(f"Unknown motion recipe: {args.recipe}. Available: {', '.join(sorted(recipes))}")
+        function = recipes[args.recipe]
+        available = set(inspect.signature(function).parameters)
+        values = {"t0": args.t0, "duration": args.duration}
+        if args.amount is not None:
+            values["amount"] = args.amount
+        kwargs = {key: value for key, value in values.items() if key in available}
+        keys = function(**kwargs)
+        return {"recipe": args.recipe, "keyframes": keys}, 0
+    if args.command == "schema":
+        from studio.core import write_json
+
+        args.out.mkdir(parents=True, exist_ok=True)
+        written = []
+        for kind in ("episode", "channel", "audio_library", "library", "style_preset", "shot"):
+            path = args.out / f"{kind}.schema.json"
+            write_json(path, {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$id": f"urn:viral-short-videos:{kind}",
+                "$ref": f"../studio/schema.json#/$defs/{kind}",
+            })
+            written.append(str(path.resolve()))
+        return {"schemas": written}, 0
     if args.command == "support":
         from studio.core import write_json
         from studio.support import markdown, matrix
@@ -213,11 +290,15 @@ def execute(args):
         from studio.presets import apply_style, resolved_config
 
         episode = load(args.episode, "episode")
+        from studio.expand import expand as expand_defs
+
+        episode = expand_defs(episode)
         episode = apply_style(episode, channel, args.channel.parent)
         from studio.markers import expand as expand_markers
         from studio.particles import expand as expand_particles
+        from studio.trails import expand as expand_trails
 
-        episode = expand_particles(expand_markers(episode, args.channel.parent))
+        episode = expand_particles(expand_trails(expand_markers(episode, args.channel.parent)))
         data = resolved_config(episode, channel)
         if args.json:
             return data, 0
@@ -251,15 +332,70 @@ def execute(args):
     from studio.presets import apply_style
 
     episode = load(args.episode, "episode")
+    from studio.expand import expand as expand_defs
+
+    episode = expand_defs(episode)
     episode = apply_style(episode, channel, args.channel.parent)
     from studio.markers import expand as expand_markers
     from studio.particles import expand as expand_particles
+    from studio.trails import expand as expand_trails
 
     episode = expand_markers(episode, args.channel.parent)
+    episode = expand_trails(episode)
     episode = expand_particles(episode)
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
+    if args.command == "still":
+        from studio.scenes import load_library, validate_three
+        from studio.still import contact_sheet, render_still
+        from studio.visual import validate_visual
+        from studio.workspace import default_output
+
+        loaded = load_library(channel, args.channel.parent)
+        for scene in episode["scenes"]:
+            for shot in scene["shots"]:
+                validate_three(shot, loaded)
+        validate_visual(episode, loaded)
+        shot_id = args.shot or episode["thumbnail"]["shot"]
+        target = next((shot for scene in episode["scenes"] for shot in scene["shots"]
+                       if shot["id"] == shot_id), None)
+        if target is None:
+            names = ", ".join(shot["id"] for scene in episode["scenes"] for shot in scene["shots"])
+            raise ValueError(f"Unknown shot: {shot_id}. Available: {names}")
+        needs_browser = "three" in target or any(layer["kind"] == "svg" for layer in target["layers"])
+        renderer = args.renderer
+        if renderer == "auto":
+            renderer = "hyperframes" if needs_browser else "python"
+        if renderer == "python" and needs_browser:
+            raise ValueError("SVG and 3D stills need --renderer hyperframes or remotion")
+        folder = default_output(args.episode, args.channel, "stills")
+        times = [float(value) for value in args.times.split(",") if value.strip()] if args.times else []
+        if times or args.sheet:
+            count = max(2, args.sheet or len(times))
+            if not times:
+                duration = float(target["duration"])
+                times = [round(duration * (index + 0.5) / count, 4) for index in range(count)]
+            with TemporaryDirectory() as temp:
+                paths, labels = [], []
+                for index, moment in enumerate(times):
+                    path = Path(temp) / f"still-{index}.png"
+                    render_still(episode, channel, args.episode.parent, args.channel.parent, path,
+                                 shot_id=shot_id, at=moment, scale=args.scale, renderer=renderer,
+                                 burn=not args.no_captions, audio=not args.no_audio,
+                                 library=loaded, audio_library=audio_library)
+                    paths.append(path)
+                    labels.append(f"{shot_id} · {moment:g}s")
+                sheet = args.out or (folder / f"{shot_id}-sheet.png")
+                contact_sheet(paths, sheet, labels=labels)
+                return {"sheet": str(Path(sheet).resolve()), "shot": shot_id, "frames": len(times)}, 0
+        stamp = f"{args.progress:g}" if args.progress is not None else f"{args.at:g}s"
+        out = args.out or (folder / f"{shot_id}-{stamp}.png")
+        report = render_still(episode, channel, args.episode.parent, args.channel.parent, out,
+                              shot_id=shot_id, at=args.at, progress=args.progress, scale=args.scale,
+                              renderer=renderer, burn=not args.no_captions, audio=not args.no_audio,
+                              library=loaded, audio_library=audio_library)
+        return report, 0
     if args.command in {"audio", "render"} and args.out is None:
         suffix = "audio" if args.command == "audio" else "v1"
         if args.command == "render" and (args.preview or args.full_size_preview):
@@ -316,6 +452,8 @@ def execute(args):
         options["preset"] = args.preset
     if args.audio_bitrate is not None:
         options["audio_bitrate"] = args.audio_bitrate
+    if args.scale is not None:
+        options["scale"] = args.scale
     report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview,
                     not (args.no_burn or args.no_captions), backend=args.renderer, library=library,
                     audio_library=audio_library, options=options)
@@ -324,14 +462,20 @@ def execute(args):
 
 def main():
     try:
-        result, status = execute(options())
+        result = execute(options())
     except ModuleNotFoundError as error:
         print(f"studio: {error}. Install requirements.txt in your Python environment.", file=sys.stderr)
         return 1
     except (OSError, ValueError, KeyError) as error:
         print(f"studio: {error}", file=sys.stderr)
         return 1
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    if isinstance(result, tuple):
+        result, status = result
+    else:
+        status = result if isinstance(result, int) else 0
+        result = None
+    if result is not None:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
     return status
 
 

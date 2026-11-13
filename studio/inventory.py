@@ -70,6 +70,10 @@ def report(channel_path):
     scenes = library["scenes"] if library else {}
 
     required = {channel_path}
+    if "font" in channel:
+        required.add((base / channel["font"]).resolve())
+    for path in (channel.get("fonts") or {}).values():
+        required.add((base / path).resolve())
     if "scene_library" in channel:
         required.add((base / channel["scene_library"]).resolve())
     models = {}

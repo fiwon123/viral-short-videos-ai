@@ -60,6 +60,12 @@ def inverse(matrix):
     )
 
 
+def skew(x_degrees, y_degrees):
+    """Shear matrix using the same degrees as the browser renderer."""
+    return (1.0, math.tan(math.radians(float(y_degrees))),
+            math.tan(math.radians(float(x_degrees))), 1.0, 0.0, 0.0)
+
+
 def layer_matrix(pose, width, height, pivot, *, parent=None, parent_origin=None, camera=None,
                  parallax=1.0, box=None):
     """Compose a layer's local pose, its parent, and the shot camera.
@@ -74,11 +80,14 @@ def layer_matrix(pose, width, height, pivot, *, parent=None, parent_origin=None,
     translation = translate(float(pose["x"]) * width, float(pose["y"]) * height)
     if parent_origin is not None:
         translation = multiply(translate(*parent_origin), translation)
+    uniform = float(pose.get("scale", 1.0))
     local = multiply(
         translation,
         multiply(rotate(float(pose.get("rotate", 0.0))),
-                 multiply(scale(float(pose.get("scale", 1.0))),
-                          translate(-px, -py))),
+                 multiply(skew(pose.get("skew_x", 0.0), pose.get("skew_y", 0.0)),
+                          multiply(scale(float(pose.get("scale_x", uniform)),
+                                         float(pose.get("scale_y", uniform))),
+                                   translate(-px, -py)))),
     )
     world = multiply(parent, local) if parent is not None else local
     if camera is not None and parallax:

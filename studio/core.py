@@ -17,17 +17,21 @@ SAMPLE_RATE = 48000
 SCHEMA = json.loads(Path(__file__).with_name("schema.json").read_text(encoding="utf-8"))
 
 
+def validate(data, kind, label=None):
+    validator = Draft202012Validator({**SCHEMA, "$ref": f"#/$defs/{kind}"})
+    errors = sorted(validator.iter_errors(data), key=lambda error: error.json_path)
+    if errors:
+        details = "\n".join(f"{error.json_path}: {error.message}" for error in errors[:8])
+        raise ValueError(f"{label or kind}\n{details}")
+    return data
+
+
 def load(path, kind):
     def reject_constant(value):
         raise ValueError(f"Invalid JSON constant: {value}")
 
     data = json.loads(path.read_text(encoding="utf-8"), parse_constant=reject_constant)
-    validator = Draft202012Validator({**SCHEMA, "$ref": f"#/$defs/{kind}"})
-    errors = sorted(validator.iter_errors(data), key=lambda error: error.json_path)
-    if errors:
-        details = "\n".join(f"{error.json_path}: {error.message}" for error in errors[:8])
-        raise ValueError(f"{path.name}\n{details}")
-    return data
+    return validate(data, kind, path.name)
 
 
 def asset(base, name):
@@ -160,8 +164,17 @@ def validate_episode(episode, base, channel_base=None, *, check_visual_assets=Tr
     cover = episode["thumbnail"]
     if cover["shot"] not in shots:
         raise ValueError("Thumbnail must reference an existing shot")
-    if unknown := set(cover.get("hide_layers", [])) - shots[cover["shot"]]:
-        raise ValueError(f"Unknown thumbnail layers: {', '.join(sorted(unknown))}")
+    for item in [cover, *episode.get("thumbnails", [])]:
+        if item["shot"] not in shots:
+            raise ValueError(f"Thumbnail must reference an existing shot: {item['shot']}")
+        if unknown := set(item.get("hide_layers", [])) - shots[item["shot"]]:
+            raise ValueError(f"Unknown thumbnail layers: {', '.join(sorted(unknown))}")
+        if item["shot"] != cover["shot"]:
+            raise ValueError("Thumbnail variants must use the primary thumbnail shot")
+        if item.get("at", cover.get("at", 0.5)) != cover.get("at", 0.5):
+            raise ValueError("Thumbnail variants must share the primary thumbnail time")
+        if set(item.get("hide_layers", [])) != set(cover.get("hide_layers", [])):
+            raise ValueError("Thumbnail variants must share the primary hidden layers")
     if (music := episode.get("music")) and "file" in music:
         asset(base, music["file"])
     marker_ids = set()

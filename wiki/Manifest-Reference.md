@@ -1,6 +1,6 @@
 # 📘 Manifest Reference
 
-The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/viral-short-videos-ai/blob/main/studio/schema.json). This page is the practical guide.
+The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/viral-short-videos-ai/blob/main/studio/schema.json). This page is the practical guide. Run `make schema` to write per-manifest wrappers under `schema/`; set `"$schema"` to the matching wrapper for editor completion and validation. `meta` is free-form space for AI notes, status, and provenance.
 
 ## 🏷️ Channel
 
@@ -12,8 +12,10 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `description` | text | Long channel description |
 | `tags` | text[] | Channel tags |
 | `mark` | text | 1–6 characters for the logo |
-| `palette` | object | `background`, `foreground`, `accent`, `secondary` |
+| `palette` | object | Required `background`, `foreground`, `accent`, `secondary`; add extra named roles |
 | `font` | path | Optional brand font |
+| `fonts` | object | Named font roles such as `display` and `body` |
+| `brand` | object | Logo shape, banner pattern, mark size |
 | `scene_library` | path | Optional 3D scene library |
 | `audio_library` | path | Optional voice and Foley library |
 | `banner` | object | Width, height and safe area |
@@ -23,6 +25,8 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `render` | object | Channel render defaults |
 | `post` | object | Channel finishing defaults |
 | `motion_blur` | 0–1 | Channel motion-blur default |
+| `$schema` | text | Optional schema path for editor completion |
+| `meta` | object | Free-form AI notes, status, provenance |
 
 ## 🎞️ Episode
 
@@ -44,7 +48,11 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `music` | object | Music bed |
 | `voice` | object | eSpeak fallback voice |
 | `tiktok` | object | Caption and hashtags |
-| `thumbnail` | object | Shot, text, time and hidden layers |
+| `thumbnail` | object | Shot, text, time, style and hidden layers |
+| `thumbnails` | array | Named A/B cover variants |
+| `$schema` | text | Optional schema path for editor completion |
+| `meta` | object | Free-form AI notes, status, provenance |
+| `defs` | object | Named reusable layer groups |
 | `scenes` | array | Story scenes |
 
 ## 🎥 Shot
@@ -70,17 +78,25 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `id` | text | Unique within the shot |
-| `kind` | enum | `rect`, `ellipse`, `polygon`, `text`, `image`, `svg` |
+| `kind` | enum | `rect`, `ellipse`, `polygon`, `text`, `image`, `svg`, `group`, `particles`, `use` |
+| `ref` | text | Definition name for a `use` layer |
 | `x`, `y` | number | Centre or parent-relative offset |
 | `width`, `height` | number | Box size in canvas fractions |
-| `scale`, `rotate`, `opacity` | number | Base pose |
+| `scale`, `scale_x`, `scale_y` | number | Base pose; independent axes allow squash and stretch |
+| `skew_x`, `skew_y`, `rotate`, `opacity` | number | Base pose |
 | `visible` | boolean | Base visibility |
 | `parent` | text | Parent layer ID |
 | `pivot` | `[x,y]` | Pivot inside the layer box |
 | `variant_group` | text | At most one visible layer in the group |
 | `plane` | enum | `background` or `foreground` |
 | `asset_scope` | enum | `episode` or `channel` |
-| `fill` | color/name | Palette role or hex |
+| `fill` | paint/gradient | Hex, palette role, or gradient object |
+| `stroke` | object | `width` and `color`/palette role |
+| `shadow`, `glow` | object | Colour, blur/size, offset and opacity |
+| `trail` | object | `count`, `spacing`, `opacity`, `scale_falloff` |
+| `font` | role/path | Per-layer font role or channel-relative file |
+| `align`, `line_height`, `letter_spacing` | — | Text layout |
+| `max_lines`, `uppercase` | — | Text fitting and case |
 | `radius` | 0–1 | Rounded rectangle radius |
 | `text` | text | Text content |
 | `file` | path | Image or SVG |
@@ -90,7 +106,7 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `parallax` | 0–2 | Camera parallax amount |
 | `hitbox` | `[w,h]` | 2D QA box |
 | `points` | array | Polygon points |
-| `keyframes` | array | Pose keys |
+| `keyframes` | array | Pose keys; `ease`, `ease_props`, and `auto` supported |
 
 ## 🎥 Camera
 
@@ -102,6 +118,7 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `preset` | enum | `push-in`, `pull-out`, `crash-zoom`, `whip-pan`, `dolly`, `float`, `orbit`, `handheld` |
 | `shake` | object | `amplitude`, `frequency`, `decay`, `seed` |
 | `handheld` | object | `amplitude`, `frequency`, `seed` |
+| `samples` | 2–240 | Shake/handheld sampling rate; defaults to 60 |
 | `keyframes` | array | Normalized camera keys |
 
 ## 🔁 Transition
@@ -120,7 +137,7 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `contrast` | 0–2 | Contrast |
 | `saturation` | 0–2 | Saturation |
 | `hue` | −180–180 | Hue rotation |
-| `tint` | color | Warm/cool tint |
+| `tint` | paint | Warm/cool tint or palette role |
 | `bloom` | 0–1 | Highlight bloom |
 | `blur` | 0–1 | Soft focus |
 | `chromatic` | 0–1 | RGB split |
@@ -200,6 +217,8 @@ The full JSON Schema is in [`studio/schema.json`](https://github.com/fiwon123/vi
 | `supersample` | 1–2 | 2× supersampling |
 | `motion_blur` | 0–1 | Motion blur |
 | `master` | boolean | Enable audio mastering |
+| `scale` | 0–2 | Output canvas scale for fast review or platform variants |
+| `seed` | integer | Deterministic seed for procedural finishing |
 
 ## 🧊 3D
 

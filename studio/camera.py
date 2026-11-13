@@ -6,6 +6,8 @@ at load time instead of being implemented twice.
 
 import math
 
+from .easing import ease
+
 
 PRESETS = {
     "push-in": [
@@ -56,6 +58,7 @@ def _sample(keys, base, at):
         if at <= end:
             span = max(1e-6, end - previous)
             t = max(0.0, min(1.0, (at - previous) / span))
+            t = ease(t, key.get("ease", "linear"))
             for name in state:
                 if name in key:
                     state[name] = state[name] + (float(key[name]) - state[name]) * t
@@ -74,9 +77,12 @@ def _jitter(t, *, amplitude, frequency, phase):
     )
 
 
-def resolve_camera(shot, samples=30):
+def resolve_camera(shot, samples=None):
     """Return a camera object with a concrete ``keyframes`` list."""
     source = dict(shot.get("camera") or {})
+    if samples is None:
+        samples = int(source.get("samples", 60))
+    samples = max(2, min(240, samples))
     preset = source.pop("preset", None)
     if preset and not source.get("keyframes"):
         if preset == "orbit":

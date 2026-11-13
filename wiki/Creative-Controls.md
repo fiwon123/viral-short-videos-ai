@@ -97,6 +97,131 @@ Use explicit `keyframes` when the preset is not enough. Use `parallax` per layer
 
 CLI overrides: `--crf`, `--preset`, `--audio-bitrate`, `--no-captions`, `--no-thumbnail`, `--no-publishing`.
 
+## 👁️ Fast review
+
+Render one frame instead of a full video while composing:
+
+```sh
+make still EPISODE=workspace/my-channel/episodes/my-episode/episode.json \
+  SHOT=A PROGRESS=0.5
+```
+
+Add `SHEET=4` for a contact sheet, `SCALE=0.5` for a faster review,
+`NOAUDIO=1` while composing the picture, and `RENDERER=hyperframes` for SVG or
+3D shots. `make presets`, `make templates`,
+and `make motion MOTION=impact` list the available building blocks.
+
+## 🔤 Typography
+
+Give the channel named fonts, then use them per layer:
+
+```json
+{
+  "fonts": {"display": "fonts/display.otf", "body": "fonts/body.otf"}
+}
+```
+
+```json
+{"kind": "text", "text": "BIG TYPE", "font": "display",
+ "align": "left", "line_height": 1.05, "letter_spacing": 0.02,
+ "max_lines": 2, "uppercase": true,
+ "stroke": {"width": 0.04, "color": "background"},
+ "shadow": {"color": "accent", "blur": 0.22, "opacity": 0.45}}
+```
+
+Text still fits its box automatically. Use `align`, `line_height`,
+`letter_spacing`, `max_lines`, `stroke`, and `shadow` for a professional title
+without baking it into an image.
+
+## 🎨 Colour and shape finish
+
+The palette can carry extra named roles:
+
+```json
+{"palette": {"background": "#0B1020", "foreground": "#F8FAFC",
+             "accent": "#22D3EE", "secondary": "#334155", "warm": "#F59E0B"}}
+```
+
+`fill` accepts a hex colour, a palette role, or a gradient:
+
+```json
+{"fill": {"type": "linear", "angle": 90,
+          "stops": [{"at": 0, "color": "foreground"}, {"at": 1, "color": "accent"}]},
+ "stroke": {"width": 0.05, "color": "background"},
+ "glow": {"color": "accent", "size": 0.28, "opacity": 0.6}}
+```
+
+`shadow` and `glow` work on shapes, text, images, and SVG layers. Captions and
+thumbnail colours can use the same palette roles.
+
+## 🧩 Reusable rigs with `defs`
+
+Define a character part, prop, or set once, then instance it:
+
+```json
+{
+  "defs": {
+    "badge": [
+      {"id": "plate", "kind": "rect", "x": 0, "y": 0, "width": 0.22, "height": 0.06, "radius": 0.4, "fill": "secondary"},
+      {"id": "label", "kind": "text", "x": 0, "y": 0, "width": 0.2, "height": 0.04, "fill": "accent", "text": "BADGE"}
+    ]
+  },
+  "scenes": [{"id": "S1", "purpose": "Reuse", "shots": [
+    {"id": "A", "duration": 3, "layers": [
+      {"id": "badge-1", "kind": "use", "ref": "badge", "x": 0.5, "y": 0.86},
+      {"id": "badge-2", "kind": "use", "ref": "badge", "x": 0.5, "y": 0.12, "scale": 0.7}
+    ]}
+  ]}]
+}
+```
+
+The studio prefixes layer IDs, rewrites local parents and masks, and namespaces
+`variant_group`s. A `use` can carry its own pose and keyframes to move the whole
+rig. Parts in one definition share that instance's `plane`; keep a rig on one
+plane, or split it into two definitions.
+
+## 🏃 Motion polish
+
+Use `scale_x` and `scale_y` for squash and stretch, and `skew_x` / `skew_y`
+for lean and smears:
+
+```json
+{"at": 0.55, "scale_x": 1.15, "scale_y": 0.85, "ease": "back"}
+```
+
+Easing accepts the named modes, a cubic-bezier object, or a spring. Add
+`ease_props` when one property needs a different curve. `auto` smooths a
+multi-key move through its neighbours:
+
+```json
+{"at": 1, "x": 0.7, "ease": "auto",
+ "ease_props": {"scale_x": "linear"}}
+```
+
+`trail` adds delayed echoes without new renderer code:
+
+```json
+{"trail": {"count": 3, "spacing": 0.05, "opacity": 0.55, "scale_falloff": 0.85}}
+```
+
+`make motion MOTION=pop|impact|anticipate|settle|float|breathe|enter|exit`
+emits keyframes you can paste into a layer.
+
+## 🖼️ Thumbnail variants
+
+`thumbnail` controls the primary cover. Add named `thumbnails` for A/B tests:
+
+```json
+{"thumbnail": {"shot": "A", "text": "MISSED THE WIND", "style": "banner"},
+ "thumbnails": [
+   {"name": "alt", "shot": "A", "text": "ONE SMALL GUST", "style": "lower-third"},
+   {"name": "min", "shot": "A", "text": "A VERY IMPORTANT LETTER", "style": "minimal"}
+ ]}
+```
+
+Styles are `banner`, `lower-third`, `center`, `minimal`, and `split`. Variants
+share the primary shot and time so every renderer writes the same set of files.
+
 ## 🧪 Sound and Effect Labs
 
 Generate a new cue:

@@ -80,7 +80,7 @@ def _layer(layer, seed):
                          low=float(layer.get("low", 500)), high=float(layer.get("high", 5000)),
                          decay=float(layer.get("decay", 2.0)), spread=float(layer.get("spread", 1.0)))
         return offset, cluster * gain
-    raise ValueError(f"Unknown Sound Lab layer type: {kind}")
+    raise ValueError(f"Unknown Sound Lab layer type: {kind}. Available: tone, sweep, noise, grain")
 
 
 def render_recipe(recipe, seed=7):

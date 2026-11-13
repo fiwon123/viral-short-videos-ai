@@ -8,15 +8,14 @@ twice. This keeps Python and browser output identical for the same seed.
 import math
 import random
 
-SAMPLE_RATE = 12
-
 
 def _clamp(value, low, high):
     return max(low, min(high, value))
 
 
 def expand(episode):
-    fps = episode["fps"]
+    fps = int(episode.get("fps", 24))
+    rate = max(12, fps)
     for scene in episode.get("scenes", []):
         for shot in scene.get("shots", []):
             duration = float(shot.get("duration", 1))
@@ -48,7 +47,7 @@ def expand(episode):
                     size = rng.uniform(size_range[0], size_range[-1])
                     base_rotate = rng.uniform(-180, 180)
                     keys = []
-                    samples = max(6, int(lifespan * SAMPLE_RATE))
+                    samples = max(6, int(lifespan * rate))
                     for step in range(samples + 1):
                         local = lifespan * step / samples
                         x = x0 + vx * local + 0.5 * gx * local * local

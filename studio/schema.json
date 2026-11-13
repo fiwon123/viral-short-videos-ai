@@ -1,9 +1,88 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:viral-short-videos:studio",
+  "title": "Viral Short Videos Studio",
+  "description": "Manifest definitions for channels, episodes, libraries and reusable recipes.",
   "$defs": {
     "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
     "tags": {"type": "array", "items": {"$ref": "#/$defs/text"}, "minItems": 1, "uniqueItems": true},
     "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+    "paint": {
+      "description": "A hex colour or a named palette role.",
+      "anyOf": [
+        {"$ref": "#/$defs/color"},
+        {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+      ]
+    },
+    "ease": {
+      "description": "A named easing, a cubic-bezier curve, or a spring.",
+      "anyOf": [
+        {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold", "auto"]},
+        {
+          "type": "object", "required": ["type"], "additionalProperties": false,
+          "properties": {
+            "type": {"enum": ["cubic-bezier", "spring"]},
+            "points": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": -2, "maximum": 3}},
+            "stiffness": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
+            "damping": {"type": "number", "minimum": 0, "maximum": 200},
+            "mass": {"type": "number", "exclusiveMinimum": 0, "maximum": 100}
+          },
+          "if": {"properties": {"type": {"const": "cubic-bezier"}}},
+          "then": {"required": ["points"]}
+        }
+      ]
+    },
+    "gradient": {
+      "type": "object", "required": ["stops"], "additionalProperties": false,
+      "properties": {
+        "type": {"enum": ["linear", "radial"], "default": "linear"},
+        "angle": {"type": "number", "minimum": -360, "maximum": 360, "default": 90},
+        "center": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/unit"}},
+        "radius": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
+        "stops": {
+          "type": "array", "minItems": 2, "maxItems": 16,
+          "items": {
+            "type": "object", "required": ["at", "color"], "additionalProperties": false,
+            "properties": {"at": {"$ref": "#/$defs/unit"}, "color": {"$ref": "#/$defs/paint"}}
+          }
+        }
+      }
+    },
+    "stroke": {
+      "type": "object", "required": ["width"], "additionalProperties": false,
+      "properties": {
+        "width": {"$ref": "#/$defs/unit"},
+        "color": {"$ref": "#/$defs/paint"}
+      }
+    },
+    "shadow": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "color": {"$ref": "#/$defs/paint"},
+        "offset_x": {"type": "number", "minimum": -0.5, "maximum": 0.5},
+        "offset_y": {"type": "number", "minimum": -0.5, "maximum": 0.5},
+        "blur": {"$ref": "#/$defs/unit"},
+        "opacity": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "glow": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "color": {"$ref": "#/$defs/paint"},
+        "size": {"$ref": "#/$defs/unit"},
+        "opacity": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "trail": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "count": {"type": "integer", "minimum": 1, "maximum": 8},
+        "spacing": {"type": "number", "minimum": 0, "maximum": 0.5},
+        "opacity": {"$ref": "#/$defs/unit"},
+        "scale_falloff": {"$ref": "#/$defs/unit"},
+        "blend": {"enum": ["normal", "add", "screen", "multiply", "overlay", "soft-light"]}
+      }
+    },
     "unit": {"type": "number", "minimum": 0, "maximum": 1},
     "seconds": {"type": "number", "minimum": 0, "maximum": 720},
     "path": {"type": "string", "minLength": 1},
@@ -11,7 +90,7 @@
       "type": "object", "required": ["at"], "additionalProperties": false,
       "properties": {
         "at": {"$ref": "#/$defs/unit"},
-        "ease": {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold"]},
+        "ease": {"$ref": "#/$defs/ease"},
         "x": {"type": "number", "minimum": -1, "maximum": 1},
         "y": {"type": "number", "minimum": -1, "maximum": 1},
         "zoom": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
@@ -27,6 +106,7 @@
         "zoom": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
         "rotate": {"type": "number", "minimum": -180, "maximum": 180},
         "preset": {"enum": ["push-in", "pull-out", "crash-zoom", "whip-pan", "dolly", "float", "orbit", "handheld"]},
+        "samples": {"type": "integer", "minimum": 2, "maximum": 240},
         "shake": {
           "type": "object", "additionalProperties": false,
           "properties": {
@@ -82,7 +162,7 @@
         "contrast": {"type": "number", "minimum": 0, "maximum": 2},
         "saturation": {"type": "number", "minimum": 0, "maximum": 2},
         "hue": {"type": "number", "minimum": -180, "maximum": 180},
-        "tint": {"$ref": "#/$defs/color"}
+        "tint": {"$ref": "#/$defs/paint"}
       }
     },
     "style": {
@@ -92,22 +172,67 @@
         "energy": {"$ref": "#/$defs/unit"}
       }
     },
+    "music": {
+      "type": "object", "additionalProperties": false,
+      "oneOf": [{"required": ["preset"]}, {"required": ["file"]}],
+      "properties": {
+        "preset": {"const": "pulse"},
+        "file": {"$ref": "#/$defs/path"},
+        "gain": {"$ref": "#/$defs/unit"},
+        "loop": {"type": "boolean"},
+        "fade_in": {"type": "number", "minimum": 0, "maximum": 30},
+        "fade_out": {"type": "number", "minimum": 0, "maximum": 30},
+        "duck": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "amount": {"$ref": "#/$defs/unit"},
+            "attack": {"type": "number", "minimum": 0, "maximum": 2},
+            "release": {"type": "number", "minimum": 0, "maximum": 3}
+          }
+        }
+      }
+    },
+    "style_preset": {
+      "type": "object", "required": ["name"], "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/text"},
+        "description": {"$ref": "#/$defs/text"},
+        "camera": {"$ref": "#/$defs/camera"},
+        "motion_blur": {"$ref": "#/$defs/unit"},
+        "supersample": {"type": "integer", "minimum": 1, "maximum": 2},
+        "post": {"$ref": "#/$defs/post"},
+        "captions": {"$ref": "#/$defs/captions"},
+        "audio": {"$ref": "#/$defs/audio"},
+        "render": {"$ref": "#/$defs/render"},
+        "music": {"$ref": "#/$defs/music"}
+      }
+    },
     "captions": {
       "type": "object", "additionalProperties": false,
       "properties": {
         "style": {"enum": ["box", "karaoke", "minimal"]},
         "position": {"enum": ["top", "center", "bottom"]},
-        "highlight": {"$ref": "#/$defs/color"},
-        "foreground": {"$ref": "#/$defs/color"},
-        "background": {"$ref": "#/$defs/color"},
+        "highlight": {"$ref": "#/$defs/paint"},
+        "highlight_text": {"$ref": "#/$defs/paint"},
+        "foreground": {"$ref": "#/$defs/paint"},
+        "background": {"$ref": "#/$defs/paint"},
         "uppercase": {"type": "boolean"},
-        "max_words": {"type": "integer", "minimum": 1, "maximum": 10},
-        "font": {"$ref": "#/$defs/path"},
+        "max_words": {"type": "integer", "minimum": 1, "maximum": 12},
+        "max_lines": {"type": "integer", "minimum": 1, "maximum": 8},
+        "font": {"$ref": "#/$defs/text"},
         "font_size": {"type": "number", "minimum": 0.5, "maximum": 2},
         "stroke": {"$ref": "#/$defs/unit"},
         "shadow": {"type": "boolean"},
+        "shadow_color": {"$ref": "#/$defs/paint"},
         "radius": {"$ref": "#/$defs/unit"},
-        "animation": {"enum": ["none", "pop", "slide"]}
+        "offset": {"type": "number", "minimum": -0.5, "maximum": 0.5},
+        "align": {"enum": ["left", "center", "right"]},
+        "line_height": {"type": "number", "minimum": 0.8, "maximum": 2.5},
+        "letter_spacing": {"type": "number", "minimum": -0.2, "maximum": 0.5},
+        "padding_x": {"type": "number", "minimum": 0, "maximum": 0.25},
+        "padding_y": {"type": "number", "minimum": 0, "maximum": 0.25},
+        "background_opacity": {"$ref": "#/$defs/unit"},
+        "animation": {"enum": ["none", "pop", "slide", "fade", "rise"]}
       }
     },
     "master_audio": {
@@ -141,7 +266,9 @@
         "stems": {"type": "boolean"},
         "supersample": {"type": "integer", "minimum": 1, "maximum": 2},
         "motion_blur": {"$ref": "#/$defs/unit"},
-        "master": {"type": "boolean"}
+        "master": {"type": "boolean"},
+        "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
+        "seed": {"type": "integer", "minimum": 0, "maximum": 2147483647}
       }
     },
     "audio": {
@@ -165,6 +292,8 @@
       "required": ["name", "tagline", "description", "tags", "mark", "palette"],
       "additionalProperties": false,
       "properties": {
+        "$schema": {"type": "string"},
+        "meta": {"type": "object", "additionalProperties": true},
         "name": {"$ref": "#/$defs/text"},
         "handle": {"$ref": "#/$defs/text"},
         "tagline": {"$ref": "#/$defs/text"},
@@ -172,13 +301,27 @@
         "tags": {"$ref": "#/$defs/tags"},
         "mark": {"type": "string", "minLength": 1, "maxLength": 6},
         "palette": {
-          "type": "object", "required": ["background", "foreground", "accent", "secondary"], "additionalProperties": false,
-          "properties": {
-            "background": {"$ref": "#/$defs/color"}, "foreground": {"$ref": "#/$defs/color"},
-            "accent": {"$ref": "#/$defs/color"}, "secondary": {"$ref": "#/$defs/color"}
-          }
+          "type": "object", "required": ["background", "foreground", "accent", "secondary"],
+          "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+          "additionalProperties": {"$ref": "#/$defs/color"}
         },
         "font": {"$ref": "#/$defs/path"},
+        "fonts": {
+          "description": "Named font roles resolved by text and caption layers.",
+          "type": "object",
+          "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+          "additionalProperties": {"$ref": "#/$defs/path"}
+        },
+        "brand": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "logo": {"enum": ["disc", "ring", "rounded", "square"]},
+            "banner": {"enum": ["lines", "dots", "grid", "none"]},
+            "mark_size": {"$ref": "#/$defs/unit"},
+            "outline": {"$ref": "#/$defs/unit"},
+            "accent_dot": {"type": "boolean"}
+          }
+        },
         "scene_library": {"$ref": "#/$defs/path"},
         "audio_library": {"$ref": "#/$defs/path"},
         "captions": {"$ref": "#/$defs/captions"},
@@ -204,6 +347,10 @@
         "x": {"type": "number", "minimum": -2, "maximum": 3},
         "y": {"type": "number", "minimum": -2, "maximum": 3},
         "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
+        "scale_x": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
+        "scale_y": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
+        "skew_x": {"type": "number", "minimum": -89, "maximum": 89},
+        "skew_y": {"type": "number", "minimum": -89, "maximum": 89},
         "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
         "opacity": {"$ref": "#/$defs/unit"},
         "visible": {"type": "boolean"}
@@ -215,7 +362,13 @@
       "unevaluatedProperties": false,
       "properties": {
         "at": {"$ref": "#/$defs/unit"},
-        "ease": {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold"]}
+        "ease": {"$ref": "#/$defs/ease"},
+        "ease_props": {
+          "description": "Per-property easing overrides for this keyframe.",
+          "type": "object",
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "rotate", "opacity"]},
+          "additionalProperties": {"$ref": "#/$defs/ease"}
+        }
       }
     },
     "mask": {
@@ -237,14 +390,26 @@
       "unevaluatedProperties": false,
       "properties": {
         "id": {"$ref": "#/$defs/text"},
-        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image", "svg", "group", "particles"]},
+        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image", "svg", "group", "particles", "use"]},
+        "ref": {"$ref": "#/$defs/text"},
         "plane": {"enum": ["background", "foreground"]},
         "asset_scope": {"enum": ["episode", "channel"]},
         "width": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
         "height": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
         "fill": {
-          "anyOf": [{"$ref": "#/$defs/color"}, {"enum": ["background", "foreground", "accent", "secondary"]}]
+          "description": "Solid paint or a linear/radial gradient.",
+          "anyOf": [{"$ref": "#/$defs/paint"}, {"$ref": "#/$defs/gradient"}]
         },
+        "stroke": {"$ref": "#/$defs/stroke"},
+        "shadow": {"$ref": "#/$defs/shadow"},
+        "glow": {"$ref": "#/$defs/glow"},
+        "trail": {"$ref": "#/$defs/trail"},
+        "font": {"$ref": "#/$defs/text"},
+        "align": {"enum": ["left", "center", "right"]},
+        "line_height": {"type": "number", "minimum": 0.5, "maximum": 3},
+        "letter_spacing": {"type": "number", "minimum": -0.2, "maximum": 0.5},
+        "max_lines": {"type": "integer", "minimum": 1, "maximum": 20},
+        "uppercase": {"type": "boolean"},
         "radius": {"$ref": "#/$defs/unit"},
         "text": {"$ref": "#/$defs/text"},
         "file": {"$ref": "#/$defs/path"},
@@ -297,7 +462,8 @@
       "else": {
         "allOf": [
           {"if": {"properties": {"kind": {"const": "text"}}}, "then": {"required": ["text"]}},
-          {"if": {"properties": {"kind": {"const": "polygon"}}}, "then": {"required": ["points"]}}
+          {"if": {"properties": {"kind": {"const": "polygon"}}}, "then": {"required": ["points"]}},
+          {"if": {"properties": {"kind": {"const": "use"}}}, "then": {"required": ["ref"]}}
         ]
       }
     },
@@ -548,7 +714,7 @@
     "three_camera_key": {
       "type": "object", "required": ["at"], "additionalProperties": false,
       "properties": {
-        "at": {"$ref": "#/$defs/unit"}, "ease": {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold"]},
+        "at": {"$ref": "#/$defs/unit"}, "ease": {"$ref": "#/$defs/ease"},
         "position": {"$ref": "#/$defs/vector3"}, "target": {"$ref": "#/$defs/vector3"},
         "fov": {"type": "number", "minimum": 10, "maximum": 110}
       }
@@ -556,7 +722,7 @@
     "three_object_key": {
       "type": "object", "required": ["at"], "additionalProperties": false,
       "properties": {
-        "at": {"$ref": "#/$defs/unit"}, "ease": {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold"]},
+        "at": {"$ref": "#/$defs/unit"}, "ease": {"$ref": "#/$defs/ease"},
         "position": {"$ref": "#/$defs/vector3"}, "rotation": {"$ref": "#/$defs/vector3"},
         "scale": {"$ref": "#/$defs/scale3"},
         "visible": {"type": "boolean"}
@@ -641,7 +807,7 @@
         "direction": {"$ref": "#/$defs/text"},
         "three": {"$ref": "#/$defs/three_shot"},
         "checks": {"$ref": "#/$defs/visual_checks"},
-        "background": {"$ref": "#/$defs/color"},
+        "background": {"$ref": "#/$defs/paint"},
         "camera": {"$ref": "#/$defs/camera"},
         "post": {"$ref": "#/$defs/post"},
         "motion_blur": {"$ref": "#/$defs/unit"},
@@ -652,7 +818,7 @@
           "type": "object", "required": ["type", "duration"], "additionalProperties": false,
           "properties": {
             "type": {"enum": ["dissolve", "wipe-left", "wipe-right", "wipe-up", "wipe-down", "slide-left", "slide-right", "slide-up", "slide-down", "whip-left", "whip-right", "zoom-in", "zoom-out", "iris", "flash", "dip-to-black", "luma-wipe", "mask"]},
-            "ease": {"enum": ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic", "bounce", "spring", "hold"]},
+            "ease": {"$ref": "#/$defs/ease"},
             "mask": {"$ref": "#/$defs/path"},
             "mask_scope": {"enum": ["episode", "channel"]},
             "mask_mode": {"enum": ["alpha", "luma"]},
@@ -667,10 +833,37 @@
         }
       }
     },
+    "thumbnail": {
+      "type": "object", "required": ["shot", "text"], "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/text"},
+        "shot": {"$ref": "#/$defs/text"}, "text": {"$ref": "#/$defs/text"}, "at": {"$ref": "#/$defs/unit"},
+        "hide_layers": {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true},
+        "style": {"enum": ["banner", "lower-third", "center", "minimal", "split"]},
+        "font": {"$ref": "#/$defs/text"},
+        "foreground": {"$ref": "#/$defs/paint"},
+        "background": {"$ref": "#/$defs/paint"},
+        "accent": {"$ref": "#/$defs/paint"},
+        "position": {"enum": ["top", "center", "bottom"]},
+        "align": {"enum": ["left", "center", "right"]},
+        "padding": {"$ref": "#/$defs/unit"},
+        "text_size": {"type": "number", "minimum": 0.5, "maximum": 2}
+      }
+    },
     "episode": {
       "type": "object", "required": ["title", "description", "tags", "width", "height", "fps", "scenes", "thumbnail"],
       "additionalProperties": false,
       "properties": {
+        "$schema": {"type": "string"},
+        "meta": {"type": "object", "additionalProperties": true},
+        "defs": {
+          "description": "Named reusable layer groups for rigs, sets and props.",
+          "type": "object",
+          "propertyNames": {"pattern": "^[A-Za-z0-9_-]+$"},
+          "additionalProperties": {
+            "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/layer"}
+          }
+        },
         "title": {"$ref": "#/$defs/text"},
         "description": {"$ref": "#/$defs/text"},
         "tags": {"$ref": "#/$defs/tags"},
@@ -700,24 +893,7 @@
             "name": {"$ref": "#/$defs/text"}, "speed": {"type": "integer", "minimum": 90, "maximum": 240}
           }
         },
-        "music": {
-          "type": "object", "additionalProperties": false,
-          "oneOf": [{"required": ["preset"]}, {"required": ["file"]}],
-          "properties": {
-            "preset": {"const": "pulse"}, "file": {"$ref": "#/$defs/path"}, "gain": {"$ref": "#/$defs/unit"},
-            "loop": {"type": "boolean"},
-            "fade_in": {"type": "number", "minimum": 0, "maximum": 30},
-            "fade_out": {"type": "number", "minimum": 0, "maximum": 30},
-            "duck": {
-              "type": "object", "additionalProperties": false,
-              "properties": {
-                "amount": {"$ref": "#/$defs/unit"},
-                "attack": {"type": "number", "minimum": 0, "maximum": 2},
-                "release": {"type": "number", "minimum": 0, "maximum": 3}
-              }
-            }
-          }
-        },
+        "music": {"$ref": "#/$defs/music"},
         "scenes": {
           "type": "array", "minItems": 1,
           "items": {
@@ -728,12 +904,11 @@
             }
           }
         },
-        "thumbnail": {
-          "type": "object", "required": ["shot", "text"], "additionalProperties": false,
-          "properties": {
-            "shot": {"$ref": "#/$defs/text"}, "text": {"$ref": "#/$defs/text"}, "at": {"$ref": "#/$defs/unit"},
-            "hide_layers": {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true}
-          }
+        "thumbnail": {"$ref": "#/$defs/thumbnail"},
+        "thumbnails": {
+          "description": "Optional A/B thumbnail variants. The first matching shot and text still render as thumbnail.png.",
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/thumbnail"}
         }
       }
     }

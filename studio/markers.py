@@ -11,6 +11,18 @@ ROOT = Path(__file__).resolve().parents[1]
 EFFECT_DIR = ROOT / "presets" / "effects"
 
 
+def available_effects(channel_base=None):
+    found = {}
+    folders = [Path(channel_base) / "presets" / "effects"] if channel_base else []
+    folders.append(EFFECT_DIR)
+    for folder in folders:
+        if not folder.is_dir():
+            continue
+        for path in sorted(folder.glob("*.json")):
+            found.setdefault(path.stem, path)
+    return found
+
+
 def _effect_template(name, channel_base=None):
     candidates = []
     if channel_base:
@@ -19,7 +31,8 @@ def _effect_template(name, channel_base=None):
     for path in candidates:
         if path.is_file():
             return json.loads(path.read_text(encoding="utf-8"))
-    raise ValueError(f"Unknown marker effect template: {name}")
+    names = ", ".join(sorted(available_effects(channel_base))) or "none"
+    raise ValueError(f"Unknown marker effect template: {name}. Available: {names}")
 
 
 def expand(episode, channel_base=None):

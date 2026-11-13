@@ -226,6 +226,46 @@ def normalized(track, duration):
     return [{"at": at, **frames[at]} for at in sorted(frames)]
 
 
+def to_layer_keys(track, duration, *, ease="linear"):
+    """Manifest-ready 2D keyframes from a 3D physics track.
+
+    Positions map to ``x``/``y`` (the planar axes), rotations to ``rotate`` in
+    degrees, and 3D scale to ``scale_x``/``scale_y`` so squash and stretch work
+    in the 2D renderer too.
+    """
+    keys = {}
+    for frame in track:
+        moment = round(frame["t"] / duration, 7)
+        key = keys.setdefault(moment, {"at": moment, "ease": ease})
+        if "position" in frame:
+            key["x"] = frame["position"][0]
+            key["y"] = frame["position"][1]
+        if "rotation" in frame:
+            key["rotate"] = frame["rotation"][2]
+        if "scale" in frame:
+            key["scale_x"] = frame["scale"][0]
+            key["scale_y"] = frame["scale"][1]
+        if "offset" in frame:
+            key["x"] = key.get("x", 0) + frame["offset"][0]
+            key["y"] = key.get("y", 0) + frame["offset"][1]
+    return [keys[moment] for moment in sorted(keys)]
+
+
+def to_object_keys(track, duration, *, ease="linear"):
+    """Manifest-ready 3D object keyframes from a physics track."""
+    keys = {}
+    for frame in track:
+        moment = round(frame["t"] / duration, 7)
+        key = keys.setdefault(moment, {"at": moment, "ease": ease})
+        if "position" in frame:
+            key["position"] = frame["position"]
+        if "rotation" in frame:
+            key["rotation"] = frame["rotation"]
+        if "scale" in frame:
+            key["scale"] = frame["scale"]
+    return [keys[moment] for moment in sorted(keys)]
+
+
 def to_pose(track, *, yaw=0.0, roll=0.0, ease="linear"):
     """Episode `pose(t, [x,y,z], yaw, roll, ease)` tuples, ignoring missing axes."""
     poses = []

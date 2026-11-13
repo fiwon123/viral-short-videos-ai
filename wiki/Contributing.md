@@ -32,6 +32,13 @@ The studio is a template. Keep the reusable engine and skill generic; keep chann
 3. Add a recipe under `presets/audio/` or an example channel.
 4. Test with `python video.py sound`.
 
+## ➕ Add a motion recipe
+
+1. Add a function to `studio/motion.py` that returns manifest keyframes in the 0..1 shot clock.
+2. Keep it deterministic and combine with `merge` when it touches other properties.
+3. Test it with `make motion MOTION=name`.
+4. Document the timing in [Motion, Camera and Rigs](Motion-Camera-and-Rigs).
+
 ## ➕ Add an Effect Lab base
 
 1. Add a generator to `studio/effectlab.py`.
@@ -43,16 +50,19 @@ The studio is a template. Keep the reusable engine and skill generic; keep chann
 
 1. Edit `studio/schema.json`.
 2. Update the Python renderer.
-3. Update `browser/painter.mjs` and/or `browser/three.mjs`.
-4. Add a valid example.
-5. Update [Manifest Reference](Manifest-Reference).
-6. Run:
+3. Update `browser/painter.mjs`, `browser/pose.mjs`, and/or `browser/three.mjs`.
+4. Add the feature to `studio/support.py` and regenerate `make support`.
+5. Add a valid example or parity fixture case.
+6. Update [Manifest Reference](Manifest-Reference) and the skill references.
+7. Run:
 
 ```sh
 python -m py_compile studio/*.py video.py
 node --check browser/painter.mjs
+make test
 python video.py validate examples/paper-crane/episodes/one-letter-home/episode.json \
   --channel examples/paper-crane/channel/channel.json
+python video.py parity
 ```
 
 ## 📝 Documentation

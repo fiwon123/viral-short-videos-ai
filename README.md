@@ -117,6 +117,10 @@ Useful checks:
 ```sh
 make support   # renderer support matrix
 make parity    # shared visual fixture across renderers
+make still EPISODE=workspace/<channel>/episodes/<episode>/episode.json SHOT=A PROGRESS=0.5
+make presets   # available style presets
+make motion MOTION=impact   # manifest-ready motion recipes
+make schema    # per-manifest schema wrappers for editor completion
 make editor EPISODE=workspace/<channel>/episodes/<episode>/episode.json
 ```
 

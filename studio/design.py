@@ -4,13 +4,21 @@ from functools import lru_cache
 import math
 
 import numpy as np
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from .camera import resolve_camera
 from .core import asset, scoped_asset
+from .easing import catmull_rom, ease
 from .transform import apply as apply_matrix
 from .transform import bbox as matrix_bbox
 from .transform import camera_matrix, inverse, layer_matrix, multiply, translate
+
+DEFAULT_PALETTE = {
+    "background": "#131B30",
+    "foreground": "#FFF3D8",
+    "accent": "#FFBD54",
+    "secondary": "#293F59",
+}
 
 
 @lru_cache(maxsize=128)
@@ -25,13 +33,64 @@ def get_font(path, size):
     return ImageFont.load_default(size=size)
 
 
-def wrapped_text(text, font, width):
+def resolve_color(value, palette, default=None):
+    """Resolve a hex value or a named palette role to a PIL colour."""
+    if value is None:
+        return default
+    if isinstance(value, str) and value.startswith("#"):
+        return value
+    if isinstance(value, str) and value in (palette or {}):
+        return palette[value]
+    if default is not None:
+        return default
+    raise ValueError(f"Unknown colour or palette role: {value}")
+
+
+def color_alpha(value, palette, opacity=1.0):
+    red, green, blue = ImageColor.getrgb(resolve_color(value, palette))[:3]
+    return red, green, blue, max(0, min(255, round(255 * opacity)))
+
+
+def resolve_font(channel, base, name=None):
+    """Resolve a font role, an explicit path, or the channel default."""
+    fonts = (channel or {}).get("fonts") or {}
+    if name and name in fonts:
+        name = fonts[name]
+    elif name is None:
+        name = (channel or {}).get("font") or fonts.get("body") or fonts.get("display")
+        if name is None and fonts:
+            name = next(iter(fonts.values()))
+    if not name:
+        return None
+    return str(asset(base, name))
+
+
+def _tracked_length(value, font, tracking):
+    if not value:
+        return 0
+    base = sum(font.getlength(character) for character in value)
+    return base + tracking * font.size * max(0, len(value) - 1)
+
+
+def _draw_tracked(draw, position, text, font, fill, tracking, *, stroke_width=0, stroke_fill=None):
+    x, y = position
+    if not tracking:
+        draw.text((x, y), text, font=font, fill=fill, stroke_width=stroke_width,
+                  stroke_fill=stroke_fill or fill)
+        return
+    for character in text:
+        draw.text((x, y), character, font=font, fill=fill, stroke_width=stroke_width,
+                  stroke_fill=stroke_fill or fill)
+        x += font.getlength(character) + tracking * font.size
+
+
+def wrapped_text(text, font, width, tracking=0.0):
     rows = []
     for paragraph in text.split("\n"):
         row = ""
         for word in paragraph.split():
             candidate = f"{row} {word}".strip()
-            if row and font.getlength(candidate) > width:
+            if row and _tracked_length(candidate, font, tracking) > width:
                 rows.append(row)
                 row = word
             else:
@@ -40,52 +99,214 @@ def wrapped_text(text, font, width):
     return "\n".join(rows)
 
 
-def text_in_box(image, box, text, fill, font_path=None, max_size=None):
-    left, top, right, bottom = box
-    width, height = max(1, right - left), max(1, bottom - top)
-    draw = ImageDraw.Draw(image)
-    low, high = 1, max_size or height
+def _fit_text(text, width, height, font_path, max_size, *, line_height=1.14,
+              tracking=0.0, max_lines=None, uppercase=False):
+    content = text.upper() if uppercase else text
+    low, high = 1, max(1, max_size or height)
     fitted = None
     while low <= high:
         size = (low + high) // 2
         font = get_font(font_path, size)
-        content = wrapped_text(text, font, width)
-        spacing = max(1, round(size * 0.14))
-        bounds = draw.multiline_textbbox((0, 0), content, font=font, spacing=spacing, align="center")
-        x0, y0, x1, y1 = bounds
-        if x1 - x0 <= width and y1 - y0 <= height:
-            fitted = (font, content, spacing, bounds)
+        wrapped = wrapped_text(content, font, width, tracking)
+        lines = wrapped.split("\n") if wrapped else [""]
+        spacing = max(1, round(size * (line_height - 1)))
+        total = len(lines) * font.size + (len(lines) - 1) * spacing
+        widest = max((_tracked_length(line, font, tracking) for line in lines), default=0)
+        if widest <= width and total <= height and (max_lines is None or len(lines) <= max_lines):
+            fitted = (font, lines, spacing, size)
             low = size + 1
         else:
             high = size - 1
-    if fitted:
-        font, content, spacing, (x0, y0, x1, y1) = fitted
-        center = ((left + right - x0 - x1) / 2, (top + bottom - y0 - y1) / 2)
-        draw.multiline_text(center, content, font=font, fill=fill, spacing=spacing, align="center")
+    if fitted is None:
+        size = max(8, min(high, max_size or height))
+        font = get_font(font_path, size)
+        wrapped = wrapped_text(content, font, width, tracking)
+        lines = wrapped.split("\n") if wrapped else [""]
+        if max_lines:
+            lines = lines[:max_lines]
+        fitted = (font, lines, max(1, round(size * (line_height - 1))), size)
+    return fitted
 
 
-def resolve_font(channel, base):
-    return str(asset(base, channel["font"])) if "font" in channel else None
+def gradient_image(size, gradient, palette):
+    """Render a linear or radial gradient as RGBA."""
+    width, height = max(1, size[0]), max(1, size[1])
+    stops = sorted((float(stop["at"]), resolve_color(stop["color"], palette))
+                   for stop in gradient["stops"])
+    pixel = np.zeros((height, width, 3), dtype=np.float32)
+    ys, xs = np.mgrid[0:height, 0:width]
+    u = xs / max(1, width - 1)
+    v = ys / max(1, height - 1)
+    if gradient.get("type", "linear") == "radial":
+        center = gradient.get("center") or [0.5, 0.5]
+        radius = float(gradient.get("radius", 0.7))
+        progress = np.sqrt((u - center[0]) ** 2 + (v - center[1]) ** 2) / max(radius, 1e-6)
+    else:
+        angle = math.radians(float(gradient.get("angle", 90)))
+        progress = u * math.cos(angle) + v * math.sin(angle)
+    progress = np.clip(progress, 0, 1)
+    positions = np.array([item[0] for item in stops], dtype=np.float32)
+    colors = np.array([ImageColor.getrgb(item[1])[:3] for item in stops], dtype=np.float32)
+    for channel in range(3):
+        pixel[..., channel] = np.interp(progress, positions, colors[:, channel])
+    return Image.fromarray(np.uint8(np.clip(pixel, 0, 255))).convert("RGBA")
+
+
+def paint_tile(mask, fill, palette):
+    """Colour a single-channel mask with a solid paint or gradient."""
+    if isinstance(fill, dict):
+        tile = gradient_image(mask.size, fill, palette)
+    else:
+        tile = Image.new("RGBA", mask.size, color_alpha(fill, palette, 1))
+    tile.putalpha(mask)
+    return tile
+
+
+def text_tile(text, size, fill, font_path, *, palette=None, align="center", line_height=1.14,
+              tracking=0.0, max_lines=None, uppercase=False, stroke=0.0, stroke_color=None,
+              padding=0.0, max_size=None):
+    palette = palette or DEFAULT_PALETTE
+    width, height = max(1, size[0]), max(1, size[1])
+    inset_x = round(width * float(padding or 0))
+    inset_y = round(height * float(padding or 0))
+    inner_width = max(1, width - inset_x * 2)
+    inner_height = max(1, height - inset_y * 2)
+    font, lines, spacing, point = _fit_text(text, inner_width, inner_height, font_path,
+                                            min(inner_height, max_size) if max_size else inner_height,
+                                            line_height=line_height, tracking=tracking,
+                                            max_lines=max_lines, uppercase=uppercase)
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    outline = max(0, round(point * float(stroke or 0)))
+    total = len(lines) * font.size + (len(lines) - 1) * spacing
+    y = inset_y + (inner_height - total) / 2
+    for line in lines:
+        line_width = _tracked_length(line, font, tracking)
+        if align == "left":
+            x = inset_x
+        elif align == "right":
+            x = width - inset_x - line_width
+        else:
+            x = inset_x + (inner_width - line_width) / 2
+        _draw_tracked(draw, (x, y), line, font, 255, tracking)
+        y += font.size + spacing
+    tile = paint_tile(mask, fill, palette)
+    if outline and stroke_color is not None:
+        outline_mask = Image.new("L", (width, height), 0)
+        outline_draw = ImageDraw.Draw(outline_mask)
+        y = inset_y + (inner_height - total) / 2
+        for line in lines:
+            line_width = _tracked_length(line, font, tracking)
+            if align == "left":
+                x = inset_x
+            elif align == "right":
+                x = width - inset_x - line_width
+            else:
+                x = inset_x + (inner_width - line_width) / 2
+            _draw_tracked(outline_draw, (x, y), line, font, 255, tracking,
+                          stroke_width=outline, stroke_fill=255)
+            y += font.size + spacing
+        outline_tile = Image.new("RGBA", (width, height), color_alpha(stroke_color, palette, 1))
+        outline_tile.putalpha(outline_mask)
+        tile = Image.alpha_composite(outline_tile, tile)
+    return tile
+
+
+def shape_mask(kind, size, points=None, radius=0.0):
+    width, height = max(1, size[0]), max(1, size[1])
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    bounds = (0, 0, width - 1, height - 1)
+    if kind == "ellipse":
+        draw.ellipse(bounds, fill=255)
+    elif kind == "polygon":
+        draw.polygon([(round(x * (width - 1)), round(y * (height - 1))) for x, y in points or []], fill=255)
+    else:
+        draw.rounded_rectangle(bounds, radius=round(min(width, height) * float(radius or 0) / 2), fill=255)
+    return mask
+
+
+def stroke_shape(tile, kind, points=None, radius=0.0, stroke=None, palette=None):
+    if not stroke:
+        return tile
+    palette = palette or DEFAULT_PALETTE
+    width, height = tile.size
+    draw = ImageDraw.Draw(tile)
+    pixels = max(1, round(min(width, height) * float(stroke.get("width", 0.02))))
+    color = color_alpha(stroke.get("color", "foreground"), palette, 1)
+    bounds = (0, 0, width - 1, height - 1)
+    if kind == "ellipse":
+        draw.ellipse(bounds, outline=color, width=pixels)
+    elif kind == "polygon":
+        points = [(round(x * (width - 1)), round(y * (height - 1))) for x, y in points or []]
+        if points:
+            draw.line([*points, points[0]], fill=color, width=pixels, joint="curve")
+    else:
+        draw.rounded_rectangle(bounds, radius=round(min(width, height) * float(radius or 0) / 2),
+                               outline=color, width=pixels)
+    return tile
+
+
+def text_in_box(image, box, text, fill, font_path=None, max_size=None, *, palette=None,
+                align="center", line_height=1.14, tracking=0.0, max_lines=None,
+                uppercase=False, stroke=0.0, stroke_color=None):
+    left, top, right, bottom = box
+    width, height = max(1, right - left), max(1, bottom - top)
+    tile = text_tile(text, (width, height), fill, font_path, palette=palette, align=align,
+                     line_height=line_height, tracking=tracking, max_lines=max_lines,
+                     uppercase=uppercase, stroke=stroke, stroke_color=stroke_color,
+                     max_size=max_size)
+    image.alpha_composite(tile, (left, top)) if image.mode == "RGBA" else image.paste(tile, (left, top), tile)
 
 
 def make_brand(channel, base, out):
     p = channel["palette"]
+    brand = channel.get("brand") or {}
     font = resolve_font(channel, base)
     logo = Image.new("RGB", (800, 800), p["background"])
     draw = ImageDraw.Draw(logo)
-    draw.ellipse((85, 85, 715, 715), fill=p["secondary"])
-    draw.ellipse((118, 118, 682, 682), outline=p["accent"], width=12)
-    text_in_box(logo, (185, 210, 615, 570), channel["mark"], p["foreground"], font, 245)
-    draw.ellipse((610, 144, 660, 194), fill=p["accent"])
+    shape = brand.get("logo", "disc")
+    if shape == "ring":
+        draw.ellipse((85, 85, 715, 715), outline=p["secondary"], width=54)
+        draw.ellipse((118, 118, 682, 682), outline=p["accent"], width=12)
+    elif shape in {"rounded", "square"}:
+        radius = 120 if shape == "rounded" else 0
+        draw.rounded_rectangle((85, 85, 715, 715), radius=radius, fill=p["secondary"])
+        draw.rounded_rectangle((118, 118, 682, 682), radius=max(0, radius - 30),
+                               outline=p["accent"], width=12)
+    else:
+        draw.ellipse((85, 85, 715, 715), fill=p["secondary"])
+        draw.ellipse((118, 118, 682, 682), outline=p["accent"], width=12)
+    size = float(brand.get("mark_size", 1))
+    inset = round(185 * size)
+    text_in_box(logo, (inset, 210, 800 - inset, 570), channel["mark"], p["foreground"], font,
+                round(245 * size))
+    if brand.get("accent_dot", True):
+        draw.ellipse((610, 144, 660, 194), fill=p["accent"])
     logo.save(out / "logo.png")
 
     spec = channel.get("banner", {"width": 2560, "height": 1440, "safe_width": 1500, "safe_height": 380})
     w, h, sw, sh = (spec[k] for k in ("width", "height", "safe_width", "safe_height"))
     banner = Image.new("RGB", (w, h), p["background"])
     draw = ImageDraw.Draw(banner)
-    for index in range(9):
-        x = index * w // 8
-        draw.line((x, 0, x - w // 3, h), fill=p["secondary"], width=max(1, w // 720))
+    pattern = brand.get("banner", "lines")
+    if pattern == "lines":
+        for index in range(9):
+            x = index * w // 8
+            draw.line((x, 0, x - w // 3, h), fill=p["secondary"], width=max(1, w // 720))
+    elif pattern == "grid":
+        for index in range(9):
+            x = index * w // 8
+            draw.line((x, 0, x, h), fill=p["secondary"], width=max(1, w // 900))
+        for index in range(6):
+            y = index * h // 5
+            draw.line((0, y, w, y), fill=p["secondary"], width=max(1, h // 900))
+    elif pattern == "dots":
+        radius = max(2, w // 240)
+        for row in range(7):
+            for column in range(13):
+                draw.ellipse((column * w // 12 - radius, row * h // 6 - radius,
+                              column * w // 12 + radius, row * h // 6 + radius), fill=p["secondary"])
     x, y = (w - sw) // 2, (h - sh) // 2
     draw.rounded_rectangle((x, y, x + sw - 1, y + sh - 1), radius=sh // 5, fill=p["secondary"])
     icon = min(round(sh * 0.64), sw // 4)
@@ -100,15 +321,29 @@ def make_brand(channel, base, out):
 
 
 def poses(layer):
-    state = {"x": layer["x"], "y": layer["y"], "scale": layer.get("scale", 1),
-             "rotate": layer.get("rotate", 0), "opacity": layer.get("opacity", 1),
-             "visible": layer.get("visible", True)}
-    points = [(0, state, "linear")]
+    scale = layer.get("scale", 1)
+    state = {
+        "x": layer["x"], "y": layer["y"],
+        "scale": scale,
+        "scale_x": layer.get("scale_x", scale),
+        "scale_y": layer.get("scale_y", scale),
+        "skew_x": layer.get("skew_x", 0),
+        "skew_y": layer.get("skew_y", 0),
+        "rotate": layer.get("rotate", 0),
+        "opacity": layer.get("opacity", 1),
+        "visible": layer.get("visible", True),
+    }
+    points = [(0, state, "linear", {})]
     for key in layer.get("keyframes", []):
         state = {name: key.get(name, value) for name, value in state.items()}
+        if "scale" in key:
+            if "scale_x" not in key:
+                state["scale_x"] = key["scale"]
+            if "scale_y" not in key:
+                state["scale_y"] = key["scale"]
         if key["at"] == 0:
             points.pop()
-        points.append((key["at"], state, key.get("ease", "linear")))
+        points.append((key["at"], state, key.get("ease", "linear"), key.get("ease_props") or {}))
     return points
 
 
@@ -118,66 +353,35 @@ def camera_points(shot):
         return None
     state = {"x": camera.get("x", 0), "y": camera.get("y", 0),
              "zoom": camera.get("zoom", 1), "rotate": camera.get("rotate", 0)}
-    points = [(0, state, "linear")]
+    points = [(0, state, "linear", {})]
     for key in camera.get("keyframes", []):
         state = {name: key.get(name, value) for name, value in state.items()}
         if key["at"] == 0:
             points.pop()
-        points.append((key["at"], state, key.get("ease", "linear")))
+        points.append((key["at"], state, key.get("ease", "linear"), {}))
     return points
 
 
-def ease(t, mode):
-    t = max(0.0, min(1.0, t))
-    if mode == "in":
-        return t * t
-    if mode == "out":
-        return 1 - (1 - t) ** 2
-    if mode == "smooth":
-        return t * t * (3 - 2 * t)
-    if mode == "sine":
-        return 0.5 - 0.5 * math.cos(math.pi * t)
-    if mode == "expo":
-        return 1.0 if t >= 1 else 1 - 2 ** (-10 * t)
-    if mode == "circ":
-        return math.sqrt(max(0.0, 1 - (1 - t) ** 2))
-    if mode == "quint":
-        return 1 - (1 - t) ** 5
-    if mode == "back":
-        c1, c3 = 1.70158, 2.70158
-        return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2
-    if mode == "elastic":
-        if t in (0.0, 1.0):
-            return t
-        return 2 ** (-10 * t) * math.sin((t * 10 - 0.75) * (2 * math.pi / 3)) + 1
-    if mode == "bounce":
-        n1, d1 = 7.5625, 2.75
-        if t < 1 / d1:
-            return n1 * t * t
-        if t < 2 / d1:
-            t -= 1.5 / d1
-            return n1 * t * t + 0.75
-        if t < 2.5 / d1:
-            t -= 2.25 / d1
-            return n1 * t * t + 0.9375
-        t -= 2.625 / d1
-        return n1 * t * t + 0.984375
-    if mode == "spring":
-        return 1 - math.exp(-6 * t) * math.cos(9 * t)
-    if mode == "hold":
-        return 0.0 if t < 1 else 1.0
-    return t
-
-
 def pose_at(points, progress):
-    for (a, start, _), (b, end, mode) in zip(points, points[1:]):
-        if progress <= b:
-            t = ease((progress - a) / (b - a) if b > a else 1, mode)
-            return {
-                name: (end[name] if progress >= b else value) if isinstance(value, bool)
-                else value + (end[name] - value) * t
-                for name, value in start.items()
-            }
+    for index in range(1, len(points)):
+        a, start, _, _ = points[index - 1]
+        b, end, mode, ease_props = points[index]
+        if progress > b:
+            continue
+        t = (progress - a) / (b - a) if b > a else 1.0
+        result = {}
+        for name, value in start.items():
+            if isinstance(value, bool):
+                result[name] = end[name] if progress >= b else value
+                continue
+            property_mode = ease_props.get(name, mode)
+            if property_mode == "auto":
+                p0 = points[index - 2][1].get(name, value) if index >= 2 else value
+                p3 = points[index + 1][1].get(name, end[name]) if index + 1 < len(points) else end[name]
+                result[name] = catmull_rom(p0, value, end[name], p3, t)
+            else:
+                result[name] = value + (end[name] - value) * ease(t, property_mode)
+        return result
     return points[-1][1]
 
 
@@ -237,7 +441,7 @@ def _merge(*configs):
     return merged
 
 
-def apply_post(image, config, *, seed=0):
+def apply_post(image, config, *, seed=0, palette=None):
     """Film-style finishing: grade, bloom, vignette, grain, halation."""
     if not config:
         return image
@@ -261,7 +465,7 @@ def apply_post(image, config, *, seed=0):
         ], dtype=np.float32)
         data = np.clip(data @ matrix.T, 0, 1)
     if tint := config.get("tint"):
-        value = tint.lstrip("#")
+        value = resolve_color(tint, palette or DEFAULT_PALETTE).lstrip("#")
         color = np.array([int(value[i:i + 2], 16) / 255 for i in (0, 2, 4)], dtype=np.float32)
         data = np.clip(data * 0.88 + color * 0.12, 0, 1)
     if bloom := float(config.get("bloom", 0)):
@@ -300,8 +504,8 @@ class Composition:
         self.canvas = canvas
         self.base = base
         self.channel_base = channel_base
-        palette = channel["palette"]
-        self.background = shot.get("background", palette["background"])
+        self.palette = channel["palette"]
+        self.background = resolve_color(shot.get("background", "background"), self.palette)
         self.post = _merge(channel.get("post"), episode_post, shot.get("post"))
         self.motion_blur = shot.get("motion_blur", motion_blur)
         self.camera = resolve_camera(shot) if shot.get("camera") else None
@@ -311,7 +515,7 @@ class Composition:
         self.layers = [{
             "id": layer["id"],
             "kind": layer["kind"],
-            "tile": sprite(layer, canvas, palette, font, base, channel_base),
+            "tile": sprite(layer, canvas, channel, font, base, channel_base),
             "points": poses(layer),
             "mouth_for": layer.get("mouth_for"),
             "parent": layer.get("parent"),
@@ -322,6 +526,8 @@ class Composition:
             "parallax": layer.get("parallax", 1),
             "plane": layer.get("plane", "foreground"),
             "mask": layer.get("mask"),
+            "shadow": layer.get("shadow"),
+            "glow": layer.get("glow"),
             "viseme_for": layer.get("viseme_for"),
             "viseme": layer.get("viseme"),
             "spec": layer,
@@ -500,12 +706,20 @@ class Composition:
                 placed.putalpha(placed.getchannel("A").point(lambda value: round(value * alpha)))
             placed = self._apply_masks(placed, left, top, self.masks.get(layer["id"], []),
                                        progress, camera, mask_cache)
+            if layer.get("shadow"):
+                shadow, dx, dy = _effect_patch(placed, layer["shadow"], "background", self.palette,
+                                               width, height, default_opacity=0.55)
+                image = _paste(image, shadow, left + dx, top + dy)
+            if layer.get("glow"):
+                glow, dx, dy = _effect_patch(placed, layer["glow"], "accent", self.palette,
+                                             width, height, default_opacity=0.6, glow=True)
+                image = _blend_at(image, glow, left + dx, top + dy, "screen")
             if layer["blend"] == "normal":
                 image = Image.alpha_composite(image, placed) if placed.size == image.size else _paste(image, placed, left, top)
             else:
                 image = _blend_at(image, placed, left, top, layer["blend"])
         if post:
-            image = apply_post(image, self.post, seed=seed)
+            image = apply_post(image, self.post, seed=seed, palette=self.palette)
         return image.convert("RGB")
 
 
@@ -523,12 +737,28 @@ def _blend_at(base, layer, left, top, mode):
     return _blend(base, patch, mode)
 
 
-def sprite(layer, canvas, palette, font, base, channel_base=None):
+def _effect_patch(placed, spec, default_color, palette, width, height, *, default_opacity=0.6,
+                  glow=False):
+    opacity = float(spec.get("opacity", default_opacity))
+    color = resolve_color(spec.get("color", default_color), palette)
+    size = float(spec.get("size", 0.18) if glow else spec.get("blur", 0.18))
+    radius = max(0.5, min(width, height) * size * 0.16)
+    margin = max(2, round(radius * 3))
+    alpha = Image.new("L", (placed.width + margin * 2, placed.height + margin * 2), 0)
+    alpha.paste(placed.getchannel("A").filter(ImageFilter.GaussianBlur(radius)), (margin, margin))
+    patch = Image.new("RGBA", alpha.size, color_alpha(color, palette, opacity))
+    patch.putalpha(alpha)
+    dx = round(float(spec.get("offset_x", 0)) * width) - margin
+    dy = round(float(spec.get("offset_y", 0)) * height) - margin
+    return patch, dx, dy
+
+
+def sprite(layer, canvas, channel, font, base, channel_base=None):
     cw, ch = canvas
+    palette = channel["palette"]
     w = max(1, round(layer.get("width", 0.55) * cw))
     h = max(1, round(layer.get("height", 0.2) * ch))
     fill = layer.get("fill", "foreground")
-    fill = palette.get(fill, fill)
     kind = layer["kind"]
     if kind == "group":
         if "width" not in layer or "height" not in layer:
@@ -539,18 +769,25 @@ def sprite(layer, canvas, palette, font, base, channel_base=None):
     if kind == "image":
         with Image.open(scoped_asset(layer, base, channel_base)) as source:
             return ImageOps.contain(ImageOps.exif_transpose(source).convert("RGBA"), (w, h))
-    tile = Image.new("RGBA", (w, h))
-    draw = ImageDraw.Draw(tile)
-    bounds = (0, 0, w - 1, h - 1)
     if kind == "text":
-        text_in_box(tile, (0, 0, w, h), layer["text"], fill, font)
-    elif kind == "ellipse":
-        draw.ellipse(bounds, fill=fill)
-    elif kind == "polygon":
-        draw.polygon([(round(x * (w - 1)), round(y * (h - 1))) for x, y in layer["points"]], fill=fill)
-    else:
-        draw.rounded_rectangle(bounds, radius=round(min(w, h) * layer.get("radius", 0) / 2), fill=fill)
-    return tile
+        font_path = resolve_font(channel, channel_base or base, layer["font"]) if "font" in layer else font
+        stroke = layer.get("stroke") or {}
+        effect_padding = 0.07 if (layer.get("shadow") or layer.get("glow") or stroke) else 0.0
+        return text_tile(
+            layer["text"], (w, h), fill, font_path, palette=palette,
+            align=layer.get("align", "center"),
+            line_height=layer.get("line_height", 1.14),
+            tracking=layer.get("letter_spacing", 0),
+            max_lines=layer.get("max_lines"),
+            uppercase=layer.get("uppercase", False),
+            stroke=stroke.get("width", 0),
+            stroke_color=stroke.get("color"),
+            padding=effect_padding,
+        )
+    mask = shape_mask(kind, (w, h), layer.get("points"), layer.get("radius", 0))
+    tile = paint_tile(mask, fill, palette)
+    return stroke_shape(tile, kind, layer.get("points"), layer.get("radius", 0),
+                        layer.get("stroke"), palette)
 
 
 def luma_mask(width, height, progress, *, softness=0.08, invert=False, seed=17):
@@ -688,17 +925,22 @@ def caption_layout(image, text, font_path, config=None):
     config = config or {}
     width, height = image.size
     max_words = int(config.get("max_words", 6))
-    max_width = width * 0.82
+    max_lines = int(config.get("max_lines", 5))
+    padding_x = float(config.get("padding_x", 0.09))
+    tracking = float(config.get("letter_spacing", 0))
+    line_height = float(config.get("line_height", 1.22))
+    max_width = max(10, width * (1 - 2 * padding_x))
     size = max(12, round(min(width, height) * 0.058 * float(config.get("font_size", 1))))
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     font, rows = get_font(font_path, size), []
     # Shrink rather than clip when a long line or a narrow phone needs it.
-    for _ in range(8):
+    for _ in range(10):
         font = get_font(font_path, size)
         lines, row = [], []
         for word in text.split():
             candidate = " ".join([*row, word])
-            if row and (len(row) >= max_words or draw.textlength(candidate, font=font) > max_width):
+            if row and (len(row) >= max_words
+                        or _tracked_length(candidate, font, tracking) > max_width):
                 lines.append(" ".join(row))
                 row = [word]
             else:
@@ -707,18 +949,26 @@ def caption_layout(image, text, font_path, config=None):
             lines.append(" ".join(row))
         rows, y = [], 0
         for line in lines:
-            line_width = draw.textlength(line, font=font)
-            row_words, x = [], (width - line_width) / 2
+            line_width = _tracked_length(line, font, tracking)
+            if config.get("align", "center") == "left":
+                x = padding_x * width
+            elif config.get("align", "center") == "right":
+                x = width - padding_x * width - line_width
+            else:
+                x = (width - line_width) / 2
+            row_words = []
             for word in line.split():
-                word_width = draw.textlength(word + " ", font=font)
+                word_width = _tracked_length(word, font, tracking)
                 box = draw.textbbox((x, y), word, font=font)
+                box = (box[0], box[1], box[0] + word_width, box[3])
                 row_words.append({"text": word, "box": box})
-                x += word_width
+                x += word_width + draw.textlength(" ", font=font) + tracking * font.size
             rows.append(row_words)
-            y += font.size + round(font.size * 0.22)
-        if lines and all(draw.textlength(line, font=font) <= max_width for line in lines) and len(lines) <= 5:
+            y += font.size * line_height
+        if (lines and all(_tracked_length(line, font, tracking) <= max_width for line in lines)
+                and len(lines) <= max_lines):
             break
-        size = max(12, round(size * 0.9))
+        size = max(10, round(size * 0.9))
     return font, rows, size
 
 
@@ -735,33 +985,38 @@ def draw_caption(image, cue, channel, font, config=None, frame=None):
     width, height = image.size
     layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
-    foreground = config.get("foreground", channel["palette"]["foreground"])
-    background = config.get("background", channel["palette"]["background"])
-    highlight = config.get("highlight", channel["palette"]["accent"])
+    palette = channel["palette"]
+    foreground = resolve_color(config.get("foreground", "foreground"), palette)
+    background = resolve_color(config.get("background", "background"), palette)
+    highlight = resolve_color(config.get("highlight", "accent"), palette)
+    highlight_text = resolve_color(config.get("highlight_text", "background"), palette)
+    shadow_color = resolve_color(config.get("shadow_color", "background"), palette)
+    opacity = float(config.get("background_opacity", 1))
+    box_color = color_alpha(background, palette, opacity)
     top = rows[0][0]["box"][1] if rows else 0
     bottom = rows[-1][0]["box"][3] if rows else 0
-    if position == "top":
-        offset = round(height * 0.09) - top
-    elif position == "center":
-        offset = round(height * 0.46) - top
-    else:
-        offset = round(height * 0.80) - top
+    base = {"top": 0.09, "center": 0.46, "bottom": 0.80}.get(position, 0.80)
+    offset = round(height * (base + float(config.get("offset", 0)))) - top
     radius = max(2, round(size * float(config.get("radius", 0.45))))
     if style in {"box", "karaoke"}:
-        pad_x, pad_y = round(size * 0.65), round(size * 0.45)
-        left = round(width / 2 - width * 0.43) - pad_x
-        right = round(width / 2 + width * 0.43) + pad_x
+        pad_x = round(width * float(config.get("padding_x", 0.04)))
+        pad_y = round(height * float(config.get("padding_y", 0.02)))
+        left = round(width * float(config.get("padding_x", 0.09))) - pad_x
+        right = width - left
         box = (left, offset + top - pad_y, right, offset + bottom + pad_y)
-        draw.rounded_rectangle(box, radius=radius, fill=background)
+        draw.rounded_rectangle(box, radius=radius, fill=box_color)
     outline = max(0, round(size * float(config.get("stroke", 0))))
     shadow = bool(config.get("shadow", False))
+    tracking = float(config.get("letter_spacing", 0))
 
     def write(word, x, y, fill):
         if shadow:
-            draw.text((x + size * 0.05, y + size * 0.07), word, font=font_obj,
-                      fill=(0, 0, 0, 120), stroke_width=outline, stroke_fill=(0, 0, 0, 90))
-        draw.text((x, y), word, font=font_obj, fill=fill,
-                  stroke_width=outline, stroke_fill=background if outline else fill)
+            _draw_tracked(draw, (x + size * 0.05, y + size * 0.07), word, font_obj,
+                          color_alpha(shadow_color, palette, 0.5), tracking,
+                          stroke_width=outline,
+                          stroke_fill=color_alpha(shadow_color, palette, 0.35))
+        _draw_tracked(draw, (x, y), word, font_obj, fill, tracking,
+                      stroke_width=outline, stroke_fill=box_color if outline else fill)
 
     if style == "minimal":
         for row in rows:
@@ -780,10 +1035,11 @@ def draw_caption(image, cue, channel, font, config=None, frame=None):
                 box = (word["box"][0], word["box"][1] + offset,
                        word["box"][2], word["box"][3] + offset)
                 if index == active:
-                    draw.rounded_rectangle((box[0] - size * 0.18, box[1] - size * 0.13,
-                                            box[2] + size * 0.18, box[3] + size * 0.19),
-                                           radius=max(2, round(size * 0.25)), fill=highlight)
-                write(word["text"], box[0], box[1], background if index == active else foreground)
+                    draw.rounded_rectangle((box[0] - size * 0.04, box[1] - size * 0.06,
+                                            box[2] + size * 0.04, box[3] + size * 0.10),
+                                           radius=max(2, round(size * 0.20)), fill=highlight)
+                write(word["text"], box[0], box[1],
+                      highlight_text if index == active else foreground)
                 index += 1
     else:
         for row in rows:
@@ -801,23 +1057,76 @@ def draw_caption(image, cue, channel, font, config=None, frame=None):
             layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
             layer.alpha_composite(resized, ((width - resized.width) // 2,
                                             (height - resized.height) // 2))
-        elif animation == "slide":
+        elif animation in {"slide", "rise"}:
+            distance = 0.035 if animation == "slide" else 0.06
             shifted = Image.new("RGBA", image.size, (0, 0, 0, 0))
-            shifted.alpha_composite(layer, (0, round((1 - t) * height * 0.035)))
+            shifted.alpha_composite(layer, (0, round((1 - t) * height * distance)))
             layer = shifted
+        elif animation == "fade":
+            layer.putalpha(layer.getchannel("A").point(lambda value: round(value * t)))
     image.paste(layer, (0, 0), layer)
 
 
-def thumbnail(frame, text, channel, font):
-    image = frame.copy()
+def thumbnail(frame, text, channel, font, config=None, base=None):
+    config = config or {}
+    image = frame.copy().convert("RGBA")
     w, h = image.size
-    p = channel["palette"]
+    palette = channel["palette"]
+    background = resolve_color(config.get("background", "background"), palette)
+    foreground = resolve_color(config.get("foreground", "foreground"), palette)
+    accent = resolve_color(config.get("accent", "accent"), palette)
+    font_path = font
+    if config.get("font"):
+        font_path = resolve_font(channel, base, config["font"])
+    style = config.get("style", "banner")
+    padding = float(config.get("padding", 0.06))
+    align = config.get("align", "center")
+    position = config.get("position")
     draw = ImageDraw.Draw(image)
-    left, top, right, bottom = round(w * 0.06), round(h * 0.08), round(w * 0.94), round(h * 0.33)
-    draw.rounded_rectangle((left, top, right, bottom), radius=round(min(w, h) * 0.045), fill=p["background"])
-    y = top + round((bottom - top) * 0.13)
-    draw.rounded_rectangle((round(w * 0.42), y, round(w * 0.58), y + max(3, h // 130)),
-                           radius=max(2, h // 260), fill=p["accent"])
-    text_in_box(image, (left + w // 20, top + (bottom - top) // 4, right - w // 20, bottom - h // 50),
-                text, p["foreground"], font)
-    return image
+
+    if style == "minimal":
+        left, top, right, bottom = round(w * padding), round(h * 0.60), round(w * (1 - padding)), round(h * 0.93)
+        tile = text_tile(text, (max(1, right - left), max(1, bottom - top)), foreground, font_path,
+                         palette=palette, align=align, line_height=1.05, max_lines=2)
+        shadow = Image.new("RGBA", tile.size, color_alpha(background, palette, 0.65))
+        shadow.putalpha(tile.getchannel("A").filter(ImageFilter.GaussianBlur(max(2, h * 0.01))))
+        image.alpha_composite(shadow, (left + max(2, h // 180), top + max(2, h // 180)))
+        image.alpha_composite(tile, (left, top))
+        return image.convert("RGB")
+
+    if style == "split":
+        panel = round(w * 0.42)
+        draw.rectangle((0, 0, panel, h), fill=color_alpha(background, palette, 0.94))
+        draw.rectangle((0, 0, max(2, round(w * 0.012)), h), fill=accent)
+        left, right = panel + round(w * padding), w - round(w * padding)
+        top, bottom = round(h * 0.20), round(h * 0.80)
+    elif style == "lower-third":
+        left, right = round(w * padding), round(w * (1 - padding))
+        top, bottom = round(h * 0.64), round(h * 0.90)
+    elif style == "center":
+        left, right = round(w * (padding + 0.02)), round(w * (1 - padding - 0.02))
+        top, bottom = round(h * 0.28), round(h * 0.68)
+    else:
+        left, right = round(w * padding), round(w * (1 - padding))
+        top, bottom = round(h * 0.08), round(h * 0.33)
+
+    if position == "top":
+        top, bottom = round(h * 0.08), round(h * 0.33)
+    elif position == "center":
+        top, bottom = round(h * 0.28), round(h * 0.68)
+    elif position == "bottom":
+        top, bottom = round(h * 0.64), round(h * 0.90)
+
+    if style != "split":
+        draw.rounded_rectangle((left, top, right, bottom), radius=round(min(w, h) * 0.045),
+                               fill=color_alpha(background, palette, 0.96))
+    bar_y = top + round((bottom - top) * 0.13)
+    draw.rounded_rectangle((round(w * 0.42), bar_y, round(w * 0.58), bar_y + max(3, h // 130)),
+                           radius=max(2, h // 260), fill=accent)
+    text_top = top + round((bottom - top) * 0.28)
+    size_scale = float(config.get("text_size", 1))
+    text_height = max(1, round((bottom - text_top - h * 0.02) * size_scale))
+    text_in_box(image, (left + round(w * 0.03), text_top, right - round(w * 0.03), text_top + text_height),
+                text, foreground, font_path, palette=palette, align=align,
+                line_height=1.05, max_lines=2)
+    return image.convert("RGB")

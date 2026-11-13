@@ -20,8 +20,10 @@ function box3d(hitbox, pose) {
 function box2d(layer, pose, width, height) {
   const [w, h] = layer.hitbox;
   const rotation = new Matrix3().setFromMatrix4(new Matrix4().makeRotationZ(-pose.rotate * Math.PI / 180));
+  const scaleX = pose.scale_x ?? pose.scale;
+  const scaleY = pose.scale_y ?? pose.scale;
   return new OBB(new Vector3(pose.x * width, pose.y * height, 0),
-    new Vector3(w * width * pose.scale / 2, h * height * pose.scale / 2, 1), rotation);
+    new Vector3(w * width * scaleX / 2, h * height * scaleY / 2, 1), rotation);
 }
 
 function extent(box, axis) {
