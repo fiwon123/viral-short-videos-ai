@@ -73,6 +73,9 @@ SUPPORT = {
     "three.particles": {"python": False, "hyperframes": True, "remotion": True},
     "alignment.words": {"python": True, "hyperframes": True, "remotion": True},
     "visemes": {"python": True, "hyperframes": True, "remotion": True},
+    "lipsync.auto": {"python": True, "hyperframes": True, "remotion": True},
+    "light.2d-layers": {"python": True, "hyperframes": True, "remotion": True},
+    "depth.photo-layers": {"python": True, "hyperframes": True, "remotion": True},
     "review.still": {"python": True, "hyperframes": True, "remotion": True},
     "review.contact-sheet": {"python": True, "hyperframes": True, "remotion": True},
 }

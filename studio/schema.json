@@ -4,6 +4,22 @@
   "title": "Viral Short Videos Studio",
   "description": "Manifest definitions for channels, episodes, libraries and reusable recipes.",
   "$defs": {
+    "light2d": {
+      "description": "Scene light for layers marked lit: body shading and a rim light from one direction.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "angle": {"description": "Where the light comes from on screen, degrees (0 right, 90 top, 135 top left).",
+                  "type": "number", "minimum": -360, "maximum": 360},
+        "color": {"$ref": "#/$defs/text"},
+        "intensity": {"type": "number", "minimum": 0, "maximum": 2},
+        "shadow": {"$ref": "#/$defs/unit"},
+        "shadow_color": {"$ref": "#/$defs/text"},
+        "rim": {"type": "number", "minimum": 0, "maximum": 2},
+        "softness": {"description": "Rim width as a fraction of the layer size.", "type": "number", "minimum": 0.005, "maximum": 0.3},
+        "depth": {"description": "How round the body shading is, as a fraction of the layer size.", "type": "number", "minimum": 0.02, "maximum": 0.6},
+        "elevation": {"description": "Light height: low values rake across the shape, high values light it flat.", "type": "number", "minimum": 0.1, "maximum": 3}
+      }
+    },
     "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
     "tags": {"type": "array", "items": {"$ref": "#/$defs/text"}, "minItems": 1, "uniqueItems": true},
     "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
@@ -484,6 +500,9 @@
         "glow": {"$ref": "#/$defs/glow"},
         "tint": {"$ref": "#/$defs/paint"},
         "tint_opacity": {"$ref": "#/$defs/unit"},
+        "depth_photo": {"description": "Set by make depth-photo; marks the layers of one photo split.", "$ref": "#/$defs/text"},
+        "lit": {"description": "Shade this layer (and its children) with the shot light; a number scales it.",
+                "anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 2}]},
         "reveal": {"$ref": "#/$defs/reveal"},
         "trail": {"$ref": "#/$defs/trail"},
         "font": {"$ref": "#/$defs/text"},
@@ -1238,6 +1257,7 @@
         "background": {"$ref": "#/$defs/paint"},
         "camera": {"$ref": "#/$defs/camera"},
         "post": {"$ref": "#/$defs/post"},
+        "light": {"anyOf": [{"$ref": "#/$defs/light2d"}, {"const": false}]},
         "motion_blur": {"$ref": "#/$defs/unit"},
         "layers": {"type": "array", "items": {"$ref": "#/$defs/layer"}},
         "speech": {"type": "array", "items": {"$ref": "#/$defs/speech"}},
@@ -1337,6 +1357,7 @@
         "supersample": {"type": "integer", "minimum": 1, "maximum": 2},
         "motion_blur": {"$ref": "#/$defs/unit"},
         "post": {"$ref": "#/$defs/post"},
+        "light": {"$ref": "#/$defs/light2d"},
         "captions": {"$ref": "#/$defs/captions"},
         "style": {"$ref": "#/$defs/style"},
         "audio": {"$ref": "#/$defs/audio"},

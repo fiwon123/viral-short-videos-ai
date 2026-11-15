@@ -26,7 +26,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory discover viral-check character3d assets sfx sfx-import music-import music-list spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory discover viral-check character3d assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -44,6 +44,7 @@ help:
 	@echo "  make sfx-import DIR=...     import recorded SFX packs into the library [DRY=1]"
 	@echo "  make music-import DIR=...   import a royalty-free music folder, tagged by mood [DRY=1]"
 	@echo "  make music-list             list the channel music library"
+	@echo "  make depth-photo IMAGE=...  split a photo into parallax depth layers [DEPTH= LAYERS= NAME= SHOT=]"
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
@@ -133,6 +134,13 @@ music-import:
 music-list:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
 	@$(PYTHON) -m studio.music list $(CHANNEL_DIR)
+
+depth-photo:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<slug>/episodes/<episode>/episode.json"; exit 1; }
+	@test -n "$(IMAGE)" || { echo "Set IMAGE=path/to/photo.jpg"; exit 1; }
+	@$(PYTHON) -m studio.depthphoto $(EPISODE) --image "$(IMAGE)" $(if $(DEPTH),--depth "$(DEPTH)",) \
+		$(if $(LAYERS),--layers $(LAYERS),) $(if $(NAME),--name $(NAME),) $(if $(SHOT),--shot $(SHOT),) \
+		$(if $(INVERT),--invert,)
 
 character:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }

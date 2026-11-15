@@ -7,6 +7,7 @@ import shutil
 from PIL import Image, ImageDraw
 
 from .camera import resolve_camera
+from .light2d import resolve as resolve_light
 from .core import asset, ffmpeg, require, run, svg_asset, write_json
 from .design import (_draw_tracked, caption_layout, color_alpha, depth_order, draw_caption, poses,
                      resolve_color, resolve_font, sheet_tiles, sprite, thumbnail)
@@ -138,7 +139,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                                                 **(shot.get("post") or {})}),
                         "motion_blur": shot.get("motion_blur",
                                                 (config or {}).get("motion_blur", episode.get("motion_blur", 0))),
-                        "layers": [], "visemes": [],
+                        "layers": [], "visemes": [], "light": resolve_light(shot.get("light"), channel["palette"]),
                         "speech": [(a, b, speaker, values.tolist())
                                    for a, b, speaker, values in levels.get(shot["id"], [])]}
             prepared["visemes"] = [
@@ -187,7 +188,8 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                           "parallax": layer.get("parallax", 1), "mask": mask,
                           "shadow": layer.get("shadow"), "glow": layer.get("glow"),
                           "tint": layer.get("tint"),
-                          "viseme_for": layer.get("viseme_for"), "viseme": layer.get("viseme")}
+                          "viseme_for": layer.get("viseme_for"), "viseme": layer.get("viseme"),
+                          "lit": float(layer["lit"]) if layer.get("lit") else None}
                 if layer["kind"] == "svg":
                     path = svg_asset(layer, base, channel_base)
                     styled = layer.get("finish")

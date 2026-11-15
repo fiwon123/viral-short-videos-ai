@@ -1116,6 +1116,59 @@ class LipSyncTests(unittest.TestCase):
         self.assertEqual(design.frame(0.5, {}, post=False, visemes={"Hero": "o"}).getpixel((20, 20))[:3], (0, 0, 255))
 
 
+class Light2DTests(unittest.TestCase):
+    def test_lit_side_faces_the_light_and_children_inherit(self):
+        import numpy as np
+        from PIL import Image, ImageDraw
+        from studio.light2d import expand, local_direction, shade_tile
+        episode = {"light": {"angle": 180, "color": "accent"}, "scenes": [{"shots": [
+            {"id": "A", "layers": [{"id": "rig", "kind": "group", "lit": 0.5},
+                                    {"id": "rig/arm", "kind": "rect", "parent": "rig"},
+                                    {"id": "rig/hat", "kind": "rect", "parent": "rig", "lit": False}]},
+            {"id": "B", "light": False, "layers": [{"id": "x", "kind": "rect", "lit": True}]}]}]}
+        shots = expand(episode, {"palette": {"accent": "#FFAA00"}})["scenes"][0]["shots"]
+        layers = {layer["id"]: layer for layer in shots[0]["layers"]}
+        self.assertEqual(layers["rig/arm"]["lit"], 0.5)
+        self.assertNotIn("lit", layers["rig/hat"])
+        self.assertEqual(shots[0]["light"]["color"], "#FFAA00")
+        self.assertNotIn("light", shots[1])
+        tile = Image.new("RGBA", (80, 80))
+        ImageDraw.Draw(tile).ellipse((10, 10, 70, 70), fill=(128, 128, 128, 255))
+        spec = {**shots[0]["light"], "color": "#FFFFFF", "shadow_color": "#000000"}
+        lit = np.asarray(shade_tile(tile, local_direction(180, 0), spec), dtype=float)
+        self.assertGreater(lit[40, 20, 0], lit[40, 60, 0] + 20)  # Light from the left.
+        # A layer turned 180 degrees sees the screen-left light on its own right side.
+        dx, dy = local_direction(180, math.pi)
+        self.assertAlmostEqual(dx, 1, places=6)
+        self.assertAlmostEqual(dy, 0, places=6)
+
+
+class DepthPhotoTests(unittest.TestCase):
+    def test_layers_recombine_to_the_photo_and_fill_hidden_areas(self):
+        import numpy as np
+        from PIL import Image
+        from studio.depthphoto import layer_specs, push_pull, split
+        rng = np.random.default_rng(3)
+        pixels = (rng.random((96, 54, 3)) * 255).astype(np.uint8)
+        image = Image.fromarray(pixels)
+        depth = np.linspace(0, 1, 96)[:, None] * np.ones((1, 54))
+        layers, thresholds = split(image, depth, 3)
+        self.assertEqual(len(layers), 3)
+        self.assertTrue(np.all(layers[0][..., 3] == 1))
+        composite = layers[0][..., :3].copy()
+        for layer in layers[1:]:
+            alpha = layer[..., 3:]
+            composite = composite * (1 - alpha) + layer[..., :3] * alpha
+        self.assertLess(np.mean(np.abs(composite - pixels / 255)), 0.03)
+        hole = np.ones((16, 16))
+        hole[4:12, 4:12] = 0
+        filled = push_pull(np.full((16, 16, 3), 0.5) * hole[..., None], hole)
+        self.assertAlmostEqual(float(filled[8, 8, 0]), 0.5, places=2)
+        specs = layer_specs("p", ["a.png", "b.png", "c.png"], (540, 960), (1080, 1920))
+        self.assertEqual([spec["z"] for spec in specs], [1.2, 0.6, 0.0])
+        self.assertLessEqual(specs[0]["width"], 2)
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

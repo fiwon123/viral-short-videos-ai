@@ -67,6 +67,9 @@
 | `three.particles` | ❌ | ✅ | ✅ |
 | `alignment.words` | ✅ | ✅ | ✅ |
 | `visemes` | ✅ | ✅ | ✅ |
+| `lipsync.auto` | ✅ | ✅ | ✅ |
+| `light.2d-layers` | ✅ | ✅ | ✅ |
+| `depth.photo-layers` | ✅ | ✅ | ✅ |
 | `review.still` | ✅ | ✅ | ✅ |
 | `review.contact-sheet` | ✅ | ✅ | ✅ |
 

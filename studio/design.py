@@ -780,12 +780,29 @@ class Composition:
                 "spec": layer,
             })
         self.layer_map = {layer["id"]: layer for layer in self.layers}
+        from .light2d import resolve as resolve_light
+        self.light = resolve_light(shot.get("light"), self.palette)
+        self._lit_cache = {}
         self.masks = {}
         for layer in self.layers:
             inherited = list(self.masks.get(layer["parent"], []))
             if layer.get("mask"):
                 inherited.append(layer["mask"])
             self.masks[layer["id"]] = inherited
+
+    def _lit(self, layer, tile, state, parent_matrix):
+        """Scene light baked into the tile in its own space (studio/light2d.py)."""
+        from .light2d import local_direction, shade_tile
+        world = -math.radians(float(state.get("rotate", 0) or 0))
+        if parent_matrix is not None:
+            world += math.atan2(parent_matrix[1], parent_matrix[0])
+        uniform = float(state.get("scale", 1) or 1)
+        direction = local_direction(self.light["angle"], world,
+                                    float(state.get("scale_x", uniform)) < 0, float(state.get("scale_y", uniform)) < 0)
+        key = (layer["id"], id(tile), round(direction[0], 4), round(direction[1], 4))
+        if key not in self._lit_cache:
+            self._lit_cache[key] = shade_tile(tile, direction, self.light, float(layer["spec"]["lit"] is True or layer["spec"]["lit"]))
+        return self._lit_cache[key]
 
     def _world(self, layer_id, progress, camera, seen=None):
         seen = set(seen or ())
@@ -943,6 +960,8 @@ class Composition:
                 tile = layer["tiles"][frame_index]
             else:
                 tile = layer["tile"]
+            if self.light and layer["spec"].get("lit"):
+                tile = self._lit(layer, tile, state, matrices.get(layer["parent"]))
             quiet = layer["spec"].get("quiet_for")
             if quiet and speaking and speaking.get(quiet, 0) > TALK_LEVEL:
                 continue

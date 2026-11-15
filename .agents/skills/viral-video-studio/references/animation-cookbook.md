@@ -110,6 +110,12 @@ Give top-level layers a `z` (0 is the picture plane, positive is farther, slight
 
 Children inherit their parent's depth, and paint order runs far to near automatically. Overscan far backdrops (`width`/`height` 1.4–2) when the camera zooms out or uses `dolly-zoom`, or their edges show. Typical depths: sky 6–10, mountains 2–4, trees 0.6–1.5, characters and ground 0, foreground foliage −0.3 to −0.5.
 
+**Photo parallax.** `make depth-photo EPISODE=... IMAGE=photo.jpg SHOT=A` crops a photo to the frame, splits it into depth layers (`LAYERS=4`) and inserts them at the bottom of the shot with `z` from 1.2 (far) to 0 (near). Hidden areas behind each band are filled in from that band, so moves stay clean. Then add `"camera": {"preset": "dolly-in"}` or a small `x` pan. Supply a depth map for good cuts (`DEPTH=depth.png`, white = near; `INVERT=1` for white = far) from Depth Anything, Marigold or a photo editor, or put a Depth Anything V2 ONNX model in `audio-models/depth/` (or `STUDIO_DEPTH_MODEL`). Without either, a rough "lower and busier is nearer" guess is used, which suits landscapes and streets only. Keep moves small (dolly `z` ≤ 0.35, pans ≤ 0.04), because large moves expose the filled areas. Rerunning with the same `NAME` replaces the earlier split. Use photos the channel owns or may use.
+
+## Light on 2D layers
+
+Give the episode or a shot a `light` and mark layers `lit` to shade flat art from one direction: `"light": {"angle": 135, "color": "#FFE7B8", "intensity": 0.45, "shadow": 0.4, "shadow_color": "#2B1F4F", "rim": 0.7}`. `angle` is where the light comes from on screen (0 right, 90 top, 135 top left). Each lit tile gets a soft lit side and shadow side from its silhouette and a rim light on the edges facing the light. `lit` on a `use` or group layer lights the whole rig (children inherit, `lit: false` opts a part out, a number scales it). The light stays on the same screen side when a part rotates or flips. Match the angle to the background's sun or lamp, use the palette's warm accent for `color` and a cool dark for `shadow_color`, and set `light: false` on a shot to switch it off. `softness` sets the rim width, `depth` how round the body reads, and `elevation` how raking the light is.
+
 ## 3D shots
 
 The scene library (`scene_library` in the channel) holds reusable sets. Shots key them through `three`.

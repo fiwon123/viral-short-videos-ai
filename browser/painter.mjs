@@ -322,6 +322,105 @@ export async function createPainter(canvas, data, urlFor) {
   const paperFibre = noiseTile(256, 5);
   const tintCanvases = new Map();
 
+  // Scene light on lit 2D tiles, mirrored from studio/light2d.py.
+  const litCache = new WeakMap();
+  const hexRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+
+  function boxPass(src, w, h, r, horizontal) {
+    const out = new Float32Array(w * h);
+    const n = horizontal ? w : h, lines = horizontal ? h : w;
+    const prefix = new Float64Array(n + 1);
+    for (let line = 0; line < lines; line += 1) {
+      for (let i = 0; i < n; i += 1) {
+        const index = horizontal ? line * w + i : i * w + line;
+        prefix[i + 1] = prefix[i] + src[index];
+      }
+      for (let i = 0; i < n; i += 1) {
+        const lo = Math.max(0, i - r), hi = Math.min(n, i + r + 1);
+        out[horizontal ? line * w + i : i * w + line] = (prefix[hi] - prefix[lo]) / (2 * r + 1);
+      }
+    }
+    return out;
+  }
+
+  function boxBlur(values, w, h, r) {
+    if (r < 1) return values;
+    let out = values;
+    for (let pass = 0; pass < 2; pass += 1) out = boxPass(boxPass(out, w, h, r, true), w, h, r, false);
+    return out;
+  }
+
+  function gradient(values, w, h) {
+    const gx = new Float32Array(w * h), gy = new Float32Array(w * h);
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        const i = y * w + x;
+        gx[i] = w < 2 ? 0 : x === 0 ? values[i + 1] - values[i] : x === w - 1 ? values[i] - values[i - 1]
+          : (values[i + 1] - values[i - 1]) / 2;
+        gy[i] = h < 2 ? 0 : y === 0 ? values[i + w] - values[i] : y === h - 1 ? values[i] - values[i - w]
+          : (values[i + w] - values[i - w]) / 2;
+      }
+    }
+    return [gx, gy];
+  }
+
+  function lightDirection(angle, worldRotation, flipX, flipY) {
+    const bucket = 5;
+    const a = Math.round(angle / bucket) * bucket * Math.PI / 180;
+    const w = Math.round(worldRotation * 180 / Math.PI / bucket) * bucket * Math.PI / 180;
+    const sx = Math.cos(a), sy = -Math.sin(a);
+    const lx = Math.cos(w) * sx + Math.sin(w) * sy, ly = -Math.sin(w) * sx + Math.cos(w) * sy;
+    return [flipX ? -lx : lx, flipY ? -ly : ly];
+  }
+
+  function lightTile(tile, light, direction, strength) {
+    let byKey = litCache.get(tile);
+    if (!byKey) litCache.set(tile, byKey = new Map());
+    const key = `${direction[0].toFixed(4)},${direction[1].toFixed(4)},${strength}`;
+    if (byKey.has(key)) return byKey.get(key);
+    const w = tile.width, h = tile.height;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", {willReadFrequently: true});
+    ctx.drawImage(tile, 0, 0);
+    const image = ctx.getImageData(0, 0, w, h);
+    const px = image.data;
+    const alpha = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i += 1) alpha[i] = px[i * 4 + 3] / 255;
+    const size = Math.min(w, h);
+    const small = Math.max(1, Math.round(light.softness * size));
+    const large = Math.max(2, Math.round(light.depth * size));
+    const [lx, ly] = direction;
+    const norm = Math.hypot(lx, ly, light.elevation);
+    const l3 = [lx / norm, ly / norm, light.elevation / norm];
+    const [dx, dy] = gradient(boxBlur(alpha, w, h, large), w, h);
+    const [ex, ey] = gradient(boxBlur(alpha, w, h, small), w, h);
+    const bright = hexRgb(light.color), dark = hexRgb(light.shadow_color);
+    for (let i = 0; i < w * h; i += 1) {
+      if (!px[i * 4 + 3]) continue;
+      const nx = -dx[i] * large, ny = -dy[i] * large;
+      const lambert = (nx * l3[0] + ny * l3[1] + l3[2]) / Math.sqrt(nx * nx + ny * ny + 1);
+      const side = Math.max(-1, Math.min(1, (lambert - l3[2]) / Math.max(1e-6, 1 - l3[2])));
+      const magnitude = Math.hypot(ex[i], ey[i]);
+      const facing = magnitude > 1e-6 ? -(ex[i] * lx + ey[i] * ly) / magnitude : 0;
+      const rim = Math.min(1, magnitude * 2 * small) * Math.max(0, facing) * alpha[i];
+      const lit = Math.max(0, side) * light.intensity * strength;
+      const shadow = Math.max(0, -side) * light.shadow * strength;
+      const glow = rim * light.rim * strength;
+      for (let c = 0; c < 3; c += 1) {
+        let v = px[i * 4 + c] / 255;
+        v *= 1 - shadow + shadow * dark[c];
+        v = 1 - (1 - v) * (1 - bright[c] * lit);
+        v = 1 - (1 - v) * (1 - bright[c] * glow);
+        px[i * 4 + c] = Math.round(Math.max(0, Math.min(1, v)) * 255);
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+    byKey.set(key, canvas);
+    return canvas;
+  }
+
   function tintTile(layer, tile, color, opacity) {
     let canvas = tintCanvases.get(layer.id);
     if (!canvas) {
@@ -600,7 +699,7 @@ export async function createPainter(canvas, data, urlFor) {
 
   let projector = null;
 
-  function paintLayers(target, layers, progress, offset, speech, isCover, camera, visemes = {}, shotDuration = 1) {
+  function paintLayers(target, layers, progress, offset, speech, isCover, camera, visemes = {}, shotDuration = 1, light = null) {
     const matrices = new Map();
     const alphas = new Map();
     const origins = new Map();
@@ -644,7 +743,15 @@ export async function createPainter(canvas, data, urlFor) {
       const tintColor = pose.tint_color
         ? `rgb(${pose.tint_color.map((value) => Math.round(value)).join(",")})`
         : (layer.tint ? paintColor(layer.tint, "accent") : null);
-      const drawTile = tintColor && tintOpacity > 0 ? tintTile(layer, tile, tintColor, tintOpacity) : tile;
+      let litTile = tile;
+      if (light && layer.lit && tile?.width) {
+        const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
+        const world = -(pose.rotate ?? 0) * Math.PI / 180 + (parentMatrix ? Math.atan2(parentMatrix[1], parentMatrix[0]) : 0);
+        const uniform = pose.scale ?? 1;
+        litTile = lightTile(tile, light, lightDirection(light.angle, world, (pose.scale_x ?? uniform) < 0,
+          (pose.scale_y ?? uniform) < 0), layer.lit);
+      }
+      const drawTile = tintColor && tintOpacity > 0 ? tintTile(layer, litTile, tintColor, tintOpacity) : litTile;
       if (lipShape === undefined && layer.variant_group && chosen.get(layer.variant_group) !== layer.id) continue;
       if (layer.parent && !(states.get(layer.parent)?.visible ?? true)) continue;
       const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
@@ -940,9 +1047,9 @@ export async function createPainter(canvas, data, urlFor) {
     // Render 3D first so anchor3d layers project through the current camera.
     const threeCanvas = three[index] ? three[index](progress) : null;
     projector = three[index]?.project ?? null;
-    paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1);
+    paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1, shot.light);
     if (threeCanvas) target.drawImage(threeCanvas, 0, 0);
-    paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1);
+    paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1, shot.light);
     applyPost(target.canvas, shot.post, frame);
   }
 
