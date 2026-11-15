@@ -26,7 +26,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory discover assets sfx sfx-import spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory discover viral-check assets sfx sfx-import spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -45,6 +45,7 @@ help:
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
+	@echo "  make viral-check EPISODE=... [VIDEO=...]  score hook, pacing, loop, packaging and loudness"
 	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
@@ -95,6 +96,10 @@ discover:
 	@$(PYTHON) video.py discover --query "$(QUERY)" --region $(or $(REGION),US) --shorts \
 		--rank $(or $(RANK),velocity) --days $(or $(DAYS),7) --limit $(or $(LIMIT),10) \
 		$(if $(SLUG),--snapshots workspace/$(SLUG)/research/snapshots,)
+
+viral-check:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=.../video.mp4]"; exit 1; }
+	@$(PYTHON) -m studio.viral_check $(EPISODE) $(CHANNEL_ARG) $(if $(VIDEO),--video $(VIDEO),)
 
 channel-memory:
 	@test -n "$(SLUG)" || { echo "Set SLUG=<channel slug> (workspace/<slug>/)"; exit 1; }

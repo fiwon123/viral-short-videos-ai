@@ -27,6 +27,15 @@ Create any missing file from the templates before planning. Keep entries short a
 6. **Offer concepts.** Give two to four concepts with a hook, payoff, length, and visual approach, saying which is timely (and until when) and which is evergreen, and which trend or ledger lesson each draws on.
 7. **Stay recognisable.** Ideas and references can evolve, but the channel's look, characters, voice, caption style, and format change only when the user decides. Prefer small, deliberate variations, such as a new location, a guest character, or a new recurring segment, over drastic shifts.
 
+## Push the odds before publishing
+
+- Run `make viral-check EPISODE=...` on the manifest while blocking, and again with `VIDEO=.../video.mp4` after the preview render. Fix every high and medium note, or write in `NOTES.md` why it is intentional. Record the score.
+- The check covers the opening (speech by 0.5 s, motion in the first half second, words in the first second, a non-blank first frame), pacing (a visible change every 2–4 s), runtime (15–45 s), captions, the loop (last frame leading into the first), loudness, and packaging (2–4 word thumbnail text, a title under 60 characters echoed in the first line).
+- **Act fast on timely topics.** A trend that is rising in views per hour is worth an episode within 24–72 hours. After that, prefer evergreen ideas.
+- **Double down on outliers.** When an episode clearly beats the channel's median (about 2× at the same age), plan a follow-up or a series continuation within days, and log why it may have worked.
+- **Keep a sustainable cadence.** Early on, a steady rhythm of several Shorts a week finds the format faster than polishing one. Use `thumbnails` variants to test covers, and change one thing at a time between episodes so the ledger's lessons stay readable.
+- **End with a reason to continue.** Series episodes end on the next question. Standalone episodes end on a loop or a payoff that invites a replay.
+
 ## After each episode
 
 - **Ledger:** mark the row delivered with the date, topic, hook, arc, and format.

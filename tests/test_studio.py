@@ -861,6 +861,25 @@ class DiscoverTests(unittest.TestCase):
             self.assertEqual(len(os.listdir(folder)), 2)
 
 
+class ViralCheckTests(unittest.TestCase):
+    def test_flags_a_slow_silent_opening(self):
+        from studio.viral_check import check
+        slow = {"title": "The Longest Wait Ever Recorded On Any Hill Anywhere At All Tonight Friends",
+                "fps": 24, "thumbnail": {"shot": "A"},
+                "scenes": [{"shots": [{"id": "A", "duration": 7.0, "layers": [
+                    {"id": "bg", "kind": "rect", "x": 0.5, "y": 0.5}]}]}]}
+        kinds = {note["kind"] for note in check(slow, slow)["notes"]}
+        self.assertTrue({"hook-motion", "hook-text", "first-shot", "pacing", "packaging"} <= kinds)
+        snappy = {"title": "Pip catches a star", "fps": 24, "thumbnail": {"shot": "A", "text": "CAUGHT IT"},
+                  "scenes": [{"shots": [{"id": "A", "duration": 2.5, "speech": [{"at": 0.2, "text": "Pip catches a star."}],
+                                         "layers": [{"id": "s", "kind": "ellipse", "x": 0.2, "y": 0.5,
+                                                     "keyframes": [{"at": 0.3, "x": 0.8}]}]},
+                                        {"id": "B", "duration": 4.0, "camera": {"preset": "push-in"}, "layers": []}, {"id": "C", "duration": 3.5, "camera": {"preset": "float"}, "layers": []}, {"id": "D", "duration": 4.0, "camera": {"preset": "push-in"}, "layers": []}]}]}
+        result = check(snappy, snappy)
+        self.assertEqual(result["notes"], [])
+        self.assertEqual(result["score"], 100)
+
+
 class ChannelMemoryTests(unittest.TestCase):
     def test_creates_missing_files_and_keeps_existing(self):
         from datetime import date
