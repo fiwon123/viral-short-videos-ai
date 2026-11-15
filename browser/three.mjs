@@ -305,10 +305,22 @@ export async function createThreeStage(specs, width, height, urlFor) {
         const keys = Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : [];
         const strip = (key, names) => Object.fromEntries(Object.entries(key).filter(([name]) => !names.includes(name)));
         const looks = keys.filter((key) => "opacity" in key || "emissive_intensity" in key);
+        // Morph weights: one numeric track per target name, set on every mesh that has the target.
+        const morphNames = [...new Set([...Object.keys(spec.morph ?? {}),
+          ...keys.flatMap((key) => Object.keys(key.morph ?? {}))])];
+        const morphMeshes = [];
+        if (morphNames.length) node.traverse((child) => { if (child.morphTargetInfluences) morphMeshes.push(child); });
+        const morphs = morphNames.length && morphMeshes.length ? {
+          names: morphNames,
+          meshes: morphMeshes,
+          track: poseTrack(Object.fromEntries(morphNames.map((name) => [name, spec.morph?.[name] ?? 0])),
+            keys.filter((key) => key.morph).map((key) => ({at: key.at, ease: key.ease, ...key.morph}))),
+        } : null;
         return {
           node,
+          morphs,
           aspect: node.userData.aspect ?? 1,
-          poses: objectTrack(spec, keys.map((key) => strip(key, ["opacity", "emissive_intensity"]))),
+          poses: objectTrack(spec, keys.map((key) => strip(key, ["opacity", "emissive_intensity", "morph"]))),
           looks: looks.length ? poseTrack({opacity: spec.opacity ?? 1, emissive_intensity: spec.emissive_intensity ?? 1},
             looks.map((key) => ({at: key.at, ease: key.ease, ...("opacity" in key ? {opacity: key.opacity} : {}),
               ...("emissive_intensity" in key ? {emissive_intensity: key.emissive_intensity} : {})}))) : null,
@@ -324,7 +336,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
           camera.fov = fov;
           camera.updateProjectionMatrix();
         }
-        for (const {node, poses, looks, aspect, mixer, actions} of tracks) {
+        for (const {node, poses, looks, aspect, mixer, actions, morphs} of tracks) {
           const pose = poseAt(poses, progress);
           node.visible = pose.visible;
           node.position.set(...pose.position);
@@ -347,6 +359,18 @@ export async function createThreeStage(specs, width, height, urlFor) {
               action.time = time;
             }
             mixer.update(0);
+          }
+          // After the mixer, so keyed weights win over clips that also drive morphs.
+          if (morphs) {
+            const weights = poseAt(morphs.track, progress);
+            for (const mesh of morphs.meshes) {
+              for (const name of morphs.names) {
+                const index = mesh.morphTargetDictionary?.[name] ?? (/^\d+$/.test(name) ? Number(name) : undefined);
+                if (index !== undefined && index < mesh.morphTargetInfluences.length) {
+                  mesh.morphTargetInfluences[index] = weights[name];
+                }
+              }
+            }
           }
         }
         for (const {node, poses} of lightTracks) {

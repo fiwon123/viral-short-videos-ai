@@ -806,6 +806,25 @@ class PaintTests(unittest.TestCase):
         self.assertGreater(image.getpixel((0, 1))[2], 200)
 
 
+class MorphTests(unittest.TestCase):
+    MODEL = {"meshes": [{"primitives": [{"targets": [{}, {}]}], "extras": {"targetNames": ["smile", "blink"]}},
+                        {"primitives": [{"targets": [{}]}]}]}
+
+    def test_morph_names_include_labels_and_indices(self):
+        from studio.scenes import morph_names
+        self.assertEqual(morph_names(self.MODEL), {"smile", "blink", "0", "1"})
+
+    def test_unknown_morph_key_is_rejected(self):
+        from studio.scenes import validate_three
+        scene = {"objects": [{"id": "face", "kind": "glb", "_morphs": ["smile"]}]}
+        library = ({"scenes": {"s": scene}}, None)
+        good = {"id": "A", "three": {"scene": "s", "objects": {"face": [{"at": 1, "morph": {"smile": 1}}]}}}
+        validate_three(good, library)
+        bad = {"id": "A", "three": {"scene": "s", "objects": {"face": [{"at": 1, "morph": {"frown": 1}}]}}}
+        with self.assertRaisesRegex(ValueError, "frown"):
+            validate_three(bad, library)
+
+
 class TypefaceTests(unittest.TestCase):
     def test_outline_handles_implied_on_curve_points(self):
         from studio.typeface import outline

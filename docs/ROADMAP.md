@@ -40,15 +40,16 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.1: 3D camera rigs | Done | `studio/rig3d.py` `three.camera_rig`: orbit, dolly, crane, flyby and follow, with handheld and fov. |
 | Phase 4.2: lights and atmosphere | Done | Scene `lights` (point, spot, hemisphere), `fog`, and `environment: room` (PMREM). Lights keyable per shot. |
 | Phase 4.3: text in 3D | Done | `text` is a canvas-textured plane, or extruded `TextGeometry` with `depth`/`bevel`. `studio/typeface.py` reads TrueType `glyf` outlines (no dependency) into typeface JSON with only the used glyphs, staged by `browser._stage_typeface`. CFF .otf falls back to the plane. |
-| Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
+| Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. GLB morph targets: `morph` weights on object keys and objects, names checked against the model (`scenes.morph_names`), applied after the mixer. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Done | Keyable `tint_color` and `wipe` draw-on (`wipe_from`) in both renderers. Keyed `fill`/`stroke_width`/`stroke_color` on shapes and text expand in `studio/paint.py` into `paint_frames` sprites plus `frame` keys (≤120 looks, sampled at min(24, fps)). `keys.compose` takes a `rate` and no longer puts grid samples within 0.9 sample of an authored key. Also fixed `gradient_image` clipping angles past 90°. |
-| Still pending | Pending | 4.4 morph targets, 2.6 two-bone IK. |
+| Still pending | Pending | 2.6 two-bone IK. |
 
-Tests: `make test` passes, 74 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 76 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 4.4 GLB morph target keys landed.
 - 2026-11-15: Phase 2.4 fill/stroke keys landed, plus the gradient angle fix.
 - 2026-11-15: Phase 4.3 extruded 3D text landed.
 - 2026-11-15: C5 contrast check landed in the motion report.

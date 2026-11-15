@@ -860,6 +860,8 @@
         "roughness": {"type": "number", "minimum": 0, "maximum": 1},
         "emissive": {"$ref": "#/$defs/color"},
         "emissive_intensity": {"type": "number", "minimum": 0, "maximum": 10},
+        "morph": {"description": "Starting GLB morph target weights by name (or index).",
+                  "type": "object", "additionalProperties": {"type": "number", "minimum": -1, "maximum": 2}},
         "visible": {"type": "boolean"},
         "variant_group": {"$ref": "#/$defs/text"},
         "cast_shadow": {"type": "boolean"},
@@ -994,7 +996,9 @@
         "scale": {"$ref": "#/$defs/scale3"},
         "visible": {"type": "boolean"},
         "opacity": {"$ref": "#/$defs/unit"},
-        "emissive_intensity": {"type": "number", "minimum": 0, "maximum": 10}
+        "emissive_intensity": {"type": "number", "minimum": 0, "maximum": 10},
+        "morph": {"description": "GLB morph target weights by name (or index), e.g. {\"smile\": 0.8}.",
+                  "type": "object", "additionalProperties": {"type": "number", "minimum": -1, "maximum": 2}}
       }
     },
     "three_animation": {

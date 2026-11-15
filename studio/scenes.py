@@ -22,6 +22,17 @@ def check_glb(path):
     for item in (*model.get("buffers", []), *model.get("images", [])):
         if "uri" in item and not item["uri"].startswith("data:"):
             raise ValueError(f"Embed textures and buffers inside the GLB: {path.name}")
+    return morph_names(model)
+
+
+def morph_names(model):
+    """Morph target names a glTF model exposes (mesh.extras.targetNames, else indices)."""
+    names = set()
+    for mesh in model.get("meshes", []):
+        count = max((len(primitive.get("targets", [])) for primitive in mesh.get("primitives", [])), default=0)
+        labels = (mesh.get("extras") or {}).get("targetNames") or []
+        names |= set(labels[:count]) | {str(index) for index in range(count)}
+    return names
 
 
 def load_library(channel, base):
@@ -47,7 +58,7 @@ def load_library(channel, base):
                 raise ValueError(f"{scene_id} has a duplicate 3D object ID: {obj['id']}")
             ids.add(obj["id"])
             if obj["kind"] == "glb":
-                check_glb(asset(path.parent, obj["file"]))
+                obj["_morphs"] = sorted(check_glb(asset(path.parent, obj["file"])))
     return library, path.parent
 
 
@@ -72,6 +83,13 @@ def validate_three(shot, library):
         times = [key["at"] for key in keys]
         if times != sorted(set(times)):
             raise ValueError(f"{shot['id']} requires increasing 3D keyframe times")
+    morphs = {obj["id"]: set(obj.get("_morphs", [])) for obj in scene["objects"]}
+    for object_id, keys in paths.items():
+        used = {name for key in keys for name in (key.get("morph") or {})}
+        if unknown := used - morphs.get(object_id, set()):
+            known = ", ".join(sorted(morphs.get(object_id, set()))) or "none"
+            raise ValueError(f"{shot['id']} keys unknown morph targets on {object_id}: "
+                             f"{', '.join(sorted(unknown))} (model has: {known})")
     focus_times = [key["at"] for key in spec.get("focus", [])]
     if focus_times != sorted(set(focus_times)):
         raise ValueError(f"{shot['id']} requires increasing 3D focus times")
