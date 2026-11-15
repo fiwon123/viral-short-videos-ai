@@ -50,6 +50,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Bendy limbs | Done | Keyable `bend` (degrees) curves a part as a circular arc from its pivot. Python inverse-maps with NumPy (`design.bend_tile`), the browser draws a forward triangle mesh (`bentTile`), and children ride the curve (`bend_child`/`bendChild`). Parity test diff 0.0004. |
 | Character range | Done | `character.py` `archetype` presets (blob, human, cat, dog, bird, robot) with deep-merged overrides. New parts: hair (tuft, spiky, curly, bob, bun), nose (dot, button, snout, beak, cat + whiskers), floppy ears, tails (with `tip` and rest `bend`), outfits, `skin` for heads and hands. Behind-parts hang from the face's parent so they draw behind it. `alive` wags tails. Preview shows rest rotations. |
 | 3D physics | Done | `studio/physics3d.py`: gravity, ground, walls, bounce, sliding friction and rolling resistance, sphere collisions, rolling spin, settling on a face. Baked into object keys before the camera rigs. |
+| 3D posing and IK | Done | Object `bones` keys (degree offsets after the mixer, reset each frame) and `three.ik` CCD chains with point or object targets and weights, in a second pass after all objects are posed. `studio/glbcharacter.py` writes a rigged, vertex-coloured low-poly humanoid GLB. Bone names are validated against GLB nodes. |
 | Still pending | Pending | Nothing from the original plan. See "Professional gaps" below for the next work. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -62,16 +63,17 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Lip sync | 2D | Visemes exist but mouth sets are generic | Map Whisper phonemes to the 6+ mouth shapes per character |
 | Lighting on 2D layers | 2.5D | Flat layers ignore scene light | Normal/rim light pass driven by a light direction per shot |
 | Depth from a photo | 2.5D | "Photo parallax" is a popular format | Split an image into depth layers from a depth map |
-| 3D character animation | 3D | Only GLB clip playback; no authored bones, no 3D IK, no retargeting | Bone keys and 3D IK on GLB skeletons; docs for free CC0 rigs (Quaternius, Kenney) and Mixamo |
+| ~~3D character animation~~ Done: `bones` keys, `three.ik` (CCD), `make character3d` rigged GLB | 3D | Only GLB clip playback; no authored bones, no 3D IK, no retargeting | Bone keys and 3D IK on GLB skeletons; docs for free CC0 rigs (Quaternius, Kenney) and Mixamo |
 | ~~3D physics~~ Done: `three.physics` baked rigid bodies | 3D | Falls, collisions and debris are hand-keyed | Bake rigid-body motion into object keys with a small solver |
 | Render quality and speed | 3D | Real-time WebGL look; no path tracing; ~2 min per 15 s at 540p | Accept for stylised channels; add a quality preset (SSAO, soft shadows) and parallel shot rendering |
 | Music | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | Voices | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 95 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 97 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: 3D bone posing, 3D IK and the rigged GLB character generator landed.
 - 2026-11-15: Baked 3D physics landed.
 - 2026-11-15: Character archetypes and new parts landed.
 - 2026-11-15: Bendy limbs landed (`bend`).

@@ -971,6 +971,37 @@ class Physics3DTests(unittest.TestCase):
         self.assertFalse(baked[-1]["visible"])
 
 
+class Rig3DTests(unittest.TestCase):
+    def test_generated_character_is_a_valid_skinned_glb(self):
+        from tempfile import TemporaryDirectory
+        from studio.glbcharacter import write_glb
+        from studio.scenes import check_glb, node_names
+        with TemporaryDirectory() as folder:
+            result = write_glb(Path(folder) / "hero.glb", {"shirt": "#FF0000"})
+            model = check_glb(Path(folder) / "hero.glb")
+        self.assertEqual(len(model["skins"][0]["joints"]), len(result["bones"]))
+        names = node_names(model)
+        self.assertTrue({"Hips", "Head", "UpperArm.L", "LowerArm.R", "Foot.L", "UpperArmL"} <= names)
+        self.assertEqual(result["vertices"] % 3, 0)
+
+    def test_unknown_bones_and_ik_targets_are_rejected(self):
+        from studio.scenes import validate_three
+        scene = {"objects": [{"id": "hero", "kind": "glb", "_nodes": ["Hips", "UpperArm.R", "LowerArm.R", "Hand.R"]},
+                             {"id": "ball", "kind": "sphere"}]}
+        library = ({"scenes": {"s": scene}}, None)
+        ok = {"id": "A", "three": {"scene": "s", "objects": {"hero": [{"at": 1, "bones": {"Hips": [0, 10, 0]}}]},
+                                   "ik": {"hero": [{"chain": ["UpperArm.R", "LowerArm.R", "Hand.R"],
+                                                    "keys": [{"at": 0.5, "object": "ball"}]}]}}}
+        validate_three(ok, library)
+        bad = {"id": "A", "three": {"scene": "s", "objects": {"hero": [{"at": 1, "bones": {"Spine": [0, 1, 0]}}]}}}
+        with self.assertRaisesRegex(ValueError, "Spine"):
+            validate_three(bad, library)
+        missing = {"id": "A", "three": {"scene": "s", "ik": {"hero": [{"chain": ["UpperArm.R", "Hand.R"],
+                                                                        "keys": [{"at": 0.5, "object": "moon"}]}]}}}
+        with self.assertRaisesRegex(ValueError, "moon"):
+            validate_three(missing, library)
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

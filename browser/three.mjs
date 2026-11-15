@@ -1,5 +1,6 @@
 import {
-  ACESFilmicToneMapping, AdditiveBlending, AmbientLight, AnimationMixer, BoxGeometry,
+  ACESFilmicToneMapping, AdditiveBlending, AmbientLight, AnimationMixer, BoxGeometry, Euler, PropertyBinding,
+  Quaternion,
   BufferGeometry, CanvasTexture, CapsuleGeometry, Color, ConeGeometry, CylinderGeometry, DataTexture,
   DirectionalLight, DoubleSide, Float32BufferAttribute, Fog, FogExp2, HemisphereLight, Mesh, MeshBasicMaterial,
   MeshStandardMaterial, MeshToonMaterial, NearestFilter, NormalBlending, PCFShadowMap, PerspectiveCamera,
@@ -18,7 +19,7 @@ import {Font} from "three/addons/loaders/FontLoader.js";
 import {TextGeometry} from "three/addons/geometries/TextGeometry.js";
 
 import {lightingFor} from "./lighting.mjs";
-import {objectTrack, poseAt, poseTrack} from "./pose.mjs";
+import {easing, objectTrack, poseAt, poseTrack} from "./pose.mjs";
 
 function randomizer(seed) {
   let state = (Number(seed) || 1) >>> 0;
@@ -88,6 +89,48 @@ function makeMaterial(obj, ramp, extra = {}) {
   return new MeshStandardMaterial({...common,
     metalness: obj.metalness ?? 0, roughness: obj.roughness ?? 0.62,
     emissive: new Color(obj.emissive ?? "#000000"), emissiveIntensity: obj.emissive_intensity ?? 1});
+}
+
+function findBone(node, name) {
+  return node.getObjectByName(name) ?? node.getObjectByName(PropertyBinding.sanitizeNodeName(name));
+}
+
+// Value of a keyed IK target at progress: keys hold a point or an object (+ offset) and a weight.
+function ikState(keys, progress, pointOf) {
+  let before = {at: 0, point: pointOf(keys[0]), weight: 0};
+  for (const key of keys) {
+    const here = {at: key.at, point: pointOf(key), weight: key.weight ?? 1, ease: key.ease};
+    if (progress <= key.at) {
+      const t = key.at > before.at ? easing((progress - before.at) / (key.at - before.at), key.ease ?? "smooth") : 1;
+      return {point: before.point.clone().lerp(here.point, t), weight: before.weight + (here.weight - before.weight) * t};
+    }
+    before = here;
+  }
+  return {point: before.point, weight: before.weight};
+}
+
+// Cyclic coordinate descent: rotate each joint (end to root) so the end bone points at the target.
+function solveCCD(bones, target, iterations = 14) {
+  const effector = bones[bones.length - 1];
+  const joint = new Vector3(), end = new Vector3(), toEnd = new Vector3(), toTarget = new Vector3();
+  const delta = new Quaternion(), world = new Quaternion(), parent = new Quaternion();
+  for (let pass = 0; pass < iterations; pass += 1) {
+    for (let index = bones.length - 2; index >= 0; index -= 1) {
+      const bone = bones[index];
+      bone.getWorldPosition(joint);
+      effector.getWorldPosition(end);
+      toEnd.subVectors(end, joint).normalize();
+      toTarget.subVectors(target, joint).normalize();
+      if (toEnd.lengthSq() < 1e-12 || toTarget.lengthSq() < 1e-12 || toEnd.dot(toTarget) > 0.99999) continue;
+      delta.setFromUnitVectors(toEnd, toTarget);
+      bone.getWorldQuaternion(world);
+      bone.parent.getWorldQuaternion(parent);
+      bone.quaternion.copy(parent.invert().multiply(delta.multiply(world)));
+      bone.updateMatrixWorld(true);
+    }
+    effector.getWorldPosition(end);
+    if (end.distanceTo(target) < 1e-4) break;
+  }
 }
 
 export async function createThreeStage(specs, width, height, urlFor) {
@@ -316,11 +359,29 @@ export async function createThreeStage(specs, width, height, urlFor) {
           track: poseTrack(Object.fromEntries(morphNames.map((name) => [name, spec.morph?.[name] ?? 0])),
             keys.filter((key) => key.morph).map((key) => ({at: key.at, ease: key.ease, ...key.morph}))),
         } : null;
+        // Bone offsets (degrees) on top of the rest pose or clip, and IK limbs.
+        const boneNames = [...new Set([...Object.keys(spec.bones ?? {}),
+          ...keys.flatMap((key) => Object.keys(key.bones ?? {}))])];
+        const limbs = (shot.ik?.[id] ?? []).map((limb) => ({
+          bones: limb.chain.map((name) => findBone(node, name)).filter(Boolean),
+          keys: limb.keys,
+        })).filter((limb) => limb.bones.length >= 2);
+        const touched = new Map();
+        for (const name of boneNames) {
+          const bone = findBone(node, name);
+          if (bone) touched.set(name, bone);
+        }
+        for (const limb of limbs) for (const bone of limb.bones) touched.set(bone.name, bone);
+        const rest = new Map([...touched.values()].map((bone) => [bone, bone.quaternion.clone()]));
+        const boneTrack = boneNames.length ? poseTrack(
+          Object.fromEntries(boneNames.map((name) => [name, spec.bones?.[name] ?? [0, 0, 0]])),
+          keys.filter((key) => key.bones).map((key) => ({at: key.at, ease: key.ease, ...key.bones}))) : null;
         return {
           node,
           morphs,
+          rig: rest.size ? {rest, boneTrack, boneNames, touched, limbs} : null,
           aspect: node.userData.aspect ?? 1,
-          poses: objectTrack(spec, keys.map((key) => strip(key, ["opacity", "emissive_intensity", "morph"]))),
+          poses: objectTrack(spec, keys.map((key) => strip(key, ["opacity", "emissive_intensity", "morph", "bones"]))),
           looks: looks.length ? poseTrack({opacity: spec.opacity ?? 1, emissive_intensity: spec.emissive_intensity ?? 1},
             looks.map((key) => ({at: key.at, ease: key.ease, ...("opacity" in key ? {opacity: key.opacity} : {}),
               ...("emissive_intensity" in key ? {emissive_intensity: key.emissive_intensity} : {})}))) : null,
@@ -336,7 +397,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
           camera.fov = fov;
           camera.updateProjectionMatrix();
         }
-        for (const {node, poses, looks, aspect, mixer, actions, morphs} of tracks) {
+        for (const {node, poses, looks, aspect, mixer, actions, morphs, rig} of tracks) {
           const pose = poseAt(poses, progress);
           node.visible = pose.visible;
           node.position.set(...pose.position);
@@ -348,6 +409,8 @@ export async function createThreeStage(specs, width, height, urlFor) {
             node.material.opacity = look.opacity;
             if ("emissiveIntensity" in node.material) node.material.emissiveIntensity = look.emissive_intensity;
           }
+          // Reset posed bones each frame so offsets never accumulate; the mixer then overwrites clip bones.
+          if (rig) for (const [bone, quaternion] of rig.rest) bone.quaternion.copy(quaternion);
           if (mixer) {
             const now = progress * duration;
             for (const {action, clip, entry} of actions) {
@@ -369,6 +432,39 @@ export async function createThreeStage(specs, width, height, urlFor) {
                 if (index !== undefined && index < mesh.morphTargetInfluences.length) {
                   mesh.morphTargetInfluences[index] = weights[name];
                 }
+              }
+            }
+          }
+        }
+        // Second pass once every object is posed, so IK can follow objects drawn later in the list.
+        for (const {node, rig} of tracks) {
+          if (rig) {
+            if (rig.boneTrack) {
+              const offsets = poseAt(rig.boneTrack, progress);
+              for (const name of rig.boneNames) {
+                const bone = rig.touched.get(name);
+                const [x, y, z] = offsets[name].map((degrees) => degrees * Math.PI / 180);
+                if (bone) bone.quaternion.multiply(new Quaternion().setFromEuler(new Euler(x, y, z)));
+              }
+            }
+            node.updateMatrixWorld(true);
+            for (const limb of rig.limbs) {
+              const {point, weight} = ikState(limb.keys, progress, (key) => {
+                if (key.object && objects.has(key.object)) {
+                  const base = objects.get(key.object).node.getWorldPosition(new Vector3());
+                  return base.add(new Vector3(...(key.offset ?? [0, 0, 0])));
+                }
+                return new Vector3(...(key.target ?? [0, 0, 0]));
+              });
+              if (weight <= 0) continue;
+              const before = limb.bones.map((bone) => bone.quaternion.clone());
+              solveCCD(limb.bones, point);
+              if (weight < 1) {
+                limb.bones.forEach((bone, index) => {
+                  const solved = bone.quaternion.clone();
+                  bone.quaternion.copy(before[index]).slerp(solved, weight);
+                });
+                node.updateMatrixWorld(true);
               }
             }
           }

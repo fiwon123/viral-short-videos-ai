@@ -1,6 +1,7 @@
 """Load and validate reusable Three.js scene assets."""
 
 import json
+import re
 import struct
 
 from .core import asset, load
@@ -22,7 +23,17 @@ def check_glb(path):
     for item in (*model.get("buffers", []), *model.get("images", [])):
         if "uri" in item and not item["uri"].startswith("data:"):
             raise ValueError(f"Embed textures and buffers inside the GLB: {path.name}")
-    return morph_names(model)
+    return model
+
+
+def node_names(model):
+    """Node names in a glTF model (bones are nodes), plus three.js's sanitised spellings."""
+    names = set()
+    for node in model.get("nodes", []):
+        if node.get("name"):
+            names.add(node["name"])
+            names.add(re.sub(r"[\[\]\.:/]", "", re.sub(r"\s", "_", node["name"])))
+    return names
 
 
 def morph_names(model):
@@ -58,7 +69,9 @@ def load_library(channel, base):
                 raise ValueError(f"{scene_id} has a duplicate 3D object ID: {obj['id']}")
             ids.add(obj["id"])
             if obj["kind"] == "glb":
-                obj["_morphs"] = sorted(check_glb(asset(path.parent, obj["file"])))
+                model = check_glb(asset(path.parent, obj["file"]))
+                obj["_morphs"] = sorted(morph_names(model))
+                obj["_nodes"] = sorted(node_names(model))
     return library, path.parent
 
 
@@ -90,6 +103,22 @@ def validate_three(shot, library):
             known = ", ".join(sorted(morphs.get(object_id, set()))) or "none"
             raise ValueError(f"{shot['id']} keys unknown morph targets on {object_id}: "
                              f"{', '.join(sorted(unknown))} (model has: {known})")
+    nodes = {obj["id"]: set(obj.get("_nodes", [])) for obj in scene["objects"]}
+    used_bones = {object_id: {name for key in keys for name in (key.get("bones") or {})}
+                  for object_id, keys in paths.items()}
+    for object_id, limbs in (spec.get("ik") or {}).items():
+        if object_id not in object_ids:
+            raise ValueError(f"{shot['id']} solves ik on an unknown 3D object: {object_id}")
+        used_bones.setdefault(object_id, set()).update(name for limb in limbs for name in limb["chain"])
+        for limb in limbs:
+            for key in limb.get("keys", []):
+                if key.get("object") and key["object"] not in object_ids:
+                    raise ValueError(f"{shot['id']} ik target {key['object']} is not a 3D object")
+    for object_id, used in used_bones.items():
+        if used and (unknown := used - nodes.get(object_id, set())):
+            known = ", ".join(sorted(nodes.get(object_id, set()))[:12]) or "none (not a rigged GLB)"
+            raise ValueError(f"{shot['id']} uses unknown bones on {object_id}: {', '.join(sorted(unknown))} "
+                             f"(model has: {known})")
     focus_times = [key["at"] for key in spec.get("focus", [])]
     if focus_times != sorted(set(focus_times)):
         raise ValueError(f"{shot['id']} requires increasing 3D focus times")
