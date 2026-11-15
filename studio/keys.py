@@ -12,15 +12,17 @@ PROPS = ("x", "y", "scale", "scale_x", "scale_y", "rotate", "opacity", "skew_x",
          "blur", "tint_opacity", "frame", "visible", "z", "wipe", "tint_color", "turn_x", "turn_y")
 
 
-def compose(layer, duration, modifiers):
-    """Resample a layer's keys at RATE and apply modifiers.
+def compose(layer, duration, modifiers, rate=RATE):
+    """Resample a layer's keys at ``rate`` (default RATE) and apply modifiers.
 
     Each modifier maps seconds to ``{prop: (op, value)}`` with op ``add``, ``mul`` or
     ``set``; ``scale_xy`` multiplies scale_x and scale_y by a pair.
     """
     points = poses(layer)
-    times = {round(i / RATE, 4) for i in range(int(duration * RATE) + 1)} | {round(duration, 4)}
-    times |= {round(float(key["at"]) * duration, 4) for key in layer.get("keyframes", [])}
+    authored = {round(float(key["at"]) * duration, 4) for key in layer.get("keyframes", [])} | {round(duration, 4)}
+    # Grid samples that crowd an authored key would make a sub-frame pair; the key itself is kept.
+    times = {seconds for seconds in (round(i / rate, 4) for i in range(int(duration * rate) + 1))
+             if seconds == 0 or all(abs(seconds - key) >= 0.9 / rate for key in authored)} | authored
     keys, changed = [], set()
     for seconds in sorted(times):
         progress = min(1.0, seconds / duration) if duration else 0.0

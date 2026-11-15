@@ -143,7 +143,9 @@ def gradient_image(size, gradient, palette):
         progress = np.sqrt((u - center[0]) ** 2 + (v - center[1]) ** 2) / max(radius, 1e-6)
     else:
         angle = math.radians(float(gradient.get("angle", 90)))
-        progress = u * math.cos(angle) + v * math.sin(angle)
+        cos, sin = math.cos(angle), math.sin(angle)
+        # Start from the corner the gradient points away from, so 90-360 degrees aren't clipped flat.
+        progress = u * cos + v * sin - min(0.0, cos, sin, cos + sin)
     progress = np.clip(progress, 0, 1)
     positions = np.array([item[0] for item in stops], dtype=np.float32)
     colors = np.array([ImageColor.getrgb(item[1])[:3] for item in stops], dtype=np.float32)
@@ -667,6 +669,9 @@ class Composition:
         self.layers = []
         for layer in layers:
             tiles = sheet_tiles(layer, canvas, base, channel_base) if layer["kind"] == "sheet" else None
+            if layer.get("paint_frames"):
+                tiles = [sprite({**layer, **look}, canvas, channel, font, base, channel_base)
+                         for look in layer["paint_frames"]]
             self.layers.append({
                 "id": layer["id"],
                 "kind": layer["kind"],

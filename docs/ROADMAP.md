@@ -27,7 +27,6 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 2.1: motion paths | Done | `studio/moves.py` `path` (Catmull-Rom, arc-length, `orient`). |
 | Phase 2.2: wiggle | Done | `wiggle` seeded value noise on any property. |
 | Phase 2.3: follow | Done | `follow` chase and drag spring modes. `alive` adds drag on ears and antenna. |
-| Phase 2.4: animatable paint (fill/tint colour, stroke, draw-on) | Pending | Needs renderer work in both painters. |
 | Phase 2.5: manifest-native recipes | Done | `motion: [{recipe, t, d}]`: pop, anticipate, impact, settle, shake, spin, enter, exit, drop, jump, nod, wobble. |
 | Phase 2.6: pose library | Done | `studio/poses.py` `pose_keys`. Poses live in the rig library `poses.<rig>` or episode `poses`. `make character` writes 10 starter poses. IK is not done. |
 | Phase 6: animation cookbook | Done | `.agents/skills/viral-video-studio/references/animation-cookbook.md`, linked from SKILL.md. |
@@ -43,13 +42,14 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.3: text in 3D | Done | `text` is a canvas-textured plane, or extruded `TextGeometry` with `depth`/`bevel`. `studio/typeface.py` reads TrueType `glyf` outlines (no dependency) into typeface JSON with only the used glyphs, staged by `browser._stage_typeface`. CFF .otf falls back to the plane. |
 | Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
-| Phase 2.4: animatable paint | Partial | Keyable `tint_color` (RGB lists in poses, hex in keys) and `wipe` draw-on (`wipe_from`) work in both renderers. Fill/gradient/stroke-width keys need per-frame re-rasterising and are not done. |
-| Still pending | Pending | 2.4 fill/stroke keys, morph targets, IK. |
+| Phase 2.4: animatable paint | Done | Keyable `tint_color` and `wipe` draw-on (`wipe_from`) in both renderers. Keyed `fill`/`stroke_width`/`stroke_color` on shapes and text expand in `studio/paint.py` into `paint_frames` sprites plus `frame` keys (≤120 looks, sampled at min(24, fps)). `keys.compose` takes a `rate` and no longer puts grid samples within 0.9 sample of an authored key. Also fixed `gradient_image` clipping angles past 90°. |
+| Still pending | Pending | 4.4 morph targets, 2.6 two-bone IK. |
 
-Tests: `make test` passes, 70 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 74 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 2.4 fill/stroke keys landed, plus the gradient angle fix.
 - 2026-11-15: Phase 4.3 extruded 3D text landed.
 - 2026-11-15: C5 contrast check landed in the motion report.
 - 2026-11-15: C3 `finish` style pass for existing SVGs landed.

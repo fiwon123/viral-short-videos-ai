@@ -767,6 +767,45 @@ class FinishPassTests(unittest.TestCase):
         self.assertIn("outline", finish["properties"])
 
 
+class PaintTests(unittest.TestCase):
+    PALETTE = {"background": "#000000", "foreground": "#FFFFFF", "accent": "#FF0000"}
+
+    def test_fill_and_stroke_interpolate(self):
+        from studio.paint import look, paint_at, track
+        layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5, "fill": "background",
+                 "keyframes": [{"at": 1, "fill": "foreground", "stroke_width": 0.2, "stroke_color": "accent"}]}
+        middle = look(paint_at(track(layer, self.PALETTE), 0.5))
+        self.assertEqual(middle["fill"], "#808080")
+        self.assertEqual(middle["stroke"]["width"], 0.1)
+
+    def test_solid_blends_into_gradient(self):
+        from studio.paint import look, paint_at, track
+        gradient = {"type": "linear", "angle": 0, "stops": [{"at": 0, "color": "#FF0000"}, {"at": 1, "color": "#0000FF"}]}
+        layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5, "fill": "#000000",
+                 "keyframes": [{"at": 1, "fill": gradient}]}
+        fill = look(paint_at(track(layer, self.PALETTE), 0.5))["fill"]
+        self.assertEqual([stop["color"] for stop in fill["stops"]], ["#800000", "#000080"])
+
+    def test_expand_keeps_motion_and_steps_frames(self):
+        from studio.paint import expand
+        layer = {"id": "a", "kind": "ellipse", "x": 0.2, "y": 0.5, "fill": "background",
+                 "keyframes": [{"at": 1, "x": 0.8, "fill": "foreground", "ease": "smooth"}]}
+        episode = {"fps": 24, "scenes": [{"shots": [{"id": "A", "duration": 1.0, "layers": [layer]}]}]}
+        expand(episode, {"palette": self.PALETTE})
+        self.assertGreater(len(layer["paint_frames"]), 10)
+        self.assertEqual(layer["paint_frames"][-1]["fill"], "#FFFFFF")
+        points = poses(layer)
+        self.assertAlmostEqual(pose_at(points, 0.5)["x"], 0.5, places=2)
+        self.assertEqual(pose_at(points, 1.0)["frame"], len(layer["paint_frames"]) - 1)
+
+    def test_gradient_past_ninety_degrees_is_not_clipped(self):
+        from studio.design import gradient_image
+        image = gradient_image((10, 4), {"angle": 180, "stops": [{"at": 0, "color": "#FF0000"},
+                                                                  {"at": 1, "color": "#0000FF"}]}, self.PALETTE)
+        self.assertGreater(image.getpixel((9, 1))[0], 200)
+        self.assertGreater(image.getpixel((0, 1))[2], 200)
+
+
 class TypefaceTests(unittest.TestCase):
     def test_outline_handles_implied_on_curve_points(self):
         from studio.typeface import outline

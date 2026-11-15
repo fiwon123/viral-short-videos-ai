@@ -410,6 +410,10 @@
         "turn_x": {"description": "Perspective turn about the layer's horizontal pivot axis, in degrees.", "type": "number", "minimum": -360, "maximum": 360},
         "turn_y": {"description": "Perspective turn about the layer's vertical pivot axis, in degrees (card flips).", "type": "number", "minimum": -360, "maximum": 360},
         "tint_color": {"description": "Keyable tint colour (hex) applied with tint_opacity.", "$ref": "#/$defs/color"},
+        "fill": {"description": "Keyed fill for rect/ellipse/polygon/text: paint or gradient (see studio/paint.py).",
+                 "anyOf": [{"$ref": "#/$defs/paint"}, {"$ref": "#/$defs/gradient"}]},
+        "stroke_width": {"description": "Keyed stroke width (same units as stroke.width).", "$ref": "#/$defs/unit"},
+        "stroke_color": {"description": "Keyed stroke colour.", "$ref": "#/$defs/paint"},
         "z": {"description": "Depth into the scene in screen heights; 0 is the picture plane, positive is farther.",
               "type": "number", "minimum": -0.9, "maximum": 50}
       }
@@ -424,7 +428,7 @@
         "ease_props": {
           "description": "Per-property easing overrides for this keyframe.",
           "type": "object",
-          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z", "wipe", "tint_color", "turn_x", "turn_y"]},
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z", "wipe", "tint_color", "turn_x", "turn_y", "fill", "stroke_width", "stroke_color"]},
           "additionalProperties": {"$ref": "#/$defs/ease"}
         }
       }
@@ -481,6 +485,8 @@
         "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop"]},
         "mouth_shape": {"$ref": "#/$defs/text"},
         "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
+        "paint_frames": {"description": "Set by paint expansion: one look per sprite frame.", "type": "array",
+                         "items": {"type": "object"}},
         "wipe_from": {"enum": ["left", "right", "top", "bottom", "center"]},
         "boil": {"description": "Hand-drawn line wobble for SVG layers (browser renderers); 0.3-0.6 is subtle.",
                  "type": "number", "minimum": 0, "maximum": 3},

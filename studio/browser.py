@@ -224,6 +224,14 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                         raise ValueError(f"Sprite sheet has no frames: {layer['id']}")
                     visual["frames"] = frames
                     visual["sprite"] = frames[0]
+                elif layer.get("paint_frames"):
+                    frames = []
+                    for frame_index, look in enumerate(layer["paint_frames"]):
+                        name = f"shot-{len(shots)}-layer-{index}-paint-{frame_index}.png"
+                        sprite({**layer, **look}, canvas, channel, font, base, channel_base).save(assets / name)
+                        frames.append(name)
+                    visual["frames"] = frames
+                    visual["sprite"] = frames[0]
                 else:
                     name = f"shot-{len(shots)}-layer-{index}.png"
                     sprite(layer, canvas, channel, font, base, channel_base).save(assets / name)

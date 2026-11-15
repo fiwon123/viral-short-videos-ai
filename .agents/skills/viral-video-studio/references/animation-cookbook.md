@@ -84,6 +84,7 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 ## Colour and draw-on
 
 - `tint_color` (hex) is keyable and blends with `tint_opacity`: a blush, a danger flash, a sunset shift. Set `tint_opacity` to 1 on the layer and key the colour.
+- `fill`, `stroke_width` and `stroke_color` are keyable on `rect`, `ellipse`, `polygon` and `text`: a button lighting up, a warning outline swelling, a sky gradient shifting from dusk to night. Solid fills, solid↔gradient and same-stop-count gradients blend. Gradients with different stop counts switch at the key. The look is pre-drawn into at most 120 sprite frames per layer, so prefer `tint_color` for colour changes on art layers (svg, image).
 - `wipe` (0–1) reveals a layer from `wipe_from` (`left`, `right`, `top`, `bottom`, `center`), as with a title writing on, a line drawing itself or a progress bar. Key it from 0 to 1 with an `out` ease.
 - `turn_x` / `turn_y` (degrees) turn a layer in perspective about its `pivot`: card flips (`turn_y` 0→180, the back shows mirrored), a floor or tabletop plane (`turn_x` 50–70 with `pivot: [0.5, 1]`), a door swing (pivot on an edge). Past 90° the layer is seen from behind. Children and groups don't inherit the turn, so turn leaf layers.
 
