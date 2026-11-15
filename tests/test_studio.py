@@ -721,5 +721,57 @@ class GradeTests(unittest.TestCase):
         self.assertGreater(graded[2], graded[0])  # Shadows lean teal.
 
 
+POSE_MODES = ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic",
+              "bounce", "spring", "hold", "auto",
+              {"type": "cubic-bezier", "points": [0.2, 0, 0, 1]},
+              {"type": "spring", "stiffness": 180, "damping": 10}]
+
+
+@unittest.skipUnless(__import__("shutil").which("node"), "node is not installed")
+class BrowserPoseParityTests(unittest.TestCase):
+    """browser/pose.mjs poseAt must match studio.design.pose_at for every ease."""
+
+    def _layers(self):
+        layers = []
+        for index, mode in enumerate(POSE_MODES):
+            layers.append({
+                "id": f"l{index}", "kind": "rect", "x": 0.2, "y": 0.3, "tint_color": "#000000",
+                "keyframes": [
+                    {"at": 0.3, "x": 0.8, "rotate": 40, "tint_color": "#FF8000", "turn_y": 90, "ease": mode},
+                    {"at": 0.6, "y": 0.9, "scale": 1.6, "visible": False, "frame": 2, "ease": mode,
+                     "ease_props": {"y": "back", "scale": "auto"}},
+                    {"at": 1.0, "x": 0.1, "y": 0.2, "visible": True, "tint_color": "#20C0FF", "ease": mode},
+                ]})
+        return layers
+
+    def test_pose_at_matches_python(self):
+        import subprocess
+        samples = [index / 40 for index in range(41)]
+        tracks = {layer["id"]: poses(layer) for layer in self._layers()}
+        script = ("import {poseAt} from './browser/pose.mjs';"
+                  "const {tracks, samples} = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+                  "const out = {};"
+                  "for (const [id, points] of Object.entries(tracks)) out[id] = samples.map((p) => poseAt(points, p));"
+                  "process.stdout.write(JSON.stringify(out));")
+        script = "import {readFileSync} from 'fs';" + script.replace("require('fs').readFileSync", "readFileSync")
+        result = subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT,
+                                input=json.dumps({"tracks": tracks, "samples": samples}),
+                                capture_output=True, text=True, check=True)
+        browser = json.loads(result.stdout)
+        for layer_id, points in tracks.items():
+            for progress, js in zip(samples, browser[layer_id]):
+                py = pose_at(points, progress)
+                self.assertEqual(set(py), set(js), layer_id)
+                for name, value in py.items():
+                    other = js[name]
+                    if isinstance(value, (list, tuple)):
+                        for a, b in zip(value, other):
+                            self.assertAlmostEqual(a, b, places=6, msg=f"{layer_id}.{name}@{progress}")
+                    elif isinstance(value, bool) or value is None:
+                        self.assertEqual(value, other, f"{layer_id}.{name}@{progress}")
+                    else:
+                        self.assertAlmostEqual(value, other, places=6, msg=f"{layer_id}.{name}@{progress}")
+
+
 if __name__ == "__main__":
     unittest.main()

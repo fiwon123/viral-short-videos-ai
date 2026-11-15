@@ -406,10 +406,13 @@ def pose_at(points, progress):
                 result[name] = end[name] if progress >= b else value
                 continue
             property_mode = ease_props.get(name, mode)
-            if property_mode == "auto" and not isinstance(value, list):
+            if property_mode == "auto":
                 p0 = points[index - 2][1].get(name, value) if index >= 2 else value
                 p3 = points[index + 1][1].get(name, end[name]) if index + 1 < len(points) else end[name]
-                result[name] = catmull_rom(p0, value, end[name], p3, t)
+                if isinstance(value, list):
+                    result[name] = [catmull_rom(a, b, c, d, t) for a, b, c, d in zip(p0, value, end[name], p3)]
+                else:
+                    result[name] = catmull_rom(p0, value, end[name], p3, t)
             else:
                 result[name] = _mix(value, end[name], ease(t, "smooth" if property_mode == "auto" else property_mode))
         return result
@@ -888,7 +891,7 @@ class Composition:
                                        progress, camera, mask_cache)
             tint_opacity = max(0.0, min(1.0, float(state.get("tint_opacity", 0) or 0)))
             if (layer.get("tint") or state.get("tint_color")) and tint_opacity > 0:
-                colour = (tuple(round(v) for v in state["tint_color"]) if state.get("tint_color")
+                colour = (tuple(max(0, min(255, round(v))) for v in state["tint_color"]) if state.get("tint_color")
                           else resolve_color(layer["tint"], self.palette))
                 tinted = ImageChops.multiply(
                     placed.convert("RGB"),

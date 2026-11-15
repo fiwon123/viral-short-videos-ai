@@ -33,7 +33,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 6: animation cookbook | Done | `.agents/skills/viral-video-studio/references/animation-cookbook.md`, linked from SKILL.md. |
 | Phase 5.1: onion-skin stills | Done | `still --onion N --onion-step s` (`make still ONION=3`). Median background, tinted ghosts. Works on every renderer. |
 | Phase 5.2: motion report | Done | `studio/motion_report.py` and `make motion-report`. Flags dead holds, linear moves, lockstep starts, snaps and frozen rigs, and writes a speed chart PNG. |
-| Phase 5.4: browser pose parity test | Pending | |
+| Phase 5.4: browser pose parity test | Done | `BrowserPoseParityTests` runs `browser/pose.mjs` in node against `design.pose_at` for every ease, `ease_props`, booleans, `frame` and colour lists. It caught `auto` on lists (Python used smoothstep; now Catmull-Rom per channel, tint clamped). |
 | Phase 3.1: z depth | Done | Layer `z` uses authoring-relative depth: no change at rest, parallax on pans, perspective on camera `z` dollies. Adds depth fade, `camera.focus` depth of field, far-to-near `depth_order`, and 2D `fov` support. |
 | Phase 3.2: perspective tilt | Done | Keyable `turn_x`/`turn_y` (degrees, about the pivot). Python uses `turn_tile` (PIL `PERSPECTIVE`), the browser uses a 10×10 triangle-mesh warp (`turnedTile`). Wipe applies before the turn. Groups and children don't inherit it. |
 | Phase 3.3: depth camera presets | Done | `dolly-in`, `dolly-out`, `dolly-zoom` (vertigo) and `fly-through`. |
@@ -44,12 +44,13 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Partial | Keyable `tint_color` (RGB lists in poses, hex in keys) and `wipe` draw-on (`wipe_from`) work in both renderers. Fill/gradient/stroke-width keys need per-frame re-rasterising and are not done. |
-| Still pending | Pending | C3 shading for existing SVGs, 4.3 extruded text, 5.4 browser pose test. |
+| Still pending | Pending | C3 shading for existing SVGs, 4.3 extruded text. |
 
-Tests: `make test` passes, 62 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 63 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 5.4 browser pose parity test landed and fixed `auto` easing on colour lists.
 - 2026-11-15: Phase 3.2 perspective turn (`turn_x`/`turn_y`) landed in both renderers. Parity gate passes.
 - 2026-11-15: LUT grading landed.
 - 2026-11-15: Caption QA, per-cue tone and SFX density notes landed.
