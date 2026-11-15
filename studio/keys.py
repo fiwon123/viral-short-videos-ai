@@ -9,7 +9,7 @@ from .design import pose_at, poses
 
 RATE = 24  # Samples per second for composed keys.
 PROPS = ("x", "y", "scale", "scale_x", "scale_y", "rotate", "opacity", "skew_x", "skew_y",
-         "blur", "tint_opacity", "frame", "visible")
+         "blur", "tint_opacity", "frame", "visible", "z")
 
 
 def compose(layer, duration, modifiers):

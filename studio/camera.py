@@ -38,6 +38,25 @@ PRESETS = {
         {"at": 1.0, "y": -0.01, "ease": "sine"},
     ],
     "handheld": [],
+    # Depth presets move the viewpoint through layers that carry ``z``.
+    "dolly-in": [
+        {"at": 0.0, "z": 0.0},
+        {"at": 1.0, "z": 0.35, "ease": "sine"},
+    ],
+    "dolly-out": [
+        {"at": 0.0, "z": 0.35},
+        {"at": 1.0, "z": 0.0, "ease": "sine"},
+    ],
+    # Vertigo: the camera pushes in while the lens widens, so the z=0 subject holds size
+    # and the background stretches away. zoom = (f - z) / f with f = focal(fov 50).
+    "dolly-zoom": [
+        {"at": 0.0, "z": 0.0, "zoom": 1.0},
+        {"at": 1.0, "z": 0.4, "zoom": 0.627, "ease": "smooth"},
+    ],
+    "fly-through": [
+        {"at": 0.0, "z": -0.2},
+        {"at": 1.0, "z": 1.4, "ease": "in"},
+    ],
 }
 
 
@@ -47,6 +66,8 @@ def _base(camera):
         "y": float(camera.get("y", 0)),
         "zoom": float(camera.get("zoom", 1)),
         "rotate": float(camera.get("rotate", 0)),
+        "z": float(camera.get("z", 0)),
+        "fov": float(camera.get("fov", 50)),
     }
 
 

@@ -71,6 +71,17 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 4. Move the whole body with `motion`, `path` and keys on the `use` layer. `alive` adds breathing, blinks, glances, sway, ear and antenna follow-through, and the talking mouth on top.
 5. Hit one pose change per beat. Hold readable poses for at least 0.4 s, and change pose on the word that motivates it.
 
+## Depth (2.5D)
+
+Give top-level layers a `z` (0 is the picture plane, positive is farther, slightly negative is in front). Lay everything out as it should look. `z` changes nothing at rest; it only sets how each layer reacts when the camera moves:
+
+- **Pans:** camera `x`/`y` moves far layers less, so parallax comes for free.
+- **Dollies:** camera `z` (or the `dolly-in`, `dolly-out` and `fly-through` presets) grows near layers faster than far ones. Layers that reach the camera fade out.
+- **Vertigo:** `dolly-zoom` holds the `z: 0` subject while the background stretches away.
+- **Depth of field:** `camera.focus: {"z": 0, "range": 0.3, "amount": 0.6}` blurs layers outside the focus band.
+
+Children inherit their parent's depth, and paint order runs far to near automatically. Overscan far backdrops (`width`/`height` 1.4–2) when the camera zooms out or uses `dolly-zoom`, or their edges show. Typical depths: sky 6–10, mountains 2–4, trees 0.6–1.5, characters and ground 0, foreground foliage −0.3 to −0.5.
+
 ## See and check the motion
 
 - `make motion-report EPISODE=...` lists dead holds (nothing moves for 1 s or more), long `linear` moves, layers that start in lockstep, one-frame snaps and frozen rigs. It also writes `motion-report.png` with speed curves per shot. Fix every note or say why it is intentional.

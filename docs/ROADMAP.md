@@ -34,12 +34,17 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 5.1: onion-skin stills | Done | `still --onion N --onion-step s` (`make still ONION=3`). Median background, tinted ghosts. Works on every renderer. |
 | Phase 5.2: motion report | Done | `studio/motion_report.py` and `make motion-report`. Flags dead holds, linear moves, lockstep starts, snaps and frozen rigs, and writes a speed chart PNG. |
 | Phase 5.4: browser pose parity test | Pending | |
-| Phases 3–4, 2.4 | Pending | Next up: Phase 3 (z-depth, tilt, camera presets), then Phase 4 (3D rigs and lights), then 2.4 paint. |
+| Phase 3.1: z depth | Done | Layer `z` uses authoring-relative depth: no change at rest, parallax on pans, perspective on camera `z` dollies. Adds depth fade, `camera.focus` depth of field, far-to-near `depth_order`, and 2D `fov` support. |
+| Phase 3.2: perspective tilt | Pending | Needs a quad-mesh warp in the browser and `PERSPECTIVE` in Python. |
+| Phase 3.3: depth camera presets | Done | `dolly-in`, `dolly-out`, `dolly-zoom` (vertigo) and `fly-through`. |
+| Bug fix: child layers got the camera twice | Done | The camera now applies only to top-level layers in both renderers. Rig parts no longer drift on zooms or pans. |
+| Phases 4, 2.4 | Pending | Next up: Phase 4 (3D camera rigs, lights, fog, environment, text3D), then 2.4 paint. |
 
-Tests: `make test` passes, 41 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 46 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 3 depth landed, along with the double-camera fix for child layers.
 - 2026-11-15: Phase 5 onion stills and motion report landed.
 - 2026-11-15: Phase 2 motion primitives and poses landed. `studio/keys.py` is the shared resampler.
 - 2026-11-15: Phase 1 parity and lint landed.

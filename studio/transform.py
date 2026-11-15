@@ -89,10 +89,58 @@ def layer_matrix(pose, width, height, pivot, *, parent=None, parent_origin=None,
                                          float(pose.get("scale_y", uniform))),
                                    translate(-px, -py)))),
     )
-    world = multiply(parent, local) if parent is not None else local
+    if parent is not None:
+        # Children inherit depth and camera through the parent's world matrix.
+        return multiply(parent, local)
+    world = local
+    depth = depth_scale(pose.get("z", 0.0), camera)
+    if depth != 1.0:
+        centre = (width / 2, height / 2)
+        world = multiply(translate(*centre), multiply(scale(depth), multiply(translate(-centre[0], -centre[1]), world)))
     if camera is not None and parallax:
-        world = multiply(camera_matrix(_parallax_camera(camera, parallax), width, height), world)
+        lens = _parallax_camera(camera, parallax)
+        # Depth scales the pan (near layers slide more); zoom stays a uniform lens change.
+        pan = depth_pan(pose.get("z", 0.0), camera)
+        lens["x"], lens["y"] = lens["x"] * pan, lens["y"] * pan
+        world = multiply(camera_matrix(lens, width, height), world)
     return world
+
+
+def focal(camera):
+    """Focal distance in screen heights for the camera's vertical field of view."""
+    fov = float((camera or {}).get("fov", 50) or 50)
+    return 1 / (2 * math.tan(math.radians(max(10.0, min(110.0, fov))) / 2))
+
+
+def depth_scale(z, camera):
+    """Scale of a top-level layer at depth ``z`` relative to how it was authored.
+
+    Layers are laid out as seen from the rest camera (camera ``z`` = 0), so a
+    far sky is authored full-size. Moving the camera's ``z`` into the scene
+    then grows near layers faster than far ones. Mirrored by ``depthScale`` in
+    browser/painter.mjs.
+    """
+    z = float(z or 0.0)
+    cz = float((camera or {}).get("z", 0.0) or 0.0)
+    if not cz:
+        return 1.0
+    f = focal(camera)
+    return max(0.05, f + z) / max(0.05, f + z - cz)
+
+
+def depth_pan(z, camera):
+    """How much of a camera pan a layer at depth ``z`` follows (1 at the picture plane)."""
+    z = float(z or 0.0)
+    if not z:
+        return 1.0
+    f = focal(camera)
+    return f / max(0.05, f + z)
+
+
+def depth_fade(z, camera):
+    """Fade layers that reach the camera so a fly-through passes cleanly."""
+    distance = focal(camera) + float(z or 0.0) - float((camera or {}).get("z", 0.0) or 0.0)
+    return max(0.0, min(1.0, (distance - 0.08) / 0.25))
 
 
 def camera_matrix(camera, width, height):

@@ -104,7 +104,8 @@
         "y": {"type": "number", "minimum": -1, "maximum": 1},
         "zoom": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
         "rotate": {"type": "number", "minimum": -180, "maximum": 180},
-        "fov": {"type": "number", "minimum": 10, "maximum": 110}
+        "fov": {"type": "number", "minimum": 10, "maximum": 110},
+        "z": {"type": "number", "minimum": -2, "maximum": 50}
       }
     },
     "camera": {
@@ -114,7 +115,18 @@
         "y": {"type": "number", "minimum": -1, "maximum": 1},
         "zoom": {"type": "number", "exclusiveMinimum": 0, "maximum": 4},
         "rotate": {"type": "number", "minimum": -180, "maximum": 180},
-        "preset": {"enum": ["push-in", "pull-out", "crash-zoom", "whip-pan", "dolly", "float", "orbit", "handheld"]},
+        "preset": {"enum": ["push-in", "pull-out", "crash-zoom", "whip-pan", "dolly", "float", "orbit", "handheld", "dolly-in", "dolly-out", "dolly-zoom", "fly-through"]},
+        "z": {"type": "number", "minimum": -2, "maximum": 50},
+        "fov": {"type": "number", "minimum": 10, "maximum": 110},
+        "focus": {
+          "description": "Depth of field for z layers: blur grows outside z ± range.",
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "z": {"type": "number", "minimum": -1, "maximum": 50},
+            "range": {"type": "number", "minimum": 0, "maximum": 50},
+            "amount": {"$ref": "#/$defs/unit"}
+          }
+        },
         "samples": {"type": "integer", "minimum": 2, "maximum": 240},
         "shake": {
           "type": "object", "additionalProperties": false,
@@ -389,7 +401,9 @@
         "tint_opacity": {"$ref": "#/$defs/unit"},
         "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
         "opacity": {"$ref": "#/$defs/unit"},
-        "visible": {"type": "boolean"}
+        "visible": {"type": "boolean"},
+        "z": {"description": "Depth into the scene in screen heights; 0 is the picture plane, positive is farther.",
+              "type": "number", "minimum": -0.9, "maximum": 50}
       }
     },
     "keyframe": {
@@ -402,7 +416,7 @@
         "ease_props": {
           "description": "Per-property easing overrides for this keyframe.",
           "type": "object",
-          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity"]},
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z"]},
           "additionalProperties": {"$ref": "#/$defs/ease"}
         }
       }

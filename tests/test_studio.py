@@ -519,5 +519,42 @@ class MotionReportTests(unittest.TestCase):
                 self.assertGreater(past[0], past[2])
 
 
+class DepthTests(unittest.TestCase):
+    def width(self, z, camera, parent=None):
+        from studio.transform import apply, layer_matrix
+        matrix = layer_matrix({"x": 0.6, "y": 0.5, "z": z}, 1080, 1920, [0.5, 0.5], camera=camera, box=(100, 100))
+        return apply(matrix, 100, 0)[0] - apply(matrix, 0, 0)[0], apply(matrix, 50, 50)
+
+    def test_rest_camera_keeps_authored_layout(self):
+        for z in (0, 2, 8):
+            width, centre = self.width(z, {"x": 0, "y": 0, "zoom": 1, "rotate": 0})
+            self.assertAlmostEqual(width, 100)
+            self.assertAlmostEqual(centre[0], 648)
+
+    def test_dolly_zoom_holds_subject_and_shrinks_background(self):
+        camera = {"x": 0, "y": 0, "zoom": 0.627, "rotate": 0, "z": 0.4}
+        self.assertAlmostEqual(self.width(0, camera)[0], 100, delta=0.3)
+        self.assertLess(self.width(4, camera)[0], 75)
+
+    def test_far_layers_pan_less(self):
+        camera = {"x": 0.1, "y": 0, "zoom": 1, "rotate": 0}
+        near, far = self.width(0, camera)[1][0], self.width(5, camera)[1][0]
+        self.assertAlmostEqual(near - 648, 108)
+        self.assertLess(far - 648, 30)
+
+    def test_children_get_the_camera_once(self):
+        from studio.transform import apply, layer_matrix
+        camera = {"x": 0, "y": 0, "zoom": 2.0, "rotate": 0}
+        parent = layer_matrix({"x": 0.5, "y": 0.5}, 1080, 1920, [0.5, 0.5], camera=camera, box=(100, 100))
+        child = layer_matrix({"x": 0.1, "y": 0}, 1080, 1920, [0.5, 0.5], parent=parent, parent_origin=(50, 50),
+                             camera=camera, box=(10, 10))
+        self.assertAlmostEqual(apply(child, 5, 5)[0] - apply(parent, 50, 50)[0], 216)
+
+    def test_depth_order_far_to_near(self):
+        from studio.design import depth_order
+        layers = [{"id": "near", "z": -0.2}, {"id": "far", "z": 5}, {"id": "kid", "parent": "far"}, {"id": "mid"}]
+        self.assertEqual([layer["id"] for layer in depth_order(layers)], ["far", "kid", "mid", "near"])
+
+
 if __name__ == "__main__":
     unittest.main()

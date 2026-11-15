@@ -51,18 +51,54 @@ function layerMatrix(pose, width, height, pivot, {parent = null, parentOrigin = 
       ),
     ),
   );
-  if (parent) local = multiply(parent, local);
+  // Children inherit depth and camera through the parent's world matrix.
+  if (parent) return multiply(parent, local);
+  const depth = depthScale(pose.z ?? 0, camera);
+  if (depth !== 1) {
+    local = multiply(translate(width / 2, height / 2),
+      multiply(scale(depth), multiply(translate(-width / 2, -height / 2), local)));
+  }
   if (camera && parallax) {
     const amount = Math.max(0, Math.min(2, parallax));
     const tuned = {
-      x: (camera.x ?? 0) * amount,
-      y: (camera.y ?? 0) * amount,
+      x: (camera.x ?? 0) * amount * depthPan(pose.z ?? 0, camera),
+      y: (camera.y ?? 0) * amount * depthPan(pose.z ?? 0, camera),
       zoom: 1 + ((camera.zoom ?? 1) - 1) * amount,
       rotate: (camera.rotate ?? 0) * amount,
     };
     local = multiply(cameraMatrix(tuned, width, height), local);
   }
   return local;
+}
+
+// Mirrors studio/transform.py focal/depth_scale/depth_fade and design.depth_blur.
+function focal(camera) {
+  const fov = Math.max(10, Math.min(110, camera?.fov ?? 50));
+  return 1 / (2 * Math.tan((fov * Math.PI / 180) / 2));
+}
+
+function depthScale(z, camera) {
+  const cz = camera?.z ?? 0;
+  if (!cz) return 1;
+  const f = focal(camera);
+  return Math.max(0.05, f + z) / Math.max(0.05, f + z - cz);
+}
+
+function depthPan(z, camera) {
+  if (!z) return 1;
+  const f = focal(camera);
+  return f / Math.max(0.05, f + z);
+}
+
+function depthFade(z, camera) {
+  const distance = focal(camera) + (z ?? 0) - (camera?.z ?? 0);
+  return Math.max(0, Math.min(1, (distance - 0.08) / 0.25));
+}
+
+function depthBlur(z, camera, focus) {
+  if (!focus) return 0;
+  const distance = Math.abs((z ?? 0) - (focus.z ?? 0));
+  return (focus.amount ?? 0.5) * Math.max(0, Math.min(1, (distance - (focus.range ?? 0.2)) / 1));
 }
 
 function cameraMatrix(camera, width, height) {
@@ -329,6 +365,7 @@ export async function createPainter(canvas, data, urlFor) {
       const state = states.get(layer.id);
       if (layer.variant_group && (state.visible ?? true)) chosen.set(layer.variant_group, layer.id);
     }
+    const depths = new Map();
     for (const layer of layers) {
       if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
       const pose = states.get(layer.id);
@@ -336,7 +373,9 @@ export async function createPainter(canvas, data, urlFor) {
       const tile = layer.frames?.length
         ? layer.frames[Math.max(0, Math.min(layer.frames.length - 1, Math.round(pose.frame ?? 0)))]
         : layer.tile;
-      const blur = pose.blur ?? layer.blur;
+      const rootZ = layer.parent && depths.has(layer.parent) ? depths.get(layer.parent) : (pose.z ?? 0);
+      depths.set(layer.id, rootZ);
+      const blur = (pose.blur ?? layer.blur ?? 0) + depthBlur(rootZ, camera, camera?.focus);
       const tintOpacity = pose.tint_opacity ?? 0;
       const drawTile = layer.tint && tintOpacity > 0
         ? tintTile(layer, tile, paintColor(layer.tint, "accent"), tintOpacity)
@@ -349,7 +388,8 @@ export async function createPainter(canvas, data, urlFor) {
       if (layer.parent && !(states.get(layer.parent)?.visible ?? true)) continue;
       const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
       const parentAlpha = layer.parent ? (alphas.get(layer.parent) ?? 1) : 1;
-      const alpha = (pose.opacity ?? 1) * parentAlpha;
+      let alpha = (pose.opacity ?? 1) * parentAlpha;
+      if (!layer.parent && camera && (rootZ || camera.z)) alpha *= depthFade(rootZ, camera);
       const levelFor = (speaker) => (speech?.[2] === speaker ? (speech[3][offset - speech[0]] ?? 0) : 0);
       if (layer.quiet && levelFor(layer.quiet) > 0.08) continue;
       if (layer.mouth && layer.talk_only && levelFor(layer.mouth) <= 0.08) continue;
@@ -573,7 +613,9 @@ export async function createPainter(canvas, data, urlFor) {
     const base = poseAt(poseTrack({
       x: shot.camera.x ?? 0, y: shot.camera.y ?? 0,
       zoom: shot.camera.zoom ?? 1, rotate: shot.camera.rotate ?? 0,
+      z: shot.camera.z ?? 0, fov: shot.camera.fov ?? 50,
     }, shot.camera.keyframes ?? []), progress);
+    base.focus = shot.camera.focus;
     const track = shot.camera.track;
     if (!track) return base;
     const all = [...planes[index].background, ...planes[index].foreground];

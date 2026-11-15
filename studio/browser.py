@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 
 from .camera import resolve_camera
 from .core import asset, ffmpeg, require, run, svg_asset, write_json
-from .design import (_draw_tracked, caption_layout, color_alpha, draw_caption, layer_order, poses,
+from .design import (_draw_tracked, caption_layout, color_alpha, depth_order, draw_caption, poses,
                      resolve_color, resolve_font, sheet_tiles, sprite, thumbnail)
 
 ENTRY = Path(__file__).resolve().parents[1] / "browser" / "render.mjs"
@@ -118,7 +118,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                         objects.append(obj)
                     scenes[scene_id] = {**scene, "objects": objects}
                 prepared["three"] = {**three, "duration": duration}
-            ordered = sorted(layer_order(shot["layers"]),
+            ordered = sorted(depth_order(shot["layers"]),
                              key=lambda item: item.get("plane") != "background")
             for index, layer in enumerate(ordered):
                 mask = layer.get("mask")

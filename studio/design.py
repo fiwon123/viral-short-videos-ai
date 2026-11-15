@@ -9,7 +9,7 @@ from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFilter, ImageFont
 from .camera import resolve_camera
 from .core import asset, scoped_asset
 from .easing import catmull_rom, ease
-from .transform import apply as apply_matrix
+from .transform import depth_fade, apply as apply_matrix
 from .transform import bbox as matrix_bbox
 from .transform import camera_matrix, inverse, layer_matrix, multiply, translate
 
@@ -339,6 +339,7 @@ def poses(layer):
         "rotate": layer.get("rotate", 0),
         "opacity": layer.get("opacity", 1),
         "visible": layer.get("visible", True),
+        "z": layer.get("z", 0),
     }
     points = [(0, state, "linear", {})]
     for key in layer.get("keyframes", []):
@@ -359,7 +360,8 @@ def camera_points(shot):
     if not camera:
         return None
     state = {"x": camera.get("x", 0), "y": camera.get("y", 0),
-             "zoom": camera.get("zoom", 1), "rotate": camera.get("rotate", 0)}
+             "zoom": camera.get("zoom", 1), "rotate": camera.get("rotate", 0),
+             "z": camera.get("z", 0), "fov": camera.get("fov", 50)}
     points = [(0, state, "linear", {})]
     for key in camera.get("keyframes", []):
         state = {name: key.get(name, value) for name, value in state.items()}
@@ -390,6 +392,27 @@ def pose_at(points, progress):
                 result[name] = value + (end[name] - value) * ease(t, property_mode)
         return result
     return points[-1][1]
+
+
+def depth_order(layers):
+    """Parent-first order, then far-to-near by each layer's root ``z`` (stable)."""
+    ordered = layer_order(layers)
+    by_id = {layer["id"]: layer for layer in ordered}
+
+    def root_z(layer):
+        while layer.get("parent") in by_id:
+            layer = by_id[layer["parent"]]
+        return float(layer.get("z", 0) or 0)
+    return sorted(ordered, key=lambda layer: -root_z(layer))
+
+
+def depth_blur(z, camera):
+    """Extra blur for layers outside the camera's focus band (``camera.focus``)."""
+    focus = (camera or {}).get("focus")
+    if not focus:
+        return 0.0
+    distance = abs(float(z or 0) - float(focus.get("z", 0)))
+    return float(focus.get("amount", 0.5)) * max(0.0, min(1.0, (distance - float(focus.get("range", 0.2))) / 1.0))
 
 
 def layer_order(layers):
@@ -547,7 +570,7 @@ class Composition:
         self.camera = resolve_camera(shot) if shot.get("camera") else None
         self.camera_points = camera_points({**shot, "camera": self.camera}) if shot.get("camera") else None
         self.track = (self.camera or {}).get("track")
-        layers = sorted(layer_order(shot["layers"]), key=lambda item: item.get("plane") != "background")
+        layers = sorted(depth_order(shot["layers"]), key=lambda item: item.get("plane") != "background")
         self.layers = []
         for layer in layers:
             tiles = sheet_tiles(layer, canvas, base, channel_base) if layer["kind"] == "sheet" else None
@@ -716,7 +739,7 @@ class Composition:
                     state["visible"] = False
             if layer["parent"] and not states[layer["parent"]]["visible"]:
                 state["visible"] = False
-        matrices, alphas, origins, mask_cache = {}, {}, {}, {}
+        matrices, alphas, origins, mask_cache, depths = {}, {}, {}, {}, {}
         for layer in self.layers:
             state = states[layer["id"]]
             if layer["id"] in hidden_ids or not state["visible"]:
@@ -724,6 +747,15 @@ class Composition:
             parent_matrix = matrices.get(layer["parent"])
             parent_alpha = alphas.get(layer["parent"], 1.0)
             alpha = state["opacity"] * parent_alpha
+            if layer["parent"] in depths:
+                depths[layer["id"]] = depths[layer["parent"]]
+            else:
+                depths[layer["id"]] = float(state.get("z", 0) or 0)
+                if camera is not None and (depths[layer["id"]] or camera.get("z")):
+                    alpha *= depth_fade(depths[layer["id"]], camera)
+            extra_blur = depth_blur(depths[layer["id"]], {**(camera or {}), "focus": (self.camera or {}).get("focus")})
+            if extra_blur:
+                state = {**state, "blur": float(state.get("blur", 0) or 0) + extra_blur}
             if layer.get("tiles"):
                 frame_index = max(0, min(len(layer["tiles"]) - 1, int(round(state.get("frame", 0)))))
                 tile = layer["tiles"][frame_index]
