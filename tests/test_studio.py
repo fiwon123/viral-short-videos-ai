@@ -1,5 +1,6 @@
 """Focused regression tests for the AI authoring controls."""
 
+import copy
 import json
 import math
 import unittest
@@ -881,6 +882,15 @@ class IKTests(unittest.TestCase):
         x, y = self.end(shot, 1.0, chain=1)
         self.assertAlmostEqual(y, 0.4, places=3)  # Aimed straight right, level with the shoulder.
         self.assertGreater(x, 0.5)
+
+    def test_motion_report_flags_unreachable_target(self):
+        from studio.motion_report import reach_notes
+        ik = [{"chain": ["upper", "lower"], "keys": [{"t": 0, "x": 0.9, "y": 0.4, "d": 0}]}]
+        far = self.shot(ik)
+        notes = reach_notes(far, copy.deepcopy(far), self.W, self.H)
+        self.assertEqual([note["kind"] for note in notes], ["reach"])
+        near = self.shot([{**ik[0], "keys": [{"t": 0, "x": 0.55, "y": 0.45, "d": 0}]}])
+        self.assertEqual(reach_notes(near, copy.deepcopy(near), self.W, self.H), [])
 
     def test_follows_a_moving_layer(self):
         shot = self.shot([{"chain": ["upper", "lower"], "keys": [{"t": 0, "layer": "ball", "d": 0}]}])

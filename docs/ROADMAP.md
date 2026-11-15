@@ -44,12 +44,13 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Done | Keyable `tint_color` and `wipe` draw-on (`wipe_from`) in both renderers. Keyed `fill`/`stroke_width`/`stroke_color` on shapes and text expand in `studio/paint.py` into `paint_frames` sprites plus `frame` keys (≤120 looks, sampled at min(24, fps)). `keys.compose` takes a `rate` and no longer puts grid samples within 0.9 sample of an authored key. Also fixed `gradient_image` clipping angles past 90°. |
 | Bug fix: Python rotated clockwise | Done | Since `ab19891`, `transform.rotate` turned positive degrees clockwise while the browser (and the old PIL path) turned counter-clockwise. Python now matches. Path `orient` flipped with it. The parity fixture has an asymmetric `needle`, and `RotationConventionTests` pins the direction. |
-| Still pending | Pending | Nothing from the plan. Next ideas: IK in the motion report (unreachable targets), a showcase example using z-depth, paths, follow, IK and a 3D rig. |
+| Still pending | Pending | Nothing from the plan. IK reach check landed in the motion report (`reach_notes`). Next idea: a showcase example using z-depth, paths, follow, IK and a 3D rig. |
 
-Tests: `make test` passes, 82 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 83 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Motion report flags unreachable IK targets.
 - 2026-11-15: Phase 2.6 IK landed. Fixed the Python/browser rotation direction mismatch.
 - 2026-11-15: Phase 4.4 GLB morph target keys landed.
 - 2026-11-15: Phase 2.4 fill/stroke keys landed, plus the gradient angle fix.

@@ -114,7 +114,7 @@ The scene library (`scene_library` in the channel) holds reusable sets. Shots ke
 
 ## See and check the motion
 
-- `make motion-report EPISODE=...` lists dead holds (nothing moves for 1 s or more), long `linear` moves, layers that start in lockstep, one-frame snaps, frozen rigs and low contrast (text under 3:1 or a foreground shape under 1.4:1 against the solid fill behind it; SVG and image art isn't judged). It also writes `motion-report.png` with speed curves per shot. Fix every note or say why it is intentional.
+- `make motion-report EPISODE=...` lists dead holds (nothing moves for 1 s or more), long `linear` moves, layers that start in lockstep, one-frame snaps, frozen rigs, `ik` targets out of reach and low contrast (text under 3:1 or a foreground shape under 1.4:1 against the solid fill behind it; SVG and image art isn't judged). It also writes `motion-report.png` with speed curves per shot. Fix every note or say why it is intentional.
 - `make still EPISODE=... SHOT=... AT=1.2 ONION=3` overlays ghost poses, warm before and cool after, to check arcs, spacing and overlap at a key moment.
 
 ## Polish checklist

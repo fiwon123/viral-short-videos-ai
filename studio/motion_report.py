@@ -12,6 +12,8 @@ Checks:
 * lockstep     three or more layers start moving on the same frame
 * snap         a layer jumps further than a quarter screen in one frame
 * frozen       a character rig is on screen with no ``alive`` and no motion
+* reach        an ``ik`` target is farther than the limb can reach, so the hand
+               points at it but never touches it
 * contrast     text (below WCAG 3:1) or a foreground shape (below 1.4:1) nearly
                matches the solid colour behind it; judged from authored fills
                and the palette
@@ -122,7 +124,7 @@ def shot_report(source_shot, shot, fps, hold):
                 break
             previous = {"x": key.get("x", previous["x"]), "y": key.get("y", previous["y"])}
         if layer.get("kind") == "use" and "alive" not in layer and not keys and not layer.get("motion") \
-                and not layer.get("pose_keys") and not layer.get("path") and duration > 1.5:
+                and not layer.get("pose_keys") and not layer.get("path") and not layer.get("ik") and duration > 1.5:
             notes.append({"kind": "frozen", "layer": layer["id"],
                           "note": f"{layer['id']} stands still for the whole {duration:g}s shot; add `alive` "
                                   f"or a pose change."})
@@ -214,6 +216,49 @@ def contrast_notes(shot, palette, progress=(0.15, 0.5, 0.9)):
     return notes
 
 
+def reach_notes(source_shot, shot, width, height):
+    """Flag ik keys whose target sits beyond the chain's full reach."""
+    from .ik import Skeleton
+    groups = [layer for layer in source_shot.get("layers", []) if layer.get("ik")]
+    if not groups:
+        return []
+    skeleton = Skeleton(shot, width, height)
+    notes = []
+    for group in groups:
+        prefix = group["id"] + "/"
+
+        def find(name):
+            return next((item for item in (prefix + name, name) if item in skeleton.layers), None)
+        for spec in group["ik"]:
+            chain = [find(name) for name in spec["chain"]]
+            end = find(spec["end"]) if spec.get("end") else None
+            tip = spec.get("tip") or (skeleton.layers[chain[-1]].get("tip") if chain[-1] else None)
+            if None in chain or (not end and not tip):
+                continue
+            for key in spec.get("keys", []):
+                if key.get("release"):
+                    continue
+                seconds = min(skeleton.duration, float(key["t"]) + float(key.get("d", 0.25)))
+                if "layer" in key:
+                    target_id = find(key["layer"])
+                    if not target_id:
+                        continue
+                    target = skeleton.world(target_id, seconds)[0]
+                else:
+                    target = (float(key["x"]) * width, float(key["y"]) * height)
+                joints = [skeleton.world(part, seconds)[0] for part in chain]
+                effector = skeleton.world(end, seconds)[0] if end else skeleton.point(chain[-1], seconds, tip)
+                points = joints + [effector]
+                reach = sum(math.dist(a, b) for a, b in zip(points, points[1:]))
+                distance = math.dist(joints[0], target)
+                if reach > 0 and distance > reach * 1.05:
+                    notes.append({"kind": "reach", "layer": group["id"], "at": round(seconds, 2),
+                                  "note": f"{group['id']} {'/'.join(spec['chain'])} can't reach its target at "
+                                          f"{seconds:.2f}s ({distance / reach:.1f}x its length); it points but "
+                                          f"won't touch. Move the character or the target closer."})
+    return notes
+
+
 def report(source, expanded, hold=1.0, palette=None):
     fps = float(source.get("fps", 24))
     by_id = {shot["id"]: shot for scene in expanded["scenes"] for shot in scene["shots"]}
@@ -222,6 +267,8 @@ def report(source, expanded, hold=1.0, palette=None):
         for shot in scene["shots"]:
             notes, curves = shot_report(shot, by_id[shot["id"]], fps, hold)
             notes += contrast_notes(by_id[shot["id"]], palette)
+            notes += reach_notes(shot, by_id[shot["id"]], float(source.get("width", 1080)),
+                                 float(source.get("height", 1920)))
             shots.append({"shot": shot["id"], "duration": shot["duration"], "notes": notes})
             charts[shot["id"]] = curves
     return {"fps": fps, "issues": sum(len(item["notes"]) for item in shots), "shots": shots}, charts
