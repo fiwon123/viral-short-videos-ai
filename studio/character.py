@@ -314,6 +314,7 @@ def limb(spec, name, role, parent, offset, length, width, foot=False):
     h = length + end + pad * 2
     cx = w / 2
     part = Part(name, w, h, [0.5, (pad + width / 2) / h], role, parent, offset)
+    part.tip = (0.0, length - width / 2)  # Hand or foot centre from the pivot, in design units.
     color = pal["limb"]
     part.body.append(f'<path d="M{cx:.1f} {pad + width / 2:.1f} L{cx:.1f} {pad + length:.1f}" stroke="{pal["line"]}" '
                      f'stroke-width="{width + lw * 2:.1f}" stroke-linecap="round"/>'
@@ -465,6 +466,8 @@ def rig_layers(spec, parts, folder):
             layer["mouth_shape"] = part.extra["shape"]
             if part.extra["shape"] != "rest":
                 layer["visible"] = False
+        if getattr(part, "tip", None):
+            layer["tip"] = [round(part.tip[0] * s / canvas_w, 5), round(part.tip[1] * s / canvas_h, 5)]
         if part.extra.get("rest_rotate"):
             layer["rotate"] = part.extra["rest_rotate"]
         if part.extra.get("tilt"):

@@ -35,6 +35,7 @@
          {"id": "title", "kind": "text", "x": 0.5, "y": 0.12, "width": 0.8, "height": 0.07, "fill": "foreground", "text": "BLEND + BLUR"},
          {"id": "glow", "kind": "ellipse", "x": 0.42, "y": 0.48, "width": 0.4, "height": 0.4, "fill": "accent", "opacity": 0.5, "blend": "screen", "blur": 0.04},
          {"id": "square", "kind": "rect", "x": 0.6, "y": 0.55, "width": 0.22, "height": 0.22, "fill": "secondary", "radius": 0.12, "rotate": 18, "blend": "multiply"},
+         {"id": "needle", "kind": "rect", "x": 0.25, "y": 0.62, "width": 0.025, "height": 0.2, "fill": "accent", "pivot": [0.5, 0], "rotate": 35, "keyframes": [{"at": 1, "rotate": 70, "ease": "smooth"}]},
          {"id": "dot", "kind": "ellipse", "x": 0.6, "y": 0.55, "width": 0.08, "height": 0.08, "fill": "foreground"}
        ]},
       {"id": "C", "duration": 1.5,

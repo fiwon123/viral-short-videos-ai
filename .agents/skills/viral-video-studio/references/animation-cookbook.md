@@ -1,6 +1,6 @@
 # Animation cookbook
 
-Use this when blocking and polishing motion. Every field below expands at load time into plain keyframes, so it works on every renderer and composes with keys you write by hand. Times in `motion`, `pose_keys` and `wiggle` are in **seconds** from shot start (`t`, `d`). Times in `keyframes`, `path.at` and `wiggle.at` are **0–1 shot progress**.
+Use this when blocking and polishing motion. Every field below expands at load time into plain keyframes, so it works on every renderer and composes with keys you write by hand. Positive `rotate` turns counter-clockwise on screen in both renderers. Kinetic caption wobble is the one exception (clockwise). Times in `motion`, `pose_keys`, `ik` and `wiggle` are in **seconds** from shot start (`t`, `d`). Times in `keyframes`, `path.at` and `wiggle.at` are **0–1 shot progress**.
 
 ## The principles, mapped to fields
 
@@ -9,7 +9,7 @@ Use this when blocking and polishing motion. Every field below expands at load t
 | Squash and stretch | `motion: impact`, `jump`, `drop` | Contacts, landings, hits |
 | Anticipation | `motion: anticipate` 0.2–0.35 s before the action | Before jumps, throws, dashes |
 | Staging | `pose_keys` on clear silhouettes, `camera` | One readable idea per beat |
-| Pose to pose | `pose_keys` (`wave`, `surprise`, `shrug`...) | Character acting |
+| Pose to pose | `pose_keys` (`wave`, `surprise`, `shrug`...), `ik` for contact | Character acting |
 | Follow-through and overlap | `follow` (`mode: drag`), automatic for ears and antenna under `alive` | Tails, hair, antennae, props in hand |
 | Slow in and slow out | `ease` (`smooth`, `out`, `back`, `auto`) | Never leave a big move `linear` |
 | Arcs | `path` with 3+ points, `orient: true` for flying things | Throws, flights, swoops |
@@ -69,7 +69,8 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 2. Place the character: `{"id": "pip", "kind": "use", "ref": "pip", "x": 0.3, "y": 0.86, "alive": {"talk": "Pip"}}`. Here `x`/`y` is the feet.
 3. Act with poses, not per-part keys: `"pose_keys": [{"t": 0.6, "pose": "wave", "d": 0.2, "ease": "back"}, {"t": 2.0, "pose": "idle"}]`. The starter poses are `idle`, `wave`, `cheer`, `point-left`, `point-right`, `shrug`, `surprise`, `sad`, `angry` and `think`. Add channel poses under `poses.<rig>` in the rig library, or under `poses` in the episode.
 4. Move the whole body with `motion`, `path` and keys on the `use` layer. `alive` adds breathing, blinks, glances, sway, ear and antenna follow-through, and the talking mouth on top.
-5. Hit one pose change per beat. Hold readable poses for at least 0.4 s, and change pose on the word that motivates it.
+5. Reach with `ik` when a hand or foot must land on something: `"ik": [{"chain": ["arm-r"], "keys": [{"t": 0.3, "layer": "ball", "d": 0.3, "ease": "out"}, {"t": 2.0, "release": true, "d": 0.3}]}]`. Generated limbs are one bone with a `tip`, so they aim (and point toward targets they can't reach). Hand-built rigs can use two parts (`["arm-upper", "arm-lower"]`, plus `end: "hand"` or `tip`) for a bending elbow or knee, and `bend: -1` flips it. Targets are screen `x`/`y` or another layer's pivot. Later keys glide the hand to the next target, and `release` hands control back to poses and keys. IK runs after `alive`, so a planted hand stays put while the body breathes.
+6. Hit one pose change per beat. Hold readable poses for at least 0.4 s, and change pose on the word that motivates it.
 
 ## Colour grade
 

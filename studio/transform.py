@@ -35,9 +35,10 @@ def scale(x, y=None):
 
 
 def rotate(degrees):
+    """Positive degrees turn counter-clockwise on screen, like PIL and browser/painter.mjs."""
     angle = math.radians(degrees)
     cosine, sine = math.cos(angle), math.sin(angle)
-    return (cosine, sine, -sine, cosine, 0.0, 0.0)
+    return (cosine, -sine, sine, cosine, 0.0, 0.0)
 
 
 def apply(matrix, x, y):

@@ -806,6 +806,92 @@ class PaintTests(unittest.TestCase):
         self.assertGreater(image.getpixel((0, 1))[2], 200)
 
 
+class RotationConventionTests(unittest.TestCase):
+    def test_positive_rotate_turns_counter_clockwise_like_the_browser(self):
+        # browser/painter.mjs layerMatrix uses rotate(-degrees) with the canvas [cos, sin, -sin, cos] form.
+        from studio.transform import apply, layer_matrix
+        matrix = layer_matrix({"x": 0, "y": 0, "rotate": 90}, 100, 100, [0, 0], box=(10, 10))
+        x, y = apply(matrix, 1, 0)
+        self.assertAlmostEqual(x, 0, places=6)
+        self.assertAlmostEqual(y, -1, places=6)  # Screen up: counter-clockwise.
+
+    def test_path_orient_follows_the_convention(self):
+        from studio.moves import expand
+        layer = {"id": "a", "kind": "rect", "x": 0.1, "y": 0.1,
+                 "path": {"points": [[0.1, 0.1], [0.9, 0.9]], "orient": True, "ease": "linear"}}
+        episode = {"width": 1000, "height": 1000, "scenes": [{"shots": [{"id": "A", "duration": 1.0, "layers": [layer]}]}]}
+        expand(episode)
+        middle = pose_at(poses(layer), 0.5)["rotate"]
+        self.assertAlmostEqual(middle, -45, places=0)  # Heading down-right on screen is clockwise.
+
+
+class IKTests(unittest.TestCase):
+    W, H = 1080, 1920
+
+    def shot(self, ik, flip=False, chain=2):
+        layers = [{"id": "hero", "kind": "group", "x": 0.5, "y": 0.4, "ik": ik,
+                   **({"scale_x": -1} if flip else {})},
+                  {"id": "hero/upper", "kind": "rect", "parent": "hero", "x": 0.0, "y": 0.0, "width": 0.02,
+                   "height": 0.1, "tip": [0, 0.1] if chain == 1 else None}]
+        if chain == 2:
+            layers.append({"id": "hero/lower", "kind": "rect", "parent": "hero/upper", "x": 0.0, "y": 0.05,
+                           "width": 0.02, "height": 0.1, "tip": [0, 0.05]})
+        for layer in layers:
+            if layer.get("tip") is None:
+                layer.pop("tip", None)
+        return {"id": "A", "duration": 2.0, "layers": layers}
+
+    def end(self, shot, seconds, chain=2):
+        from studio.ik import Skeleton
+        skeleton = Skeleton(shot, self.W, self.H)
+        last = "hero/lower" if chain == 2 else "hero/upper"
+        x, y = skeleton.point(last, seconds, skeleton.layers[last]["tip"])
+        return x / self.W, y / self.H
+
+    def run_ik(self, shot):
+        from studio.ik import expand
+        episode = {"width": self.W, "height": self.H, "scenes": [{"shots": [shot]}]}
+        expand(episode)
+        return shot
+
+    def test_two_bone_reaches_target_and_releases(self):
+        shot = self.run_ik(self.shot([{"chain": ["upper", "lower"], "keys": [
+            {"t": 0.2, "x": 0.55, "y": 0.45, "d": 0.2}, {"t": 1.5, "release": True, "d": 0.2}]}]))
+        x, y = self.end(shot, 1.0)
+        self.assertAlmostEqual(x, 0.55, places=3)
+        self.assertAlmostEqual(y, 0.45, places=3)
+        # Released: back to the straight rest arm hanging down.
+        x, y = self.end(shot, 2.0)
+        self.assertAlmostEqual(x, 0.5, places=3)
+        self.assertAlmostEqual(y, 0.5, places=3)
+
+    def test_bend_flips_the_elbow(self):
+        from studio.ik import Skeleton
+        elbows = []
+        for bend in (1, -1):
+            shot = self.run_ik(self.shot([{"chain": ["upper", "lower"], "bend": bend,
+                                           "keys": [{"t": 0, "x": 0.5, "y": 0.46, "d": 0}]}]))
+            elbows.append(Skeleton(shot, self.W, self.H).world("hero/lower", 1.0)[0][0])
+        # Shoulder and target share x = 540 px, so the two bends put the elbow on opposite sides.
+        self.assertLess((elbows[0] - 540) * (elbows[1] - 540), -1)
+
+    def test_one_bone_aims_on_a_mirrored_rig(self):
+        shot = self.run_ik(self.shot([{"chain": ["upper"], "keys": [{"t": 0, "x": 0.6, "y": 0.4, "d": 0}]}],
+                                     flip=True, chain=1))
+        x, y = self.end(shot, 1.0, chain=1)
+        self.assertAlmostEqual(y, 0.4, places=3)  # Aimed straight right, level with the shoulder.
+        self.assertGreater(x, 0.5)
+
+    def test_follows_a_moving_layer(self):
+        shot = self.shot([{"chain": ["upper", "lower"], "keys": [{"t": 0, "layer": "ball", "d": 0}]}])
+        shot["layers"].append({"id": "ball", "kind": "ellipse", "x": 0.45, "y": 0.42,
+                               "keyframes": [{"at": 1, "x": 0.56, "y": 0.47}]})
+        self.run_ik(shot)
+        x, y = self.end(shot, 1.0)
+        self.assertAlmostEqual(x, 0.505, places=2)
+        self.assertAlmostEqual(y, 0.445, places=2)
+
+
 class MorphTests(unittest.TestCase):
     MODEL = {"meshes": [{"primitives": [{"targets": [{}, {}]}], "extras": {"targetNames": ["smile", "blink"]}},
                         {"primitives": [{"targets": [{}]}]}]}

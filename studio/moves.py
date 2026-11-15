@@ -281,7 +281,8 @@ def path(spec, duration, aspect):
         (x, y), (dx, dy) = locate(fraction)
         result = {"x": ("set", x), "y": ("set", y)}
         if orient is not False and orient is not None:
-            result["rotate"] = ("set", math.degrees(math.atan2(dy, dx * aspect)) + offset)
+            # Screen y points down and positive rotate is counter-clockwise, so the tangent angle flips.
+            result["rotate"] = ("set", -math.degrees(math.atan2(dy, dx * aspect)) + offset)
         return result
     return modifier
 

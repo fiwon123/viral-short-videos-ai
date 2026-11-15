@@ -28,7 +28,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 2.2: wiggle | Done | `wiggle` seeded value noise on any property. |
 | Phase 2.3: follow | Done | `follow` chase and drag spring modes. `alive` adds drag on ears and antenna. |
 | Phase 2.5: manifest-native recipes | Done | `motion: [{recipe, t, d}]`: pop, anticipate, impact, settle, shake, spin, enter, exit, drop, jump, nod, wobble. |
-| Phase 2.6: pose library | Done | `studio/poses.py` `pose_keys`. Poses live in the rig library `poses.<rig>` or episode `poses`. `make character` writes 10 starter poses. IK is not done. |
+| Phase 2.6: pose library | Done | `studio/poses.py` `pose_keys`. Poses live in the rig library `poses.<rig>` or episode `poses`. `make character` writes 10 starter poses. Two-bone IK: `ik` on a group (`studio/ik.py`) solves one- or two-part chains from poses only (no sprite sizes), with screen or layer targets, blend/glide/release keys and `bend`. Generated limbs carry a `tip`. |
 | Phase 6: animation cookbook | Done | `.agents/skills/viral-video-studio/references/animation-cookbook.md`, linked from SKILL.md. |
 | Phase 5.1: onion-skin stills | Done | `still --onion N --onion-step s` (`make still ONION=3`). Median background, tinted ghosts. Works on every renderer. |
 | Phase 5.2: motion report | Done | `studio/motion_report.py` and `make motion-report`. Flags dead holds, linear moves, lockstep starts, snaps and frozen rigs, and writes a speed chart PNG. |
@@ -43,12 +43,14 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. GLB morph targets: `morph` weights on object keys and objects, names checked against the model (`scenes.morph_names`), applied after the mixer. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Done | Keyable `tint_color` and `wipe` draw-on (`wipe_from`) in both renderers. Keyed `fill`/`stroke_width`/`stroke_color` on shapes and text expand in `studio/paint.py` into `paint_frames` sprites plus `frame` keys (≤120 looks, sampled at min(24, fps)). `keys.compose` takes a `rate` and no longer puts grid samples within 0.9 sample of an authored key. Also fixed `gradient_image` clipping angles past 90°. |
-| Still pending | Pending | 2.6 two-bone IK. |
+| Bug fix: Python rotated clockwise | Done | Since `ab19891`, `transform.rotate` turned positive degrees clockwise while the browser (and the old PIL path) turned counter-clockwise. Python now matches. Path `orient` flipped with it. The parity fixture has an asymmetric `needle`, and `RotationConventionTests` pins the direction. |
+| Still pending | Pending | Nothing from the plan. Next ideas: IK in the motion report (unreachable targets), a showcase example using z-depth, paths, follow, IK and a 3D rig. |
 
-Tests: `make test` passes, 76 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 82 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 2.6 IK landed. Fixed the Python/browser rotation direction mismatch.
 - 2026-11-15: Phase 4.4 GLB morph target keys landed.
 - 2026-11-15: Phase 2.4 fill/stroke keys landed, plus the gradient angle fix.
 - 2026-11-15: Phase 4.3 extruded 3D text landed.
