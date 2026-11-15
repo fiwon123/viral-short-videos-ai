@@ -31,6 +31,15 @@ def _save_caption_tile(tile, assets, name):
     return {"sprite": name, "x": box[0], "y": box[1]}
 
 
+def _post_with_lut(post):
+    """Ship the baked grade table to the painter so both renderers grade identically."""
+    if post.get("grade") or post.get("lut"):
+        from .grade import table
+        size, lut = table(post)
+        post = {**post, "lut_size": size, "lut_data": [round(float(v), 5) for v in lut.reshape(-1)]}
+    return post
+
+
 def _kinetic_cue(cue, caption_config, canvas, font, channel, assets, number, fps):
     """Stage per-word sprites and page layout for the browser kinetic captions."""
     from .captions import layout, pages, settings, word_sprite
@@ -90,8 +99,8 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                         "transition": transition,
                         "background": shot.get("background", channel["palette"]["background"]),
                         "camera": resolve_camera(shot) if shot.get("camera") else None,
-                        "post": {**(channel.get("post") or {}), **(episode.get("post") or {}),
-                                 **(shot.get("post") or {})},
+                        "post": _post_with_lut({**(channel.get("post") or {}), **(episode.get("post") or {}),
+                                                **(shot.get("post") or {})}),
                         "motion_blur": shot.get("motion_blur",
                                                 (config or {}).get("motion_blur", episode.get("motion_blur", 0))),
                         "layers": [], "visemes": [],

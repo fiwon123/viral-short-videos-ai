@@ -673,5 +673,23 @@ class CueShapeTests(unittest.TestCase):
         self.assertEqual(sfx_density(timeline)[0]["kind"], "sfx-dense")
 
 
+class GradeTests(unittest.TestCase):
+    def test_identity_cube_is_identity_and_looks_change_colour(self):
+        import numpy as np
+        from tempfile import TemporaryDirectory
+        from studio.grade import apply, bake, load_cube
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "identity.cube"
+            axis = [i / 3 for i in range(4)]
+            rows = [f"{r} {g} {b}" for b in axis for g in axis for r in axis]
+            path.write_text("LUT_3D_SIZE 4\n" + "\n".join(rows), encoding="utf-8")
+            size, lut = load_cube(str(path))
+        colours = np.array([[[0.2, 0.5, 0.9], [0.8, 0.3, 0.1]]], dtype=np.float32)
+        self.assertTrue(np.allclose(apply(colours, size, lut), colours, atol=1e-5))
+        size, teal = bake("teal-orange")
+        graded = apply(np.array([[[0.1, 0.1, 0.1]]], dtype=np.float32), size, teal)[0, 0]
+        self.assertGreater(graded[2], graded[0])  # Shadows lean teal.
+
+
 if __name__ == "__main__":
     unittest.main()

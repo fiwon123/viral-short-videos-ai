@@ -555,6 +555,10 @@ def apply_post(image, config, *, seed=0, palette=None):
         value = resolve_color(tint, palette or DEFAULT_PALETTE).lstrip("#")
         color = np.array([int(value[i:i + 2], 16) / 255 for i in (0, 2, 4)], dtype=np.float32)
         data = np.clip(data * 0.88 + color * 0.12, 0, 1)
+    if config.get("grade") or config.get("lut"):
+        from .grade import apply as apply_lut, table
+        size, lut = table(config)
+        data = apply_lut(data, size, lut, float(config.get("grade_amount", 1)))
     if bloom := float(config.get("bloom", 0)):
         bright = np.clip(data - 0.72, 0, None) * (2.4 * bloom)
         glow = np.asarray(Image.fromarray(np.uint8(np.clip(bright, 0, 1) * 255)).filter(

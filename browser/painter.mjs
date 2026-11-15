@@ -71,6 +71,38 @@ function layerMatrix(pose, width, height, pivot, {parent = null, parentOrigin = 
   return local;
 }
 
+// Trilinear 3D LUT, mirrored from studio/grade.py apply().
+const lutCache = new WeakMap();
+function applyLut(ctx2, size, data, amount) {
+  let lut = lutCache.get(data);
+  if (!lut) {
+    lut = Float32Array.from(data);
+    lutCache.set(data, lut);
+  }
+  const {width: w, height: h} = ctx2.canvas;
+  const image = ctx2.getImageData(0, 0, w, h);
+  const px = image.data;
+  const n = size - 1;
+  const s2 = size * size;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i] / 255 * n, g = px[i + 1] / 255 * n, b = px[i + 2] / 255 * n;
+    const r0 = Math.floor(r), g0 = Math.floor(g), b0 = Math.floor(b);
+    const r1 = Math.min(r0 + 1, n), g1 = Math.min(g0 + 1, n), b1 = Math.min(b0 + 1, n);
+    const fr = r - r0, fg = g - g0, fb = b - b0;
+    for (let c = 0; c < 3; c += 1) {
+      const at = (bb, gg, rr) => lut[(bb * s2 + gg * size + rr) * 3 + c];
+      const c00 = at(b0, g0, r0) * (1 - fr) + at(b0, g0, r1) * fr;
+      const c01 = at(b1, g0, r0) * (1 - fr) + at(b1, g0, r1) * fr;
+      const c10 = at(b0, g1, r0) * (1 - fr) + at(b0, g1, r1) * fr;
+      const c11 = at(b1, g1, r0) * (1 - fr) + at(b1, g1, r1) * fr;
+      const graded = (c00 * (1 - fg) + c10 * fg) * (1 - fb) + (c01 * (1 - fg) + c11 * fg) * fb;
+      const original = px[i + c] / 255;
+      px[i + c] = Math.round((original + (graded - original) * amount) * 255);
+    }
+  }
+  ctx2.putImageData(image, 0, 0);
+}
+
 // Draw-on reveal in the layer's local box. Mirrors studio/design.py wipe_region.
 function wipeClip(target, layer, pose) {
   const amount = Math.max(0, Math.min(1, pose.wipe ?? 1));
@@ -552,6 +584,7 @@ export async function createPainter(canvas, data, urlFor) {
       ctx2.fillRect(0, 0, width, height);
       ctx2.restore();
     }
+    if (post.lut_data) applyLut(ctx2, post.lut_size, post.lut_data, post.grade_amount ?? 1);
     if (post.bloom) {
       fxCtx.setTransform(1, 0, 0, 1, 0, 0);
       fxCtx.clearRect(0, 0, width, height);

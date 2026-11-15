@@ -175,6 +175,9 @@
       "properties": {
         "grain": {"$ref": "#/$defs/unit"},
         "paper": {"description": "Static paper/print texture multiplied over the frame.", "$ref": "#/$defs/unit"},
+        "grade": {"enum": ["teal-orange", "warm-film", "cool-night", "bleach", "vintage", "pastel"]},
+        "lut": {"description": "A .cube 3D LUT: a path from the repository root or a name in presets/luts/.", "$ref": "#/$defs/text"},
+        "grade_amount": {"$ref": "#/$defs/unit"},
         "leak": {"description": "Warm light leak from the top-right corner that breathes slowly.", "$ref": "#/$defs/unit"},
         "vignette": {"$ref": "#/$defs/unit"},
         "bloom": {"$ref": "#/$defs/unit"},

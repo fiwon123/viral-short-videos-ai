@@ -71,6 +71,10 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 4. Move the whole body with `motion`, `path` and keys on the `use` layer. `alive` adds breathing, blinks, glances, sway, ear and antenna follow-through, and the talking mouth on top.
 5. Hit one pose change per beat. Hold readable poses for at least 0.4 s, and change pose on the word that motivates it.
 
+## Colour grade
+
+`post.grade` gives every shot one coherent look: `teal-orange` (punchy, cinematic), `warm-film` (cosy, nostalgic), `cool-night` (moody), `bleach` (gritty), `vintage` (faded memory) or `pastel` (soft, cute). Use `post.lut` for any `.cube` file, and `post.grade_amount` (0–1) to blend. Set it on the episode for consistency, and override per shot for flashbacks or dream beats.
+
 ## Hand-drawn feel
 
 `boil: 0.4` on an SVG layer (or `"boil": 0.4` in a character spec, which is the default for generated characters) redraws its lines with slight seeded wobble at `boil_fps` (12). It makes vector art feel drawn rather than clip-art. Combine it with `post.paper` and light `grain`.
