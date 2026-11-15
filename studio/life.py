@@ -19,12 +19,10 @@ from hashlib import sha256
 import math
 import random
 
-from .design import pose_at, poses
+from .keys import compose
 
-RATE = 24  # Samples per second for the composed keys.
+ASPECT = 9 / 16
 DEFAULTS = {"breathe": 1.0, "blink": 1.0, "look": 1.0, "sway": 1.0, "talk": None, "energy": 1.0}
-PROPS = ("x", "y", "scale", "scale_x", "scale_y", "rotate", "opacity", "skew_x", "skew_y",
-         "blur", "tint_opacity", "frame", "visible")
 
 
 def _settings(value):
@@ -86,47 +84,6 @@ def glance_curve(duration, rng, reach):
     return curve
 
 
-def compose(layer, duration, modifiers):
-    """Resample a layer's keys and apply additive/multiplicative modifiers."""
-    points = poses(layer)
-    times = {round(i / RATE, 4) for i in range(int(duration * RATE) + 1)} | {round(duration, 4)}
-    times |= {round(float(key["at"]) * duration, 4) for key in layer.get("keyframes", [])}
-    keys, changed = [], set()
-    for seconds in sorted(times):
-        progress = min(1.0, seconds / duration) if duration else 0.0
-        pose = dict(pose_at(points, progress))
-        for modifier in modifiers:
-            for prop, (op, value) in modifier(seconds).items():
-                if prop == "scale_xy":
-                    pose["scale_x"] *= value[0]
-                    pose["scale_y"] *= value[1]
-                    changed |= {"scale_x", "scale_y"}
-                    continue
-                pose[prop] = pose[prop] * value if op == "mul" else pose[prop] + value
-                changed.add(prop)
-        keys.append((progress, pose))
-    animated = set(changed)
-    first = keys[0][1]
-    for _, pose in keys:
-        animated |= {prop for prop in PROPS if pose[prop] != first[prop]}
-    result = []
-    for progress, pose in keys:
-        key = {"at": round(progress, 5)}
-        for prop in PROPS:
-            if prop in animated:
-                value = pose[prop]
-                key[prop] = round(value, 5) if isinstance(value, float) else value
-        result.append(key)
-    # Start values become the layer's base pose so the first key matches.
-    for prop in animated:
-        value = first[prop]
-        layer[prop] = round(value, 5) if isinstance(value, float) else value
-    layer["keyframes"] = [key for key in result if key["at"] > 0] or result[-1:]
-    for key in layer["keyframes"]:
-        key["ease"] = "linear"
-    return layer
-
-
 def _wave(period, phase):
     return lambda t: math.sin(2 * math.pi * t / period + phase)
 
@@ -163,6 +120,13 @@ def animate(shot, layer, settings):
             add(item, lambda t: {"rotate": ("add", 1.6 * s * sway(t))})
         for item in roles.get("ear", []) + roles.get("antenna", []):
             add(item, lambda t: {"rotate": ("add", 4.5 * s * sway(t - 0.28))})  # Follow-through lag.
+    if members[0] is not layer and (roles.get("ear") or roles.get("antenna")):
+        # Ears and antennae swing against the character's own moves (jumps, hops, paths).
+        from .moves import follow
+        by_id = {item["id"]: item for item in shot["layers"]}
+        for item in roles.get("ear", []) + roles.get("antenna", []):
+            add(item, follow({"target": layer["id"], "mode": "drag", "gain": 5 * energy}, item, by_id,
+                             duration, ASPECT))
     k = settings["blink"]
     if k and roles.get("eye"):
         blink, _ = blink_curve(duration, rng, k)

@@ -10,3 +10,10 @@ def load_rigs(channel, base):
     path = asset(base, name)
     data = load(path, "rig_library")
     return data.get("rigs", {})
+
+
+def load_rig_poses(channel, base):
+    name = (channel or {}).get("rig_library")
+    if not name:
+        return {}
+    return load(asset(base, name), "rig_library").get("poses", {})

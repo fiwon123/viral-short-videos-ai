@@ -51,6 +51,7 @@ def expand(episode, channel_rigs=None):
                     raise ValueError(f"Layer definition {name} cannot contain another use")
                 group = copy.deepcopy(layer)
                 group.pop("ref", None)
+                group["rig"] = name
                 group["kind"] = "group"
                 group["plane"] = layer.get("plane", "foreground")
                 layers.append(group)

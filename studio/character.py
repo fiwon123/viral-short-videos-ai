@@ -427,6 +427,26 @@ def build_parts(spec):
 
 # ---------------------------------------------------------------- output
 
+# Starter acting poses. Arm rotation is degrees from hanging down; positive swings
+# the left arm out and up, negative the right. Brow y is a canvas fraction.
+POSES = {
+    "idle": {},
+    "wave": {"arm-r": {"rotate": -150}, "mouth": "smile"},
+    "cheer": {"arm-l": {"rotate": 155}, "arm-r": {"rotate": -155}, "brow-l": {"y": -0.006}, "brow-r": {"y": -0.006},
+              "mouth": "wide"},
+    "point-left": {"arm-l": {"rotate": 95}},
+    "point-right": {"arm-r": {"rotate": -95}},
+    "shrug": {"arm-l": {"rotate": 62}, "arm-r": {"rotate": -62}, "brow-l": {"y": -0.005}, "brow-r": {"y": -0.005},
+              "mouth": "flat"},
+    "surprise": {"arm-l": {"rotate": 40}, "arm-r": {"rotate": -40}, "eye-l": {"scale": 1.18}, "eye-r": {"scale": 1.18},
+                 "brow-l": {"y": -0.009}, "brow-r": {"y": -0.009}, "mouth": "o"},
+    "sad": {"arm-l": {"rotate": 4}, "arm-r": {"rotate": -4}, "brow-l": {"rotate": -14}, "brow-r": {"rotate": 14},
+            "mouth": "frown"},
+    "angry": {"arm-l": {"rotate": 28}, "arm-r": {"rotate": -28}, "brow-l": {"rotate": 18, "y": 0.003},
+              "brow-r": {"rotate": -18, "y": 0.003}, "mouth": "frown"},
+    "think": {"arm-r": {"rotate": -140}, "pupil-l": {"y": -0.004}, "pupil-r": {"y": -0.004}, "mouth": "flat"},
+}
+
 def rig_layers(spec, parts, folder):
     canvas_w, canvas_h = spec["canvas"]
     s = spec["height"] * canvas_h / UNIT
@@ -497,6 +517,10 @@ def generate(channel_dir, spec_path, *, rig_library=None):
     rig_path = channel_dir / rig_name
     library = json.loads(rig_path.read_text(encoding="utf-8")) if rig_path.is_file() else {"version": 1, "rigs": {}}
     library["rigs"][raw["id"]] = rig_layers(spec, parts, folder)
+    names = {part.name for part in parts}
+    library.setdefault("poses", {})[raw["id"]] = {
+        name: {part: props for part, props in pose.items() if part == "mouth" or part in names}
+        for name, pose in POSES.items()}
     rig_path.write_text(json.dumps(library, indent=2) + "\n", encoding="utf-8")
     linked = False
     if channel.get("rig_library") != rig_name:
@@ -505,8 +529,9 @@ def generate(channel_dir, spec_path, *, rig_library=None):
         linked = True
     return {"character": raw["id"], "parts": len(parts), "folder": folder, "rig_library": rig_name,
             "linked_rig_library": linked, "preview": f"{folder}/preview.svg",
+            "poses": sorted(POSES),
             "use": {"id": raw["id"], "kind": "use", "ref": raw["id"], "x": 0.5, "y": 0.85,
-                    "alive": {"talk": "<speaker>"}}}
+                    "alive": {"talk": "<speaker>"}, "pose_keys": [{"t": 0.5, "pose": "wave"}]}}
 
 
 def main():

@@ -458,6 +458,56 @@
         "talk_only": {"description": "With mouth_for: show only while the speaker is talking.", "type": "boolean"},
         "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop"]},
         "mouth_shape": {"$ref": "#/$defs/text"},
+        "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
+        "pose_keys": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["t", "pose"], "additionalProperties": false,
+            "properties": {
+              "t": {"type": "number", "minimum": 0, "maximum": 720},
+              "pose": {"$ref": "#/$defs/text"},
+              "d": {"type": "number", "minimum": 0, "maximum": 10},
+              "ease": {"$ref": "#/$defs/ease"}
+            }
+          }
+        },
+        "motion": {
+          "description": "Timed motion recipes on top of the authored pose (see studio/moves.py).",
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["recipe"],
+            "properties": {
+              "recipe": {"enum": ["pop", "anticipate", "impact", "settle", "shake", "spin", "enter", "exit", "drop", "jump", "nod", "wobble"]},
+              "t": {"type": "number", "minimum": 0, "maximum": 720},
+              "d": {"type": "number", "exclusiveMinimum": 0, "maximum": 30}
+            }
+          }
+        },
+        "path": {
+          "type": "object", "required": ["points"],
+          "properties": {
+            "points": {"type": "array", "minItems": 2, "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+            "at": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/unit"}},
+            "ease": {"$ref": "#/$defs/ease"},
+            "orient": {"anyOf": [{"type": "boolean"}, {"type": "number"}]},
+            "closed": {"type": "boolean"}
+          }
+        },
+        "wiggle": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["prop"], "additionalProperties": false,
+            "properties": {
+              "prop": {"enum": ["x", "y", "rotate", "scale", "scale_x", "scale_y", "opacity", "skew_x", "skew_y"]},
+              "amp": {"type": "number"}, "freq": {"type": "number", "exclusiveMinimum": 0, "maximum": 30},
+              "seed": {"type": "integer"}, "octaves": {"type": "integer", "minimum": 1, "maximum": 4},
+              "at": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/unit"}}
+            }
+          }
+        },
+        "follow": {
+          "anyOf": [{"$ref": "#/$defs/follow"}, {"type": "array", "items": {"$ref": "#/$defs/follow"}}]
+        },
         "alive": {
           "description": "Automatic idle motion for a rig: breathe, blink, glance, sway and talk.",
           "anyOf": [{"type": "boolean"}, {
@@ -796,6 +846,19 @@
         "lighting_rigs": {"type": "object", "additionalProperties": {"$ref": "#/$defs/lighting"}}
       }
     },
+    "follow": {
+      "type": "object", "required": ["target"], "additionalProperties": false,
+      "properties": {
+        "target": {"$ref": "#/$defs/text"},
+        "mode": {"enum": ["chase", "drag"]},
+        "lag": {"type": "number", "minimum": 0, "maximum": 2},
+        "stiffness": {"type": "number", "exclusiveMinimum": 0, "maximum": 2000},
+        "damping": {"type": "number", "minimum": 0, "maximum": 200},
+        "gain": {"type": "number", "minimum": 0, "maximum": 100},
+        "props": {"type": "array", "items": {"enum": ["x", "y", "rotate", "scale", "scale_x", "scale_y"]}},
+        "offset": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}
+      }
+    },
     "rig_library": {
       "type": "object", "required": ["version", "rigs"], "additionalProperties": false,
       "properties": {
@@ -806,6 +869,11 @@
           "additionalProperties": {
             "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/layer"}
           }
+        },
+        "poses": {
+          "description": "Named poses per rig: {rig: {pose: {part: {prop: value}, mouth: shape}}}.",
+          "type": "object",
+          "additionalProperties": {"type": "object", "additionalProperties": {"type": "object"}}
         }
       }
     },
@@ -987,6 +1055,11 @@
       "properties": {
         "$schema": {"type": "string"},
         "meta": {"type": "object", "additionalProperties": true},
+        "poses": {
+          "description": "Named poses per rig: {rig: {pose: {part: {prop: value}, mouth: shape}}}.",
+          "type": "object",
+          "additionalProperties": {"type": "object", "additionalProperties": {"type": "object"}}
+        },
         "defs": {
           "description": "Named reusable layer groups for rigs, sets and props.",
           "type": "object",

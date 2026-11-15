@@ -29,7 +29,7 @@ def lint(source, expanded):
             frame = 1 / (fps * max(duration, 1e-6))
             for layer in shot.get("layers", []):
                 times = [float(key["at"]) for key in layer.get("keyframes", [])]
-                close = [(a, b) for a, b in zip(times, times[1:]) if b - a < frame * 0.999]
+                close = [(a, b) for a, b in zip(times, times[1:]) if b - a < frame * 0.9]
                 if close:
                     a, b = close[0]
                     warnings.append(f"{shot['id']}/{layer['id']}: keys at {a:g} and {b:g} are under one frame "

@@ -417,5 +417,77 @@ class LintTests(unittest.TestCase):
         self.assertEqual(len(warnings), 3)
 
 
+class MovesTests(unittest.TestCase):
+    def shot(self, **layer):
+        base = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.8}
+        return {"width": 1080, "height": 1920, "fps": 24,
+                "scenes": [{"shots": [{"id": "A", "duration": 2.0, "layers": [{**base, **layer}]}]}]}
+
+    def keys(self, episode, layer_id="a"):
+        from studio.design import pose_at, poses
+        layer = next(item for item in episode["scenes"][0]["shots"][0]["layers"] if item["id"] == layer_id)
+        points = poses(layer)
+        return lambda seconds: pose_at(points, seconds / 2.0)
+
+    def test_path_hits_endpoints_and_orients(self):
+        from studio.moves import expand
+        episode = expand(self.shot(path={"points": [[0.1, 0.5], [0.9, 0.5]], "orient": True, "ease": "linear"}))
+        pose = self.keys(episode)
+        self.assertAlmostEqual(pose(0)["x"], 0.1, places=3)
+        self.assertAlmostEqual(pose(2.0)["x"], 0.9, places=3)
+        self.assertAlmostEqual(pose(1.0)["rotate"], 0, places=1)
+
+    def test_jump_rises_and_lands(self):
+        from studio.moves import expand
+        episode = expand(self.shot(motion=[{"recipe": "jump", "t": 0.5, "d": 0.6, "height": 0.1}]))
+        pose = self.keys(episode)
+        self.assertLess(pose(0.5 + 0.6 * 0.49)["y"], 0.72)
+        self.assertAlmostEqual(pose(1.5)["y"], 0.8, places=3)
+        self.assertGreater(pose(0.5 + 0.6 * 0.12)["scale_x"], 1.05)
+
+    def test_pop_hides_before_start(self):
+        from studio.moves import expand
+        pose = self.keys(expand(self.shot(motion=[{"recipe": "pop", "t": 1.0}])))
+        self.assertEqual(pose(0.5)["opacity"], 0)
+        self.assertAlmostEqual(pose(1.9)["scale_x"], 1.0, places=2)
+
+    def test_wiggle_is_deterministic(self):
+        from studio.moves import expand
+        a = self.keys(expand(self.shot(wiggle=[{"prop": "rotate", "amp": 5}])))
+        b = self.keys(expand(self.shot(wiggle=[{"prop": "rotate", "amp": 5}])))
+        self.assertEqual(a(1.3)["rotate"], b(1.3)["rotate"])
+        self.assertNotEqual(a(1.3)["rotate"], 0)
+
+    def test_follow_lags_behind_target(self):
+        from studio.moves import expand
+        episode = self.shot(keyframes=[{"at": 0.2, "x": 0.1}, {"at": 0.4, "x": 0.9}])
+        episode["scenes"][0]["shots"][0]["layers"].append(
+            {"id": "b", "kind": "rect", "x": 0.1, "y": 0.5, "follow": {"target": "a", "lag": 0.1}})
+        episode = expand(episode)
+        lead, chase = self.keys(episode, "a"), self.keys(episode, "b")
+        self.assertLess(chase(0.8)["x"], lead(0.8)["x"])
+        self.assertAlmostEqual(chase(2.0)["x"], 0.9, places=2)
+
+
+class PoseTests(unittest.TestCase):
+    def test_pose_keys_blend_parts_and_mouth(self):
+        from studio.character import POSES, build_parts, rig_layers
+        from studio.design import pose_at, poses
+        from studio.expand import expand as expand_defs
+        from studio.poses import expand as expand_poses
+        spec, parts = build_parts({"id": "t"})
+        episode = {"defs": {"t": rig_layers(spec, parts, "art/characters/t")}, "scenes": [{"shots": [{
+            "id": "A", "duration": 3.0, "layers": [{"id": "hero", "kind": "use", "ref": "t", "x": 0.5, "y": 0.8,
+                                                    "pose_keys": [{"t": 1.0, "pose": "wave", "d": 0.2}]}]}]}]}
+        episode = expand_poses(expand_defs(episode), {"t": POSES})
+        layers = {item["id"]: item for item in episode["scenes"][0]["shots"][0]["layers"]}
+        arm = poses(layers["hero/arm-r"])
+        self.assertAlmostEqual(pose_at(arm, 0.1)["rotate"], -18, places=3)
+        self.assertAlmostEqual(pose_at(arm, 0.9)["rotate"], -150, places=3)
+        smile, rest = poses(layers["hero/mouth-smile"]), poses(layers["hero/mouth-rest"])
+        self.assertTrue(pose_at(smile, 0.9)["visible"])
+        self.assertFalse(pose_at(rest, 0.9)["visible"])
+
+
 if __name__ == "__main__":
     unittest.main()
