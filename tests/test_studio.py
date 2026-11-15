@@ -501,6 +501,21 @@ class MotionReportTests(unittest.TestCase):
         self.assertEqual(kinds, {"dead-hold", "linear", "lockstep"})
         self.assertIn("m0", charts["A"])
 
+    def test_contrast_flags_text_matching_background(self):
+        from studio.motion_report import contrast_notes
+        palette = {"background": "#131B30", "foreground": "#FFF3D8", "accent": "#FFBD54", "muted": "#1A2440"}
+        shot = {"id": "A", "duration": 2.0, "layers": [
+            {"id": "dim", "kind": "text", "text": "HI", "x": 0.5, "y": 0.2, "width": 0.5, "height": 0.1, "fill": "muted"},
+            {"id": "saved", "kind": "text", "text": "HI", "x": 0.5, "y": 0.3, "width": 0.5, "height": 0.1,
+             "fill": "muted", "stroke": {"width": 0.08, "color": "foreground"}},
+            {"id": "card", "kind": "rect", "x": 0.5, "y": 0.7, "width": 0.8, "height": 0.2, "fill": "foreground"},
+            {"id": "on-card", "kind": "text", "text": "HI", "x": 0.5, "y": 0.7, "width": 0.5, "height": 0.1,
+             "fill": "#FFFFFF"},
+            {"id": "ok", "kind": "text", "text": "HI", "x": 0.5, "y": 0.45, "width": 0.5, "height": 0.1,
+             "fill": "accent"}]}
+        flagged = {note["layer"] for note in contrast_notes(shot, palette)}
+        self.assertEqual(flagged, {"dim", "on-card"})
+
     def test_onion_skin_composites(self):
         from tempfile import TemporaryDirectory
         from PIL import Image, ImageDraw

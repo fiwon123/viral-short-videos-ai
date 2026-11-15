@@ -43,7 +43,7 @@ help:
 	@echo "  make sfx-import DIR=...     import recorded SFX packs into the library [DRY=1]"
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
-	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps"
+	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make motion MOTION=pop      emit a manifest-ready motion recipe"
 	@echo "  make still EPISODE=... SHOT=A PROGRESS=0.5 [NOAUDIO=1] [ONION=3]  render one review frame"

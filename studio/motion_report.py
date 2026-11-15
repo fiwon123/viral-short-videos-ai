@@ -12,6 +12,9 @@ Checks:
 * lockstep     three or more layers start moving on the same frame
 * snap         a layer jumps further than a quarter screen in one frame
 * frozen       a character rig is on screen with no ``alive`` and no motion
+* contrast     text (below WCAG 3:1) or a foreground shape (below 1.4:1) nearly
+               matches the solid colour behind it; judged from authored fills
+               and the palette
 """
 
 import argparse
@@ -21,7 +24,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from .design import pose_at, poses
+from .design import DEFAULT_PALETTE, layer_order, pose_at, poses, resolve_color
 
 MOVE = 0.02       # Screens per second that counts as visible motion.
 SCALE_MOVE = 0.03  # Scale change per second that counts as motion.
@@ -126,13 +129,99 @@ def shot_report(source_shot, shot, fps, hold):
     return notes, curves
 
 
-def report(source, expanded, hold=1.0):
+TEXT_CONTRAST = 3.0   # WCAG large-text minimum.
+SHAPE_CONTRAST = 1.4  # Below this a shape all but vanishes into what is behind it.
+SOLID = ("rect", "ellipse", "polygon")
+
+
+def _rgb(paint, palette):
+    """Average RGB of a palette role, hex or gradient; None when unknown."""
+    if isinstance(paint, dict):
+        stops = [_rgb(stop.get("color"), palette) for stop in paint.get("stops", [])]
+        stops = [stop for stop in stops if stop]
+        return tuple(sum(channel) / len(stops) for channel in zip(*stops)) if stops else None
+    colour = resolve_color(paint, palette)
+    if not isinstance(colour, str) or not colour.startswith("#") or len(colour) < 7:
+        return None
+    return tuple(int(colour[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def _luminance(rgb):
+    def linear(value):
+        value /= 255
+        return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+    red, green, blue = (linear(value) for value in rgb)
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+def contrast(a, b):
+    high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def _box(layer, pose):
+    scale = pose.get("scale", 1)
+    w = float(layer.get("width", 0.55)) * abs(pose.get("scale_x", scale))
+    h = float(layer.get("height", 0.2)) * abs(pose.get("scale_y", scale))
+    return pose["x"] - w / 2, pose["y"] - h / 2, pose["x"] + w / 2, pose["y"] + h / 2
+
+
+def contrast_notes(shot, palette, progress=(0.15, 0.5, 0.9)):
+    """Flag top-level text and shapes whose colour nearly matches the solid fill behind them."""
+    palette = palette or DEFAULT_PALETTE
+    ground = _rgb(shot.get("background", "background"), palette) or _rgb("#000000", palette)
+    layers = [layer for layer in layer_order(shot.get("layers", [])) if not layer.get("parent")]
+    layers.sort(key=lambda layer: layer.get("plane") != "background")
+    tracks = {layer["id"]: poses(layer) for layer in layers}
+    notes, flagged = [], set()
+    for at in progress:
+        behind = []  # (box, rgb) of solid layers painted so far.
+        for layer in layers:
+            pose = pose_at(tracks[layer["id"]], at)
+            if not pose["visible"] or pose["opacity"] < 0.5:
+                continue
+            kind = layer["kind"]
+            box = _box(layer, pose)
+            if kind in ("text",) + SOLID and layer["id"] not in flagged:
+                fill = _rgb(layer.get("fill", "foreground"), palette)
+                cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+                hit = next(((rgb, backdrop) for rect, rgb, backdrop in reversed(behind)
+                            if rect[0] <= cx <= rect[2] and rect[1] <= cy <= rect[3]), (ground, True))
+                under, backdrop = hit
+                full = box[0] <= 0 and box[1] <= 0 and box[2] >= 1 and box[3] >= 1
+                # Scenery is layered low-contrast on purpose, and a shape stacked on a same-colour
+                # foreground shape is building one form, so only text and stand-alone shapes count.
+                scenery = kind != "text" and (layer.get("plane") == "background"
+                                              or (fill == under and not backdrop))
+                if fill and not full and not scenery:
+                    helpers = [fill] + [_rgb((layer.get(key) or {}).get("color", "background"), palette)
+                                        for key in ("stroke", "shadow")
+                                        if isinstance(layer.get(key), dict) and layer[key].get("width", 1)]
+                    best = max(contrast(rgb, under) for rgb in helpers if rgb)
+                    floor = TEXT_CONTRAST if kind == "text" else SHAPE_CONTRAST
+                    if best < floor:
+                        flagged.add(layer["id"])
+                        what = "text" if kind == "text" else "shape"
+                        notes.append({"kind": "contrast", "layer": layer["id"], "ratio": round(best, 2),
+                                      "at": round(at * float(shot["duration"]), 2),
+                                      "note": f"{layer['id']} ({what}) is {best:.1f}:1 against what is behind it "
+                                              f"(needs {floor:g}:1); change its fill, add a `stroke` or `shadow`, "
+                                              f"or put a contrasting card behind it."})
+            if kind in SOLID and isinstance(layer.get("fill", "foreground"), str) and pose["opacity"] >= 0.9:
+                rgb = _rgb(layer.get("fill", "foreground"), palette)
+                if rgb:
+                    behind.append((box, rgb, layer.get("plane") == "background"))
+    return notes
+
+
+def report(source, expanded, hold=1.0, palette=None):
     fps = float(source.get("fps", 24))
     by_id = {shot["id"]: shot for scene in expanded["scenes"] for shot in scene["shots"]}
     shots, charts = [], {}
     for scene in source["scenes"]:
         for shot in scene["shots"]:
             notes, curves = shot_report(shot, by_id[shot["id"]], fps, hold)
+            notes += contrast_notes(by_id[shot["id"]], palette)
             shots.append({"shot": shot["id"], "duration": shot["duration"], "notes": notes})
             charts[shot["id"]] = curves
     return {"fps": fps, "issues": sum(len(item["notes"]) for item in shots), "shots": shots}, charts
@@ -174,7 +263,7 @@ def main():
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
     expanded = prepare_episode(source, channel, channel_path.parent)
-    data, charts = report(source, expanded, args.hold)
+    data, charts = report(source, expanded, args.hold, channel.get("palette"))
     target = args.out or args.episode.parent / "motion-report.png"
     data["chart"] = str(chart(charts, data["fps"], target))
     print(json.dumps(data, indent=2))

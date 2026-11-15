@@ -23,7 +23,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Track C2: auto life | Done | `studio/life.py`, run in `pipeline.prepare_episode`. Layer field `alive` covers breathe, blink, glance, sway and follow-through. Talking uses the `quiet_for`/`talk_only` mouth swap in both renderers. |
 | Track C3: style passes | Done | The generator has cel shade, rim, gloss and texture. Line boil (`studio/boil.py`, `boil`/`boil_fps` on SVG layers, browser) is done. `finish` on SVG layers (`studio/stylepass.py`) adds an SVG-filter cel shade, rim, grain and outline to any existing SVG while it is staged for the browser. |
 | Track C4: finishing post | Done | `post.paper`, `post.leak`, plus `post.grade` (6 baked looks) and `post.lut` (.cube) via `studio/grade.py`. Browser gets the same baked table (`lut_data`). |
-| Track C5: art-quality checks | Pending | Fold into the Phase 5 motion report: dead frames, contrast. |
+| Track C5: art-quality checks | Done | Dead frames are the motion report's `dead-hold`. `contrast_notes` adds WCAG contrast for text (3:1) and foreground shapes (1.4:1) against the solid layer behind, from authored fills. Background-plane scenery and same-colour stacks are skipped. SVG/image art is not judged (would need pixels). |
 | Phase 2.1: motion paths | Done | `studio/moves.py` `path` (Catmull-Rom, arc-length, `orient`). |
 | Phase 2.2: wiggle | Done | `wiggle` seeded value noise on any property. |
 | Phase 2.3: follow | Done | `follow` chase and drag spring modes. `alive` adds drag on ears and antenna. |
@@ -44,12 +44,13 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Partial | Keyable `tint_color` (RGB lists in poses, hex in keys) and `wipe` draw-on (`wipe_from`) work in both renderers. Fill/gradient/stroke-width keys need per-frame re-rasterising and are not done. |
-| Still pending | Pending | 4.3 extruded text, C5 art-quality checks, 2.4 fill/stroke keys, morph targets, IK. |
+| Still pending | Pending | 4.3 extruded text, 2.4 fill/stroke keys, morph targets, IK. |
 
-Tests: `make test` passes, 66 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 67 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: C5 contrast check landed in the motion report.
 - 2026-11-15: C3 `finish` style pass for existing SVGs landed.
 - 2026-11-15: Phase 5.4 browser pose parity test landed and fixed `auto` easing on colour lists.
 - 2026-11-15: Phase 3.2 perspective turn (`turn_x`/`turn_y`) landed in both renderers. Parity gate passes.
