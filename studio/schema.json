@@ -979,7 +979,8 @@
           }
         },
         "environment": {"enum": ["none", "room"], "description": "Image-based light for PBR reflections."},
-        "environment_intensity": {"type": "number", "minimum": 0, "maximum": 10}
+        "environment_intensity": {"type": "number", "minimum": 0, "maximum": 10},
+        "quality": {"description": "high: soft 2048 shadows plus ambient occlusion, SMAA and the output pass for every shot in this scene.", "enum": ["standard", "high"]}
       }
     },
     "library": {
@@ -1116,6 +1117,9 @@
             }
           }
         },
+        "quality": {"description": "high adds ambient occlusion, SMAA and the output pass for this shot (soft shadows come from the scene's quality).",
+                    "enum": ["standard", "high"]},
+        "ao": {"description": "Ambient occlusion strength with quality high.", "type": "number", "minimum": 0, "maximum": 2},
         "camera_rig": {
           "description": "Generate camera keys from a named move (see studio/rig3d.py).",
           "type": "object", "required": ["kind"], "additionalProperties": false,

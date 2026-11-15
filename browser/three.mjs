@@ -3,7 +3,8 @@ import {
   Quaternion,
   BufferGeometry, CanvasTexture, CapsuleGeometry, Color, ConeGeometry, CylinderGeometry, DataTexture,
   DirectionalLight, DoubleSide, Float32BufferAttribute, Fog, FogExp2, HemisphereLight, Mesh, MeshBasicMaterial,
-  MeshStandardMaterial, MeshToonMaterial, NearestFilter, NormalBlending, PCFShadowMap, PerspectiveCamera,
+  MeshStandardMaterial, MeshToonMaterial, NearestFilter, NormalBlending, PCFShadowMap, PCFSoftShadowMap,
+  PerspectiveCamera,
   PlaneGeometry, PMREMGenerator, PointLight, Points, PointsMaterial, RedFormat, Scene, SphereGeometry,
   SpotLight, SRGBColorSpace, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from "three";
@@ -15,6 +16,9 @@ import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
 import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
 import {BokehPass} from "three/addons/postprocessing/BokehPass.js";
 import {UnrealBloomPass} from "three/addons/postprocessing/UnrealBloomPass.js";
+import {GTAOPass} from "three/addons/postprocessing/GTAOPass.js";
+import {OutputPass} from "three/addons/postprocessing/OutputPass.js";
+import {SMAAPass} from "three/addons/postprocessing/SMAAPass.js";
 import {Font} from "three/addons/loaders/FontLoader.js";
 import {TextGeometry} from "three/addons/geometries/TextGeometry.js";
 
@@ -141,7 +145,10 @@ export async function createThreeStage(specs, width, height, urlFor) {
   renderer.toneMappingExposure = 1.0;
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.shadowMap.enabled = Object.values(specs).some((spec) => spec.lighting?.shadows);
-  renderer.shadowMap.type = PCFShadowMap;
+  // "high" quality anywhere switches the whole stage to soft shadows (the shadow type is renderer-wide).
+  const highQuality = Object.values(specs).some((spec) => spec.quality === "high");
+  renderer.shadowMap.type = highQuality ? PCFSoftShadowMap : PCFShadowMap;
+  const shadowSize = highQuality ? 2048 : 1024;
   const geometries = {
     box: new BoxGeometry(1, 1, 1),
     sphere: new SphereGeometry(0.5, 36, 24),
@@ -169,7 +176,8 @@ export async function createThreeStage(specs, width, height, urlFor) {
       if (light.shadowExtent !== null) {
         const extent = light.shadowExtent;
         key.castShadow = true;
-        key.shadow.mapSize.set(1024, 1024);
+        key.shadow.mapSize.set(shadowSize, shadowSize);
+        if (highQuality) key.shadow.radius = 3;
         Object.assign(key.shadow.camera, {
           left: -extent, right: extent, top: extent, bottom: -extent,
           near: 0.01, far: key.position.distanceTo(key.target.position) + extent * 3,
@@ -193,7 +201,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
         if (item.position) node.position.set(...item.position);
         if (item.shadows && node.shadow) {
           node.castShadow = true;
-          node.shadow.mapSize.set(1024, 1024);
+          node.shadow.mapSize.set(shadowSize, shadowSize);
         }
         scene.add(node);
         lights.set(item.id, {node, spec: item});
@@ -319,11 +327,18 @@ export async function createThreeStage(specs, width, height, urlFor) {
       const focusTrack = shot.focus?.length
         ? poseTrack({distance: 2, aperture: 1}, shot.focus) : null;
       const bloom = Number(shot.bloom ?? 0);
+      const quality = shot.quality ?? specs[shot.scene]?.quality ?? "standard";
       let composer = null;
       let bokeh = null;
-      if (focusTrack || bloom > 0) {
+      if (focusTrack || bloom > 0 || quality === "high") {
         composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
+        if (quality === "high") {
+          // Ambient occlusion grounds objects in contact shadows; it is the biggest step toward a rendered look.
+          const ao = new GTAOPass(scene, camera, width, height);
+          ao.blendIntensity = shot.ao ?? 1;
+          composer.addPass(ao);
+        }
         if (focusTrack) {
           bokeh = new BokehPass(scene, camera, {focus: 2, aperture: 0.0001, maxblur: 0.01});
           composer.addPass(bokeh);
@@ -332,6 +347,10 @@ export async function createThreeStage(specs, width, height, urlFor) {
           composer.addPass(new UnrealBloomPass(
             new Vector2(width, height), bloom, shot.bloom_radius ?? 0.35,
             shot.bloom_threshold ?? 0.8));
+        }
+        if (quality === "high") {
+          composer.addPass(new OutputPass());
+          composer.addPass(new SMAAPass(width, height));
         }
       }
       const tracks = Array.from(objects, ([id, {node, spec, animations}]) => {
