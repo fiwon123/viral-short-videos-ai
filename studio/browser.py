@@ -150,6 +150,16 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                     visual["sprite"] = vectors[path]
                     visual["box"] = [max(1, round(layer.get("width", 0.55) * width)),
                                      max(1, round(layer.get("height", 0.2) * height))]
+                    if layer.get("boil"):
+                        from .boil import variants
+                        frames = []
+                        source = path.read_text(encoding="utf-8")
+                        for frame_index, copy in enumerate(variants(source, layer["boil"], seed=len(vectors) + 7)):
+                            name = f"{vectors[path][:-4]}-boil-{frame_index}.svg"
+                            (assets / name).write_text(copy, encoding="utf-8")
+                            frames.append(name)
+                        visual["frames"] = frames
+                        visual["boil_fps"] = float(layer.get("boil_fps", 12))
                 elif layer["kind"] == "sheet":
                     frames = []
                     for frame_index, tile in enumerate(sheet_tiles(layer, canvas, base, channel_base)):

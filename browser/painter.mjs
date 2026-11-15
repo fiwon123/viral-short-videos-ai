@@ -400,7 +400,9 @@ export async function createPainter(canvas, data, urlFor) {
       const pose = states.get(layer.id);
       if (!(pose.visible ?? true)) continue;
       const tile = layer.frames?.length
-        ? layer.frames[Math.max(0, Math.min(layer.frames.length - 1, Math.round(pose.frame ?? 0)))]
+        ? (layer.boil_fps
+          ? layer.frames[Math.floor((offset / data.fps) * layer.boil_fps) % layer.frames.length]
+          : layer.frames[Math.max(0, Math.min(layer.frames.length - 1, Math.round(pose.frame ?? 0)))])
         : layer.tile;
       const rootZ = layer.parent && depths.has(layer.parent) ? depths.get(layer.parent) : (pose.z ?? 0);
       depths.set(layer.id, rootZ);

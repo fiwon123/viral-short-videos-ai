@@ -477,6 +477,9 @@
         "mouth_shape": {"$ref": "#/$defs/text"},
         "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
         "wipe_from": {"enum": ["left", "right", "top", "bottom", "center"]},
+        "boil": {"description": "Hand-drawn line wobble for SVG layers (browser renderers); 0.3-0.6 is subtle.",
+                 "type": "number", "minimum": 0, "maximum": 3},
+        "boil_fps": {"type": "number", "minimum": 1, "maximum": 30},
         "caption_avoid": {"description": "Kinetic captions move to keep clear of this layer.", "type": "boolean"},
         "anchor3d": {
           "description": "Pin this top-level 2D layer to a 3D object's screen position (browser renderers).",

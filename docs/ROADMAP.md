@@ -21,7 +21,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 5.3: parity gate | Done | `video.py parity --threshold 0.03` exits non-zero when renderers drift. |
 | Track C1: rig-ready character generator | Done | `studio/character.py` and `make character SPEC=...`. Outputs shaded part SVGs, a role-tagged rig and `preview.svg`. |
 | Track C2: auto life | Done | `studio/life.py`, run in `pipeline.prepare_episode`. Layer field `alive` covers breathe, blink, glance, sway and follow-through. Talking uses the `quiet_for`/`talk_only` mouth swap in both renderers. |
-| Track C3: style passes | Partial | The generator has cel shade, rim, gloss and texture. Line boil and passes over arbitrary existing SVGs are pending. |
+| Track C3: style passes | Partial | The generator has cel shade, rim, gloss and texture. Line boil (`studio/boil.py`, `boil`/`boil_fps` on SVG layers, browser) is done. Shading passes over arbitrary existing SVGs are pending. |
 | Track C4: finishing post | Partial | `post.paper` and `post.leak` are in both renderers. A LUT is pending. |
 | Track C5: art-quality checks | Pending | Fold into the Phase 5 motion report: dead frames, contrast. |
 | Phase 2.1: motion paths | Done | `studio/moves.py` `path` (Catmull-Rom, arc-length, `orient`). |
@@ -44,12 +44,13 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Partial | Keyable `tint_color` (RGB lists in poses, hex in keys) and `wipe` draw-on (`wipe_from`) work in both renderers. Fill/gradient/stroke-width keys need per-frame re-rasterising and are not done. |
-| Still pending | Pending | 3.2 tilt, C3 line boil, C4 LUT, A3 caption QA, B2 cue EQ, 4.3 extruded text, 5.4 browser pose test. |
+| Still pending | Pending | 3.2 tilt, C3 shading for existing SVGs, C4 LUT, A3 caption QA, B2 cue EQ, 4.3 extruded text, 5.4 browser pose test. |
 
-Tests: `make test` passes, 54 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 55 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Line boil landed.
 - 2026-11-15: Kinetic caption face avoidance landed.
 - 2026-11-15: Phase 2.4 tint_color and wipe landed.
 - 2026-11-15: Phase 4 3D upgrades landed (rigs, lights, fog, env, toon/outline, text plane, anchor3d).

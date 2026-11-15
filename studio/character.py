@@ -18,7 +18,7 @@ Spec (all optional except ``id``; sizes are fractions of character height):
      "eyes": {"style": "round", "size": 0.12, "spacing": 0.26, "y": 0.34},
      "mouth": {"width": 0.17, "y": 0.6},
      "arms": {"length": 0.28, "width": 0.07}, "legs": {"length": 0.13, "width": 0.09},
-     "ears": "none", "antenna": false, "texture": 0.0}
+     "ears": "none", "antenna": false, "texture": 0.0, "boil": 0.4}
 
 Outputs ``art/characters/<id>/*.svg``, ``preview.svg`` (assembled) and the
 rig ``<id>`` in the channel rig library (created and linked if missing).
@@ -458,6 +458,8 @@ def rig_layers(spec, parts, folder):
                  "pivot": [round(v, 4) for v in (part.pivot or [0.5, 0.5])], "role": part.role}
         if part.parent:
             layer["parent"] = part.parent
+        if spec.get("boil") and part.role != "shadow":
+            layer["boil"] = spec["boil"]
         if part.role == "mouth":
             layer["variant_group"] = "mouth"
             layer["mouth_shape"] = part.extra["shape"]

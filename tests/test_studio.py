@@ -633,5 +633,16 @@ class CaptionPlacementTests(unittest.TestCase):
         self.assertNotIn("placement", timeline["captions"][0])
 
 
+class BoilTests(unittest.TestCase):
+    def test_variants_jitter_geometry_deterministically(self):
+        from studio.boil import variants
+        svg = '<svg viewBox="0 0 100 100"><path d="M10 10 C20 20 30 30 40 40" fill="#FFF"/><circle cx="50" cy="50" r="5"/></svg>'
+        first, second = variants(svg, 1.0), variants(svg, 1.0)
+        self.assertEqual(first, second)
+        self.assertEqual(len(set(first)), 3)
+        self.assertIn('r="5"', first[0])
+        self.assertIn('fill="#FFF"', first[0])
+
+
 if __name__ == "__main__":
     unittest.main()
