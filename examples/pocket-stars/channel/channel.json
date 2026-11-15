@@ -1,0 +1,45 @@
+{
+  "name": "Pocket Stars",
+  "handle": "@PocketStarsStudio",
+  "tagline": "Small hands. Falling wonders.",
+  "description": "Pip keeps the night tidy, one falling star at a time. Original animated micro-stories about patience, timing and the small catches that make a night feel bright.",
+  "tags": [
+    "animated short",
+    "cute animation",
+    "night sky",
+    "falling star",
+    "micro story"
+  ],
+  "mark": "PS",
+  "palette": {
+    "background": "#0E1230",
+    "foreground": "#FFF5E0",
+    "accent": "#FFD45C",
+    "secondary": "#3B3F8F",
+    "dusk": "#F28C6B",
+    "hill": "#1B2350",
+    "grass": "#24305E"
+  },
+  "scene_library": "scene-library/finale-v1.json",
+  "captions": {
+    "style": "kinetic",
+    "preset": "hormozi-pop"
+  },
+  "audio": {
+    "master": {
+      "loudness": -14
+    },
+    "reverb": {
+      "mix": 0.1,
+      "size": 0.35
+    }
+  },
+  "render": {
+    "crf": 18,
+    "preset": "medium",
+    "tune": "animation",
+    "supersample": 1
+  },
+  "rig_library": "rigs.json",
+  "audio_library": "audio/cast-v1.json"
+}

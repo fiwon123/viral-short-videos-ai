@@ -1,0 +1,1661 @@
+{
+  "title": "Pip Catches a Falling Star",
+  "description": "Pip has one job tonight: catch the star before it lands. An original Pocket Stars micro-story and a showcase of depth, motion paths, IK, keyable paint and 3D text.",
+  "tags": [
+    "animated short",
+    "cute animation",
+    "falling star",
+    "night sky",
+    "micro story"
+  ],
+  "tiktok": {
+    "caption": "One small catch, one tidy sky. #AnimatedShort #CuteAnimation"
+  },
+  "width": 540,
+  "height": 960,
+  "fps": 24,
+  "max_seconds": 18,
+  "style": {
+    "preset": "cozy"
+  },
+  "render": {
+    "crf": 24
+  },
+  "music": {
+    "preset": "pulse",
+    "gain": 0.05,
+    "duck": {
+      "amount": 0.55,
+      "attack": 0.04,
+      "release": 0.16
+    }
+  },
+  "thumbnail": {
+    "shot": "C",
+    "at": 0.45,
+    "text": "PIP CAUGHT A STAR",
+    "hide_layers": [
+      "badge",
+      "badge-text"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "S1",
+      "purpose": "Set the job and the night.",
+      "shots": [
+        {
+          "id": "A",
+          "duration": 3.6,
+          "direction": "Dusk turns to night over layered hills while the camera drifts. Pip waits on the near hill.",
+          "camera": {
+            "keyframes": [
+              {
+                "at": 0,
+                "x": -0.03
+              },
+              {
+                "at": 1,
+                "x": 0.03,
+                "ease": "sine"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "id": "sky",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.5,
+              "width": 1.5,
+              "height": 1.5,
+              "fill": {
+                "type": "linear",
+                "angle": 90,
+                "stops": [
+                  {
+                    "at": 0,
+                    "color": "secondary"
+                  },
+                  {
+                    "at": 1,
+                    "color": "dusk"
+                  }
+                ]
+              },
+              "plane": "background",
+              "parallax": 0.2,
+              "keyframes": [
+                {
+                  "at": 1,
+                  "fill": {
+                    "type": "linear",
+                    "angle": 90,
+                    "stops": [
+                      {
+                        "at": 0,
+                        "color": "background"
+                      },
+                      {
+                        "at": 1,
+                        "color": "secondary"
+                      }
+                    ]
+                  },
+                  "ease": "sine"
+                }
+              ]
+            },
+            {
+              "id": "twinkle-0",
+              "kind": "ellipse",
+              "x": 0.12,
+              "y": 0.12,
+              "width": 0.012,
+              "height": 0.00675,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 1,
+                  "at": [
+                    0.03,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 11,
+                  "at": [
+                    0.03,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-1",
+              "kind": "ellipse",
+              "x": 0.3,
+              "y": 0.22,
+              "width": 0.008,
+              "height": 0.0045000000000000005,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 2,
+                  "at": [
+                    0.06,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 12,
+                  "at": [
+                    0.06,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-2",
+              "kind": "ellipse",
+              "x": 0.55,
+              "y": 0.1,
+              "width": 0.01,
+              "height": 0.005625,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 3,
+                  "at": [
+                    0.09,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 13,
+                  "at": [
+                    0.09,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-3",
+              "kind": "ellipse",
+              "x": 0.8,
+              "y": 0.18,
+              "width": 0.013,
+              "height": 0.0073124999999999996,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 4,
+                  "at": [
+                    0.12,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 14,
+                  "at": [
+                    0.12,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-4",
+              "kind": "ellipse",
+              "x": 0.68,
+              "y": 0.33,
+              "width": 0.008,
+              "height": 0.0045000000000000005,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 5,
+                  "at": [
+                    0.15,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 15,
+                  "at": [
+                    0.15,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-5",
+              "kind": "ellipse",
+              "x": 0.2,
+              "y": 0.38,
+              "width": 0.009,
+              "height": 0.005062499999999999,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 6,
+                  "at": [
+                    0.18,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 16,
+                  "at": [
+                    0.18,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-6",
+              "kind": "ellipse",
+              "x": 0.9,
+              "y": 0.42,
+              "width": 0.007,
+              "height": 0.0039375,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 7,
+                  "at": [
+                    0.21,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 17,
+                  "at": [
+                    0.21,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-7",
+              "kind": "ellipse",
+              "x": 0.42,
+              "y": 0.3,
+              "width": 0.007,
+              "height": 0.0039375,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 8,
+                  "at": [
+                    0.24,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 18,
+                  "at": [
+                    0.24,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hill-far",
+              "kind": "polygon",
+              "x": 0.5,
+              "y": 0.66,
+              "width": 1.6,
+              "height": 0.3,
+              "fill": "secondary",
+              "z": 5,
+              "points": [
+                [
+                  0,
+                  0.6
+                ],
+                [
+                  0.18,
+                  0.3
+                ],
+                [
+                  0.36,
+                  0.5
+                ],
+                [
+                  0.58,
+                  0.18
+                ],
+                [
+                  0.8,
+                  0.45
+                ],
+                [
+                  1,
+                  0.3
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "id": "hill-mid",
+              "kind": "polygon",
+              "x": 0.5,
+              "y": 0.76,
+              "width": 1.5,
+              "height": 0.28,
+              "fill": "hill",
+              "z": 2,
+              "points": [
+                [
+                  0,
+                  0.4
+                ],
+                [
+                  0.3,
+                  0.15
+                ],
+                [
+                  0.55,
+                  0.42
+                ],
+                [
+                  0.82,
+                  0.2
+                ],
+                [
+                  1,
+                  0.38
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "id": "hill-near",
+              "kind": "ellipse",
+              "x": 0.4,
+              "y": 0.98,
+              "width": 1.5,
+              "height": 0.3,
+              "fill": "grass"
+            },
+            {
+              "id": "pip",
+              "kind": "use",
+              "ref": "pip",
+              "x": 0.36,
+              "y": 0.84,
+              "alive": true,
+              "pose_keys": [
+                {
+                  "t": 1.6,
+                  "pose": "think",
+                  "d": 0.35
+                }
+              ]
+            },
+            {
+              "id": "badge",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.5,
+              "height": 0.04,
+              "radius": 0.5,
+              "fill": "secondary",
+              "opacity": 0.85,
+              "caption_avoid": true
+            },
+            {
+              "id": "badge-text",
+              "kind": "text",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.42,
+              "height": 0.022,
+              "fill": "accent",
+              "text": "POCKET STARS / 01",
+              "caption_avoid": true
+            }
+          ],
+          "speech": [
+            {
+              "at": 0.3,
+              "speaker": "Narrator",
+              "text": "Pip has one job tonight."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "purpose": "The star falls and Pip reaches.",
+      "shots": [
+        {
+          "id": "B",
+          "duration": 4.2,
+          "direction": "A star tumbles in on a long arc, spinning like a coin. Pip spots it and reaches up to meet it.",
+          "camera": {
+            "keyframes": [
+              {
+                "at": 0,
+                "x": 0.03
+              },
+              {
+                "at": 1,
+                "x": 0.0,
+                "zoom": 1.06,
+                "ease": "smooth"
+              }
+            ]
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.3
+          },
+          "layers": [
+            {
+              "id": "sky",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.5,
+              "width": 1.5,
+              "height": 1.5,
+              "fill": {
+                "type": "linear",
+                "angle": 90,
+                "stops": [
+                  {
+                    "at": 0,
+                    "color": "background"
+                  },
+                  {
+                    "at": 1,
+                    "color": "secondary"
+                  }
+                ]
+              },
+              "plane": "background",
+              "parallax": 0.2
+            },
+            {
+              "id": "twinkle-0",
+              "kind": "ellipse",
+              "x": 0.12,
+              "y": 0.12,
+              "width": 0.012,
+              "height": 0.00675,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 1,
+                  "at": [
+                    0.03,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 11,
+                  "at": [
+                    0.03,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-1",
+              "kind": "ellipse",
+              "x": 0.3,
+              "y": 0.22,
+              "width": 0.008,
+              "height": 0.0045000000000000005,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 2,
+                  "at": [
+                    0.06,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 12,
+                  "at": [
+                    0.06,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-2",
+              "kind": "ellipse",
+              "x": 0.55,
+              "y": 0.1,
+              "width": 0.01,
+              "height": 0.005625,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 3,
+                  "at": [
+                    0.09,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 13,
+                  "at": [
+                    0.09,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-3",
+              "kind": "ellipse",
+              "x": 0.8,
+              "y": 0.18,
+              "width": 0.013,
+              "height": 0.0073124999999999996,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 4,
+                  "at": [
+                    0.12,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 14,
+                  "at": [
+                    0.12,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-4",
+              "kind": "ellipse",
+              "x": 0.68,
+              "y": 0.33,
+              "width": 0.008,
+              "height": 0.0045000000000000005,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 5,
+                  "at": [
+                    0.15,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 15,
+                  "at": [
+                    0.15,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-5",
+              "kind": "ellipse",
+              "x": 0.2,
+              "y": 0.38,
+              "width": 0.009,
+              "height": 0.005062499999999999,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 6,
+                  "at": [
+                    0.18,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 16,
+                  "at": [
+                    0.18,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-6",
+              "kind": "ellipse",
+              "x": 0.9,
+              "y": 0.42,
+              "width": 0.007,
+              "height": 0.0039375,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 7,
+                  "at": [
+                    0.21,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 17,
+                  "at": [
+                    0.21,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-7",
+              "kind": "ellipse",
+              "x": 0.42,
+              "y": 0.3,
+              "width": 0.007,
+              "height": 0.0039375,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 8,
+                  "at": [
+                    0.24,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 18,
+                  "at": [
+                    0.24,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hill-far",
+              "kind": "polygon",
+              "x": 0.5,
+              "y": 0.66,
+              "width": 1.6,
+              "height": 0.3,
+              "fill": "secondary",
+              "z": 5,
+              "points": [
+                [
+                  0,
+                  0.6
+                ],
+                [
+                  0.18,
+                  0.3
+                ],
+                [
+                  0.36,
+                  0.5
+                ],
+                [
+                  0.58,
+                  0.18
+                ],
+                [
+                  0.8,
+                  0.45
+                ],
+                [
+                  1,
+                  0.3
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "id": "hill-mid",
+              "kind": "polygon",
+              "x": 0.5,
+              "y": 0.76,
+              "width": 1.5,
+              "height": 0.28,
+              "fill": "hill",
+              "z": 2,
+              "points": [
+                [
+                  0,
+                  0.4
+                ],
+                [
+                  0.3,
+                  0.15
+                ],
+                [
+                  0.55,
+                  0.42
+                ],
+                [
+                  0.82,
+                  0.2
+                ],
+                [
+                  1,
+                  0.38
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "id": "hill-near",
+              "kind": "ellipse",
+              "x": 0.4,
+              "y": 0.98,
+              "width": 1.5,
+              "height": 0.3,
+              "fill": "grass"
+            },
+            {
+              "id": "star",
+              "kind": "svg",
+              "file": "art/props/star.svg",
+              "asset_scope": "channel",
+              "width": 0.11,
+              "height": 0.062,
+              "glow": {
+                "color": "accent",
+                "size": 0.35,
+                "opacity": 0.8
+              },
+              "finish": {
+                "shade": 0.35,
+                "rim": 0.55,
+                "texture": 0.15,
+                "outline": 0.03,
+                "line": "#1A1638"
+              },
+              "x": 0.95,
+              "y": 0.02,
+              "path": {
+                "points": [
+                  [
+                    0.95,
+                    0.02
+                  ],
+                  [
+                    0.82,
+                    0.22
+                  ],
+                  [
+                    0.62,
+                    0.3
+                  ],
+                  [
+                    0.645,
+                    0.48
+                  ],
+                  [
+                    0.585,
+                    0.66
+                  ]
+                ],
+                "at": [
+                  0.08,
+                  0.86
+                ],
+                "ease": "out"
+              },
+              "keyframes": [
+                {
+                  "at": 0.86,
+                  "turn_y": 720,
+                  "ease": "out"
+                }
+              ]
+            },
+            {
+              "id": "pip",
+              "kind": "use",
+              "ref": "pip",
+              "x": 0.36,
+              "y": 0.84,
+              "alive": true,
+              "pose_keys": [
+                {
+                  "t": 0.6,
+                  "pose": "surprise",
+                  "d": 0.25,
+                  "ease": "back"
+                }
+              ],
+              "ik": [
+                {
+                  "chain": [
+                    "arm-r"
+                  ],
+                  "keys": [
+                    {
+                      "t": 2.9,
+                      "layer": "star",
+                      "d": 0.7,
+                      "ease": "smooth"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "badge",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.5,
+              "height": 0.04,
+              "radius": 0.5,
+              "fill": "secondary",
+              "opacity": 0.85,
+              "caption_avoid": true
+            },
+            {
+              "id": "badge-text",
+              "kind": "text",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.42,
+              "height": 0.022,
+              "fill": "accent",
+              "text": "POCKET STARS / 01",
+              "caption_avoid": true
+            }
+          ],
+          "speech": [
+            {
+              "at": 0.4,
+              "speaker": "Narrator",
+              "text": "Stars never fall where you expect."
+            }
+          ],
+          "sfx": [
+            {
+              "at": 0.3,
+              "layers": [
+                {
+                  "cue": "whoosh",
+                  "gain": 0.16,
+                  "pan": 0.4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "purpose": "The catch and the payoff.",
+      "shots": [
+        {
+          "id": "C",
+          "duration": 3.8,
+          "direction": "Caught. A glow ring swells from Pip's hand, the sky warms for a beat, and Pip cheers.",
+          "layers": [
+            {
+              "id": "sky",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.5,
+              "width": 1.5,
+              "height": 1.5,
+              "fill": {
+                "type": "linear",
+                "angle": 90,
+                "stops": [
+                  {
+                    "at": 0,
+                    "color": "background"
+                  },
+                  {
+                    "at": 1,
+                    "color": "secondary"
+                  }
+                ]
+              },
+              "plane": "background",
+              "parallax": 0.2,
+              "keyframes": [
+                {
+                  "at": 1,
+                  "fill": {
+                    "type": "linear",
+                    "angle": 90,
+                    "stops": [
+                      {
+                        "at": 0,
+                        "color": "#1C2263"
+                      },
+                      {
+                        "at": 1,
+                        "color": "#7A62C9"
+                      }
+                    ]
+                  },
+                  "ease": "out"
+                }
+              ]
+            },
+            {
+              "id": "twinkle-0",
+              "kind": "ellipse",
+              "x": 0.12,
+              "y": 0.12,
+              "width": 0.012,
+              "height": 0.00675,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 1,
+                  "at": [
+                    0.03,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 11,
+                  "at": [
+                    0.03,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-1",
+              "kind": "ellipse",
+              "x": 0.3,
+              "y": 0.22,
+              "width": 0.008,
+              "height": 0.0045000000000000005,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 2,
+                  "at": [
+                    0.06,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 12,
+                  "at": [
+                    0.06,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-2",
+              "kind": "ellipse",
+              "x": 0.55,
+              "y": 0.1,
+              "width": 0.01,
+              "height": 0.005625,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 3,
+                  "at": [
+                    0.09,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 13,
+                  "at": [
+                    0.09,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-3",
+              "kind": "ellipse",
+              "x": 0.8,
+              "y": 0.18,
+              "width": 0.013,
+              "height": 0.0073124999999999996,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 4,
+                  "at": [
+                    0.12,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 14,
+                  "at": [
+                    0.12,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-4",
+              "kind": "ellipse",
+              "x": 0.68,
+              "y": 0.33,
+              "width": 0.008,
+              "height": 0.0045000000000000005,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 5,
+                  "at": [
+                    0.15,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 15,
+                  "at": [
+                    0.15,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-5",
+              "kind": "ellipse",
+              "x": 0.2,
+              "y": 0.38,
+              "width": 0.009,
+              "height": 0.005062499999999999,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 6,
+                  "at": [
+                    0.18,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 16,
+                  "at": [
+                    0.18,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-6",
+              "kind": "ellipse",
+              "x": 0.9,
+              "y": 0.42,
+              "width": 0.007,
+              "height": 0.0039375,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 7,
+                  "at": [
+                    0.21,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 17,
+                  "at": [
+                    0.21,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "twinkle-7",
+              "kind": "ellipse",
+              "x": 0.42,
+              "y": 0.3,
+              "width": 0.007,
+              "height": 0.0039375,
+              "fill": "foreground",
+              "opacity": 0.75,
+              "z": 8,
+              "wiggle": [
+                {
+                  "prop": "opacity",
+                  "amp": 0.3,
+                  "freq": 1.6,
+                  "seed": 8,
+                  "at": [
+                    0.24,
+                    1
+                  ]
+                },
+                {
+                  "prop": "scale",
+                  "amp": 0.25,
+                  "freq": 1.1,
+                  "seed": 18,
+                  "at": [
+                    0.24,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hill-far",
+              "kind": "polygon",
+              "x": 0.5,
+              "y": 0.66,
+              "width": 1.6,
+              "height": 0.3,
+              "fill": "secondary",
+              "z": 5,
+              "points": [
+                [
+                  0,
+                  0.6
+                ],
+                [
+                  0.18,
+                  0.3
+                ],
+                [
+                  0.36,
+                  0.5
+                ],
+                [
+                  0.58,
+                  0.18
+                ],
+                [
+                  0.8,
+                  0.45
+                ],
+                [
+                  1,
+                  0.3
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "id": "hill-mid",
+              "kind": "polygon",
+              "x": 0.5,
+              "y": 0.76,
+              "width": 1.5,
+              "height": 0.28,
+              "fill": "hill",
+              "z": 2,
+              "points": [
+                [
+                  0,
+                  0.4
+                ],
+                [
+                  0.3,
+                  0.15
+                ],
+                [
+                  0.55,
+                  0.42
+                ],
+                [
+                  0.82,
+                  0.2
+                ],
+                [
+                  1,
+                  0.38
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "id": "hill-near",
+              "kind": "ellipse",
+              "x": 0.4,
+              "y": 0.98,
+              "width": 1.5,
+              "height": 0.3,
+              "fill": "grass"
+            },
+            {
+              "id": "ring",
+              "kind": "ellipse",
+              "x": 0.585,
+              "y": 0.66,
+              "width": 0.12,
+              "height": 0.0675,
+              "fill": "accent",
+              "opacity": 0.0,
+              "stroke": {
+                "width": 0.0,
+                "color": "foreground"
+              },
+              "keyframes": [
+                {
+                  "at": 0.08,
+                  "opacity": 0.55,
+                  "scale": 0.6,
+                  "ease": "out"
+                },
+                {
+                  "at": 0.5,
+                  "scale": 3.2,
+                  "opacity": 0.0,
+                  "fill": "#FFF5E0",
+                  "stroke_width": 0.18,
+                  "stroke_color": "accent",
+                  "ease": "out"
+                }
+              ]
+            },
+            {
+              "id": "star",
+              "kind": "svg",
+              "file": "art/props/star.svg",
+              "asset_scope": "channel",
+              "width": 0.11,
+              "height": 0.062,
+              "glow": {
+                "color": "accent",
+                "size": 0.35,
+                "opacity": 0.8
+              },
+              "finish": {
+                "shade": 0.35,
+                "rim": 0.55,
+                "texture": 0.15,
+                "outline": 0.03,
+                "line": "#1A1638"
+              },
+              "x": 0.585,
+              "y": 0.66,
+              "keyframes": [
+                {
+                  "at": 0.1,
+                  "scale": 1.0
+                },
+                {
+                  "at": 0.5,
+                  "scale": 1.15,
+                  "ease": "back"
+                },
+                {
+                  "at": 1,
+                  "scale": 1.0,
+                  "ease": "smooth"
+                }
+              ],
+              "wiggle": [
+                {
+                  "prop": "rotate",
+                  "amp": 6,
+                  "freq": 0.8,
+                  "seed": 4
+                }
+              ]
+            },
+            {
+              "id": "pip",
+              "kind": "use",
+              "ref": "pip",
+              "x": 0.36,
+              "y": 0.84,
+              "alive": true,
+              "pose_keys": [
+                {
+                  "t": 0.9,
+                  "pose": "cheer",
+                  "d": 0.3,
+                  "ease": "back"
+                }
+              ],
+              "ik": [
+                {
+                  "chain": [
+                    "arm-r"
+                  ],
+                  "keys": [
+                    {
+                      "t": 0,
+                      "layer": "star",
+                      "d": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "badge",
+              "kind": "rect",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.5,
+              "height": 0.04,
+              "radius": 0.5,
+              "fill": "secondary",
+              "opacity": 0.85,
+              "caption_avoid": true
+            },
+            {
+              "id": "badge-text",
+              "kind": "text",
+              "x": 0.5,
+              "y": 0.075,
+              "width": 0.42,
+              "height": 0.022,
+              "fill": "accent",
+              "text": "POCKET STARS / 01",
+              "caption_avoid": true
+            }
+          ],
+          "speech": [
+            {
+              "at": 0.35,
+              "speaker": "Narrator",
+              "text": "Got it. Tidy sky, *happy* Pip."
+            }
+          ],
+          "sfx": [
+            {
+              "at": 0.12,
+              "layers": [
+                {
+                  "cue": "chime",
+                  "gain": 0.2,
+                  "pan": 0.2
+                },
+                {
+                  "cue": "pop",
+                  "gain": 0.12
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "purpose": "Channel end card in 3D.",
+      "shots": [
+        {
+          "id": "D",
+          "duration": 3.6,
+          "direction": "3D end card. The camera orbits the extruded channel title while the caught star glows above it.",
+          "background": "background",
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.35
+          },
+          "three": {
+            "scene": "finale",
+            "camera_rig": {
+              "kind": "orbit",
+              "from": -32,
+              "to": 26,
+              "ease": "smooth"
+            },
+            "bloom": 0.35,
+            "bloom_threshold": 0.85
+          },
+          "layers": [],
+          "speech": [
+            {
+              "at": 0.4,
+              "speaker": "Narrator",
+              "text": "Tomorrow, another one falls."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

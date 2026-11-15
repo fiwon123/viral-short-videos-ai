@@ -1,0 +1,1891 @@
+{
+  "fps": 24,
+  "duration_frames": 367,
+  "scenes": [
+    {
+      "id": "S1",
+      "purpose": "Set the job and the night.",
+      "start": 0,
+      "shots": [
+        {
+          "id": "A",
+          "start": 0,
+          "end": 87,
+          "speech": [
+            {
+              "speaker": "Narrator",
+              "text": "Pip has one job tonight.",
+              "source": "Kokoro (af_heart)",
+              "start": 7,
+              "end": 47,
+              "engine": "kokoro",
+              "runtime": "0.6.1",
+              "model_sha256": "ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c",
+              "voices_sha256": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+              "blend": {
+                "af_heart": 1
+              },
+              "speed": 0.96,
+              "language": "en-us",
+              "take": ".audio-takes/76e81dea871e9e93e17c77d8fb6a5ef50bad028c12a3cb5bdb76dfd6ee68b2ab.wav",
+              "cast_direction": "Warm bedtime-story narrator. Smile on the payoff, slow down on the last line.",
+              "word_timing": "energy"
+            }
+          ],
+          "sfx": []
+        }
+      ],
+      "end": 87
+    },
+    {
+      "id": "S2",
+      "purpose": "The star falls and Pip reaches.",
+      "start": 87,
+      "shots": [
+        {
+          "id": "B",
+          "start": 87,
+          "end": 188,
+          "speech": [
+            {
+              "speaker": "Narrator",
+              "text": "Stars never fall where you expect.",
+              "source": "Kokoro (af_heart)",
+              "start": 97,
+              "end": 146,
+              "engine": "kokoro",
+              "runtime": "0.6.1",
+              "model_sha256": "ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c",
+              "voices_sha256": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+              "blend": {
+                "af_heart": 1
+              },
+              "speed": 0.96,
+              "language": "en-us",
+              "take": ".audio-takes/5a27ab7f7e8dc9bf6ddb77a481859fc104d08a60608d0d7af9b07eef2344b6f0.wav",
+              "cast_direction": "Warm bedtime-story narrator. Smile on the payoff, slow down on the last line.",
+              "word_timing": "energy"
+            }
+          ],
+          "sfx": [
+            {
+              "start": 94,
+              "end": 103,
+              "gain": 0.16,
+              "kind": "preset",
+              "source": "whoosh",
+              "pan": 0.4
+            }
+          ],
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.3,
+            "start": 87,
+            "end": 95
+          }
+        }
+      ],
+      "end": 188
+    },
+    {
+      "id": "S3",
+      "purpose": "The catch and the payoff.",
+      "start": 188,
+      "shots": [
+        {
+          "id": "C",
+          "start": 188,
+          "end": 280,
+          "speech": [
+            {
+              "speaker": "Narrator",
+              "text": "Got it. Tidy sky, *happy* Pip.",
+              "source": "Kokoro (af_heart)",
+              "start": 196,
+              "end": 248,
+              "engine": "kokoro",
+              "runtime": "0.6.1",
+              "model_sha256": "ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c",
+              "voices_sha256": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+              "blend": {
+                "af_heart": 1
+              },
+              "speed": 0.96,
+              "language": "en-us",
+              "take": ".audio-takes/84b348edc6b01b1e35b692a05eb8ff088a94403a57b83df4f6d2488b0a6cf837.wav",
+              "cast_direction": "Warm bedtime-story narrator. Smile on the payoff, slow down on the last line.",
+              "word_timing": "energy"
+            }
+          ],
+          "sfx": [
+            {
+              "start": 191,
+              "end": 203,
+              "gain": 0.2,
+              "kind": "preset",
+              "source": "chime",
+              "pan": 0.2
+            },
+            {
+              "start": 191,
+              "end": 195,
+              "gain": 0.12,
+              "kind": "preset",
+              "source": "pop"
+            }
+          ]
+        }
+      ],
+      "end": 280
+    },
+    {
+      "id": "S4",
+      "purpose": "Channel end card in 3D.",
+      "start": 280,
+      "shots": [
+        {
+          "id": "D",
+          "start": 280,
+          "end": 367,
+          "speech": [
+            {
+              "speaker": "Narrator",
+              "text": "Tomorrow, another one falls.",
+              "source": "Kokoro (af_heart)",
+              "start": 290,
+              "end": 335,
+              "engine": "kokoro",
+              "runtime": "0.6.1",
+              "model_sha256": "ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c",
+              "voices_sha256": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+              "blend": {
+                "af_heart": 1
+              },
+              "speed": 0.96,
+              "language": "en-us",
+              "take": ".audio-takes/507229454ef6094cab53fe53a58f26caab30473206349e996148ca313181d106.wav",
+              "cast_direction": "Warm bedtime-story narrator. Smile on the payoff, slow down on the last line.",
+              "word_timing": "energy"
+            }
+          ],
+          "sfx": [],
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.35,
+            "start": 280,
+            "end": 289
+          },
+          "three": {
+            "scene": "finale",
+            "bloom": 0.35,
+            "bloom_threshold": 0.85,
+            "camera": [
+              {
+                "at": 0.0,
+                "position": [
+                  -4.0274,
+                  1.4,
+                  6.4452
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.00926,
+                "position": [
+                  -4.0257,
+                  1.4,
+                  6.4462
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.01852,
+                "position": [
+                  -4.0208,
+                  1.4,
+                  6.4493
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.02778,
+                "position": [
+                  -4.0126,
+                  1.4,
+                  6.4544
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.03704,
+                "position": [
+                  -4.0012,
+                  1.4,
+                  6.4615
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.0463,
+                "position": [
+                  -3.9866,
+                  1.4,
+                  6.4704
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.05556,
+                "position": [
+                  -3.969,
+                  1.4,
+                  6.4813
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.06481,
+                "position": [
+                  -3.9484,
+                  1.4,
+                  6.4938
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.07407,
+                "position": [
+                  -3.9248,
+                  1.4,
+                  6.5081
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.08333,
+                "position": [
+                  -3.8982,
+                  1.4,
+                  6.5241
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.09259,
+                "position": [
+                  -3.8688,
+                  1.4,
+                  6.5416
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.10185,
+                "position": [
+                  -3.8364,
+                  1.4,
+                  6.5606
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.11111,
+                "position": [
+                  -3.8013,
+                  1.4,
+                  6.5811
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.12037,
+                "position": [
+                  -3.7633,
+                  1.4,
+                  6.6028
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.12963,
+                "position": [
+                  -3.7226,
+                  1.4,
+                  6.6259
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.13889,
+                "position": [
+                  -3.6793,
+                  1.4,
+                  6.65
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.14815,
+                "position": [
+                  -3.6332,
+                  1.4,
+                  6.6753
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.15741,
+                "position": [
+                  -3.5845,
+                  1.4,
+                  6.7016
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.16667,
+                "position": [
+                  -3.5332,
+                  1.4,
+                  6.7288
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.17593,
+                "position": [
+                  -3.4794,
+                  1.4,
+                  6.7568
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.18519,
+                "position": [
+                  -3.4231,
+                  1.4,
+                  6.7855
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.19444,
+                "position": [
+                  -3.3643,
+                  1.4,
+                  6.8148
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.2037,
+                "position": [
+                  -3.303,
+                  1.4,
+                  6.8447
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.21296,
+                "position": [
+                  -3.2394,
+                  1.4,
+                  6.8751
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.22222,
+                "position": [
+                  -3.1734,
+                  1.4,
+                  6.9057
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.23148,
+                "position": [
+                  -3.1052,
+                  1.4,
+                  6.9367
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.24074,
+                "position": [
+                  -3.0346,
+                  1.4,
+                  6.9679
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.25,
+                "position": [
+                  -2.9619,
+                  1.4,
+                  6.9991
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.25926,
+                "position": [
+                  -2.8871,
+                  1.4,
+                  7.0303
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.26852,
+                "position": [
+                  -2.8101,
+                  1.4,
+                  7.0614
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.27778,
+                "position": [
+                  -2.7311,
+                  1.4,
+                  7.0923
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.28704,
+                "position": [
+                  -2.6501,
+                  1.4,
+                  7.123
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.2963,
+                "position": [
+                  -2.5671,
+                  1.4,
+                  7.1533
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.30556,
+                "position": [
+                  -2.4823,
+                  1.4,
+                  7.1832
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.31481,
+                "position": [
+                  -2.3957,
+                  1.4,
+                  7.2125
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.32407,
+                "position": [
+                  -2.3074,
+                  1.4,
+                  7.2413
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.33333,
+                "position": [
+                  -2.2173,
+                  1.4,
+                  7.2694
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.34259,
+                "position": [
+                  -2.1257,
+                  1.4,
+                  7.2967
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.35185,
+                "position": [
+                  -2.0325,
+                  1.4,
+                  7.3232
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.36111,
+                "position": [
+                  -1.9379,
+                  1.4,
+                  7.3488
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.37037,
+                "position": [
+                  -1.8418,
+                  1.4,
+                  7.3734
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.37963,
+                "position": [
+                  -1.7445,
+                  1.4,
+                  7.3971
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.38889,
+                "position": [
+                  -1.6459,
+                  1.4,
+                  7.4196
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.39815,
+                "position": [
+                  -1.5462,
+                  1.4,
+                  7.4411
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.40741,
+                "position": [
+                  -1.4454,
+                  1.4,
+                  7.4613
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.41667,
+                "position": [
+                  -1.3436,
+                  1.4,
+                  7.4803
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.42593,
+                "position": [
+                  -1.2409,
+                  1.4,
+                  7.498
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.43519,
+                "position": [
+                  -1.1374,
+                  1.4,
+                  7.5144
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.44444,
+                "position": [
+                  -1.0332,
+                  1.4,
+                  7.5294
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.4537,
+                "position": [
+                  -0.9283,
+                  1.4,
+                  7.5431
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.46296,
+                "position": [
+                  -0.8229,
+                  1.4,
+                  7.5553
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.47222,
+                "position": [
+                  -0.7171,
+                  1.4,
+                  7.5661
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.48148,
+                "position": [
+                  -0.6109,
+                  1.4,
+                  7.5754
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.49074,
+                "position": [
+                  -0.5044,
+                  1.4,
+                  7.5832
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.5,
+                "position": [
+                  -0.3978,
+                  1.4,
+                  7.5896
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.50926,
+                "position": [
+                  -0.291,
+                  1.4,
+                  7.5944
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.51852,
+                "position": [
+                  -0.1843,
+                  1.4,
+                  7.5978
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.52778,
+                "position": [
+                  -0.0777,
+                  1.4,
+                  7.5996
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.53704,
+                "position": [
+                  0.0287,
+                  1.4,
+                  7.5999
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.5463,
+                "position": [
+                  0.1348,
+                  1.4,
+                  7.5988
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.55556,
+                "position": [
+                  0.2405,
+                  1.4,
+                  7.5962
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.56481,
+                "position": [
+                  0.3457,
+                  1.4,
+                  7.5921
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.57407,
+                "position": [
+                  0.4504,
+                  1.4,
+                  7.5866
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.58333,
+                "position": [
+                  0.5543,
+                  1.4,
+                  7.5798
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.59259,
+                "position": [
+                  0.6576,
+                  1.4,
+                  7.5715
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.60185,
+                "position": [
+                  0.7599,
+                  1.4,
+                  7.5619
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.61111,
+                "position": [
+                  0.8613,
+                  1.4,
+                  7.551
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.62037,
+                "position": [
+                  0.9617,
+                  1.4,
+                  7.5389
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.62963,
+                "position": [
+                  1.061,
+                  1.4,
+                  7.5256
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.63889,
+                "position": [
+                  1.1591,
+                  1.4,
+                  7.5111
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.64815,
+                "position": [
+                  1.2559,
+                  1.4,
+                  7.4955
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.65741,
+                "position": [
+                  1.3513,
+                  1.4,
+                  7.4789
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.66667,
+                "position": [
+                  1.4453,
+                  1.4,
+                  7.4613
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.67593,
+                "position": [
+                  1.5378,
+                  1.4,
+                  7.4428
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.68519,
+                "position": [
+                  1.6287,
+                  1.4,
+                  7.4234
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.69444,
+                "position": [
+                  1.7179,
+                  1.4,
+                  7.4033
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.7037,
+                "position": [
+                  1.8053,
+                  1.4,
+                  7.3825
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.71296,
+                "position": [
+                  1.891,
+                  1.4,
+                  7.361
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.72222,
+                "position": [
+                  1.9748,
+                  1.4,
+                  7.339
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.73148,
+                "position": [
+                  2.0566,
+                  1.4,
+                  7.3165
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.74074,
+                "position": [
+                  2.1364,
+                  1.4,
+                  7.2936
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.75,
+                "position": [
+                  2.2141,
+                  1.4,
+                  7.2703
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.75926,
+                "position": [
+                  2.2897,
+                  1.4,
+                  7.2469
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.76852,
+                "position": [
+                  2.3631,
+                  1.4,
+                  7.2233
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.77778,
+                "position": [
+                  2.4342,
+                  1.4,
+                  7.1996
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.78704,
+                "position": [
+                  2.503,
+                  1.4,
+                  7.176
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.7963,
+                "position": [
+                  2.5695,
+                  1.4,
+                  7.1525
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.80556,
+                "position": [
+                  2.6335,
+                  1.4,
+                  7.1291
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.81481,
+                "position": [
+                  2.695,
+                  1.4,
+                  7.1061
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.82407,
+                "position": [
+                  2.7541,
+                  1.4,
+                  7.0834
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.83333,
+                "position": [
+                  2.8105,
+                  1.4,
+                  7.0612
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.84259,
+                "position": [
+                  2.8644,
+                  1.4,
+                  7.0396
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.85185,
+                "position": [
+                  2.9155,
+                  1.4,
+                  7.0185
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.86111,
+                "position": [
+                  2.964,
+                  1.4,
+                  6.9982
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.87037,
+                "position": [
+                  3.0097,
+                  1.4,
+                  6.9787
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.87963,
+                "position": [
+                  3.0525,
+                  1.4,
+                  6.96
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.88889,
+                "position": [
+                  3.0925,
+                  1.4,
+                  6.9424
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.89815,
+                "position": [
+                  3.1296,
+                  1.4,
+                  6.9257
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.90741,
+                "position": [
+                  3.1638,
+                  1.4,
+                  6.9102
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.91667,
+                "position": [
+                  3.1949,
+                  1.4,
+                  6.8958
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.92593,
+                "position": [
+                  3.223,
+                  1.4,
+                  6.8827
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.93519,
+                "position": [
+                  3.248,
+                  1.4,
+                  6.871
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.94444,
+                "position": [
+                  3.2698,
+                  1.4,
+                  6.8606
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.9537,
+                "position": [
+                  3.2885,
+                  1.4,
+                  6.8517
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.96296,
+                "position": [
+                  3.3038,
+                  1.4,
+                  6.8443
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.97222,
+                "position": [
+                  3.3159,
+                  1.4,
+                  6.8385
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.98148,
+                "position": [
+                  3.3246,
+                  1.4,
+                  6.8343
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 0.99074,
+                "position": [
+                  3.3299,
+                  1.4,
+                  6.8317
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              },
+              {
+                "at": 1.0,
+                "position": [
+                  3.3316,
+                  1.4,
+                  6.8308
+                ],
+                "target": [
+                  0,
+                  0.95,
+                  0
+                ],
+                "ease": "linear"
+              }
+            ]
+          }
+        }
+      ],
+      "end": 367
+    }
+  ],
+  "captions": [
+    {
+      "start": 7,
+      "end": 58,
+      "speaker": "Narrator",
+      "text": "Pip has one job tonight.",
+      "words": [
+        {
+          "text": "Pip",
+          "start": 7,
+          "end": 16
+        },
+        {
+          "text": "has",
+          "start": 16,
+          "end": 21
+        },
+        {
+          "text": "one",
+          "start": 21,
+          "end": 24
+        },
+        {
+          "text": "job",
+          "start": 24,
+          "end": 28
+        },
+        {
+          "text": "tonight.",
+          "start": 28,
+          "end": 46
+        }
+      ],
+      "visemes": []
+    },
+    {
+      "start": 97,
+      "end": 157,
+      "speaker": "Narrator",
+      "text": "Stars never fall where you expect.",
+      "words": [
+        {
+          "text": "Stars",
+          "start": 97,
+          "end": 103
+        },
+        {
+          "text": "never",
+          "start": 103,
+          "end": 111
+        },
+        {
+          "text": "fall",
+          "start": 111,
+          "end": 115
+        },
+        {
+          "text": "where",
+          "start": 115,
+          "end": 121
+        },
+        {
+          "text": "you",
+          "start": 121,
+          "end": 125
+        },
+        {
+          "text": "expect.",
+          "start": 125,
+          "end": 145
+        }
+      ],
+      "visemes": []
+    },
+    {
+      "start": 196,
+      "end": 259,
+      "speaker": "Narrator",
+      "text": "Got it. Tidy sky, happy Pip.",
+      "words": [
+        {
+          "text": "Got",
+          "start": 196,
+          "end": 201
+        },
+        {
+          "text": "it.",
+          "start": 201,
+          "end": 206
+        },
+        {
+          "text": "Tidy",
+          "start": 213,
+          "end": 220
+        },
+        {
+          "text": "sky,",
+          "start": 220,
+          "end": 225
+        },
+        {
+          "text": "*happy*",
+          "start": 225,
+          "end": 235
+        },
+        {
+          "text": "Pip.",
+          "start": 235,
+          "end": 247
+        }
+      ],
+      "visemes": [],
+      "placement": {
+        "position": "top",
+        "offset": 0.06
+      }
+    },
+    {
+      "start": 290,
+      "end": 346,
+      "speaker": "Narrator",
+      "text": "Tomorrow, another one falls.",
+      "words": [
+        {
+          "text": "Tomorrow,",
+          "start": 290,
+          "end": 303
+        },
+        {
+          "text": "another",
+          "start": 307,
+          "end": 317
+        },
+        {
+          "text": "one",
+          "start": 317,
+          "end": 320
+        },
+        {
+          "text": "falls.",
+          "start": 323,
+          "end": 335
+        }
+      ],
+      "visemes": []
+    }
+  ],
+  "audio": {
+    "master": {
+      "loudness": -14
+    },
+    "reverb": {
+      "mix": 0.1,
+      "size": 0.35
+    }
+  },
+  "music": {
+    "kind": "preset",
+    "source": "pulse",
+    "gain": 0.05
+  },
+  "audio_library": {
+    "file": "cast-v1.json",
+    "version": 1
+  },
+  "loudness": {
+    "integrated_lufs": "-14.53",
+    "true_peak_db": "-1.51",
+    "loudness_range": "2.90"
+  },
+  "stems": false,
+  "scene_library": {
+    "file": "scene-library/finale-v1.json",
+    "version": 1
+  }
+}

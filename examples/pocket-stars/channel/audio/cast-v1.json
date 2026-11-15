@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "voices": {
+    "Narrator": {
+      "engine": "kokoro",
+      "blend": {"af_heart": 1},
+      "language": "en-us",
+      "speed": 0.96,
+      "direction": "Warm bedtime-story narrator. Smile on the payoff, slow down on the last line."
+    }
+  }
+}

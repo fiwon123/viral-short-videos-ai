@@ -1,0 +1,7 @@
+{"id": "pip", "height": 0.26,
+ "palette": {"body": "#FFC94D", "line": "#1A1638", "accent": "#FF8A5B", "limb": "#FFC94D"},
+ "body": {"shape": "bean", "width": 0.62, "height": 0.72},
+ "eyes": {"style": "round", "size": 0.13, "spacing": 0.26, "y": 0.34},
+ "mouth": {"width": 0.17, "y": 0.6},
+ "arms": {"length": 0.34, "width": 0.07}, "legs": {"length": 0.13, "width": 0.09},
+ "antenna": true, "boil": 0.35}

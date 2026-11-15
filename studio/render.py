@@ -61,6 +61,20 @@ def export_srt(path, cues, fps):
     path.write_text("".join(blocks).rstrip() + "\n", encoding="utf-8")
 
 
+DENSE_KEYS = 12  # Longer key lists come from expanders (paths, wiggle, alive, ik, paint) and are summarised.
+
+
+def _key_rows(keys, start, end, fps, label=""):
+    frames = [start + round(key["at"] * (end - start - 1)) for key in keys]
+    if len(keys) > DENSE_KEYS:
+        props = sorted({name for key in keys for name in key if name not in ("at", "ease", "ease_props")})
+        return [f"  - {clock(frames[0], fps)}–{clock(frames[-1], fps)} · {label}{len(keys)} composed keys "
+                f"animating {', '.join(props)}."]
+    return [f"  - {clock(frame, fps)} · {label}" + ", ".join(f"{name}={value}" for name, value in key.items()
+                                                         if name != "at")
+            for frame, key in zip(frames, keys)]
+
+
 def write_script(path, episode, channel, timeline):
     fps = timeline["fps"]
     rows = [f"# {episode['title']}", "", f"{episode['width']} × {episode['height']} · {fps} fps",
@@ -80,10 +94,7 @@ def write_script(path, episode, channel, timeline):
             if three := shot.get("three"):
                 rows.append(f"- 3D scene `{three['scene']}` from `{channel['scene_library']}`.")
                 for subject, keys in [("Camera", three.get("camera", [])), *three.get("objects", {}).items()]:
-                    for key in keys:
-                        frame = start + round(key["at"] * (end - start - 1))
-                        pose = ", ".join(f"{name}={value}" for name, value in key.items() if name != "at")
-                        rows.append(f"  - {clock(frame, fps)} · {subject} · {pose}")
+                    rows.extend(_key_rows(keys, start, end, fps, f"{subject} · "))
             background = shot.get("background", channel["palette"]["background"])
             rows.append(f"- Background {background}.")
             if camera := shot.get("camera"):
@@ -119,10 +130,7 @@ def write_script(path, episode, channel, timeline):
                 if "mouth_for" in layer:
                     stage += f" Mouth movement follows {layer['mouth_for']}."
                 rows.append(stage)
-                for key in layer.get("keyframes", []):
-                    frame = start + round(key["at"] * (end - start - 1))
-                    pose = ", ".join(f"{name}={value}" for name, value in key.items() if name != "at")
-                    rows.append(f"  - {clock(frame, fps)} · {pose}")
+                rows.extend(_key_rows(layer.get("keyframes", []), start, end, fps))
             for cue in resolved["speech"]:
                 direction = f" Delivery: {cue['delivery']}." if "delivery" in cue else ""
                 rows.append(f"- {clock(cue['start'], fps)}–{clock(cue['end'], fps)} · {cue['speaker']}: "

@@ -9,6 +9,7 @@ channel identity → episode source → audio and visual checks → rendered pac
 | [orbit-workshop](orbit-workshop) | Python | 2D/2.5D layers, karaoke captions, Foley and a finished package |
 | [paper-crane](paper-crane) | Python | Parented rig, camera push-in, karaoke slide, whip transition and post |
 | [tiny-signal](tiny-signal) | HyperFrames | Three.js scene library, PBR/emissive materials, camera move and mastered mix |
+| [pocket-stars](pocket-stars) | HyperFrames | Generated character with `alive` and IK, z-depth parallax, motion path, coin-spin `turn_y`, SVG `finish`, keyed gradient/stroke paint, kinetic captions and a 3D orbit end card with extruded text |
 
 Each example contains:
 

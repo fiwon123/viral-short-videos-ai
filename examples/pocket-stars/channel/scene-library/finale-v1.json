@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "scenes": {
+    "finale": {
+      "camera": {
+        "position": [
+          0,
+          1.4,
+          7.6
+        ],
+        "target": [
+          0,
+          0.95,
+          0
+        ],
+        "fov": 40
+      },
+      "lighting": {
+        "ambient": 0.35,
+        "key": 1.6,
+        "position": [
+          -3,
+          5,
+          5
+        ],
+        "target": [
+          0,
+          0.6,
+          0
+        ],
+        "color": "#C9D3FF"
+      },
+      "lights": [
+        {
+          "id": "star-light",
+          "kind": "point",
+          "color": "#FFD45C",
+          "intensity": 4,
+          "position": [
+            0,
+            2.3,
+            0.9
+          ]
+        },
+        {
+          "id": "sky",
+          "kind": "hemisphere",
+          "color": "#8C94FF",
+          "ground": "#0E1230",
+          "intensity": 0.45
+        }
+      ],
+      "fog": {
+        "color": "#0E1230",
+        "near": 5,
+        "far": 16
+      },
+      "environment": "room",
+      "environment_intensity": 0.15,
+      "objects": [
+        {
+          "id": "ground",
+          "kind": "cylinder",
+          "position": [
+            0,
+            -0.35,
+            0
+          ],
+          "scale": [
+            4.5,
+            0.2,
+            4.5
+          ],
+          "color": "#141A3D",
+          "roughness": 0.95
+        },
+        {
+          "id": "title-top",
+          "kind": "text",
+          "text": "POCKET",
+          "position": [
+            0,
+            1.2,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.8,
+            0.8
+          ],
+          "color": "#FFD45C",
+          "depth": 0.22,
+          "bevel": 0.6,
+          "metalness": 0.3,
+          "roughness": 0.4
+        },
+        {
+          "id": "title-bottom",
+          "kind": "text",
+          "text": "STARS",
+          "position": [
+            0,
+            0.45,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.8,
+            0.8
+          ],
+          "color": "#FFF5E0",
+          "depth": 0.22,
+          "bevel": 0.6,
+          "metalness": 0.3,
+          "roughness": 0.4
+        },
+        {
+          "id": "star",
+          "kind": "sphere",
+          "position": [
+            0,
+            2.25,
+            0.3
+          ],
+          "scale": [
+            0.18,
+            0.18,
+            0.18
+          ],
+          "color": "#FFF2B8",
+          "emissive": "#FFD45C",
+          "emissive_intensity": 1.6
+        }
+      ],
+      "particles": [
+        {
+          "id": "sparkles",
+          "count": 90,
+          "position": [
+            0,
+            2.25,
+            0.3
+          ],
+          "spread": [
+            0.4,
+            0.4,
+            0.4
+          ],
+          "velocity": [
+            0,
+            0.35,
+            0
+          ],
+          "gravity": [
+            0,
+            -0.1,
+            0
+          ],
+          "life": 2.2,
+          "size": 0.04,
+          "color": "#FFE8A0",
+          "emit": "continuous",
+          "blending": "additive",
+          "seed": 7,
+          "loop": true
+        },
+        {
+          "id": "dust",
+          "count": 220,
+          "position": [
+            0,
+            1.6,
+            -1
+          ],
+          "spread": [
+            7,
+            3.5,
+            5
+          ],
+          "velocity": [
+            0,
+            0.05,
+            0
+          ],
+          "life": 6,
+          "size": 0.035,
+          "color": "#C9D3FF",
+          "opacity": 0.7,
+          "emit": "continuous",
+          "seed": 3,
+          "loop": true
+        }
+      ]
+    }
+  }
+}
