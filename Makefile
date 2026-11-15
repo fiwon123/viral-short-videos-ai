@@ -26,7 +26,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory discover viral-check character3d assets sfx sfx-import spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory discover viral-check character3d assets sfx sfx-import music-import music-list spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -42,6 +42,8 @@ help:
 	@echo "  make vfx                    redraw the channel VFX kit from its palette"
 	@echo "  make sound RECIPE=...       synthesize a custom Sound Lab recipe"
 	@echo "  make sfx-import DIR=...     import recorded SFX packs into the library [DRY=1]"
+	@echo "  make music-import DIR=...   import a royalty-free music folder, tagged by mood [DRY=1]"
+	@echo "  make music-list             list the channel music library"
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
@@ -122,6 +124,15 @@ sfx-import:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
 	@test -n "$(DIR)" || { echo "Set DIR=path/to/sound-pack"; exit 1; }
 	@$(PYTHON) -m studio.samples $(CHANNEL_DIR) --source "$(DIR)" --library $(LIBRARY) $(if $(DRY),--dry-run,)
+
+music-import:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@test -n "$(DIR)" || { echo "Set DIR=path/to/music-folder"; exit 1; }
+	@$(PYTHON) -m studio.music import $(CHANNEL_DIR) --source "$(DIR)" $(if $(DRY),--dry-run,)
+
+music-list:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@$(PYTHON) -m studio.music list $(CHANNEL_DIR)
 
 character:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }

@@ -52,6 +52,8 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | 3D physics | Done | `studio/physics3d.py`: gravity, ground, walls, bounce, sliding friction and rolling resistance, sphere collisions, rolling spin, settling on a face. Baked into object keys before the camera rigs. |
 | 3D posing and IK | Done | Object `bones` keys (degree offsets after the mixer, reset each frame) and `three.ik` CCD chains with point or object targets and weights, in a second pass after all objects are posed. `studio/glbcharacter.py` writes a rigged, vertex-coloured low-poly humanoid GLB. Bone names are validated against GLB nodes. |
 | 3D quality preset | Done | Scene `quality: high` switches to PCFSoftShadowMap with 2048 maps. Shot or scene high adds GTAO ambient occlusion, OutputPass and SMAA to the composer chain (bokeh and bloom keep working). |
+| Music library | Done | `studio/music.py`, `make music-import DIR=... [DRY=1]`, `make music-list`. Hash-deduplicated import with mood tags from names, measured tempo/loudness/energy, `channel.music_library`. Episode or style `music: {mood, energy, bpm}` resolves to a deterministic track after the style merge. Voice and SFX ducking unchanged. |
+| Voice acting and engines | Done | `command` cast engine runs any local TTS (Piper, XTTS, F5, Chatterbox), cached per line. Per-line `pitch`, `pace` (native Kokoro speed) and `intensity` on every engine (`audio.act`). |
 | Still pending | Pending | Nothing from the original plan. See "Professional gaps" below for the next work. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -67,13 +69,14 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~3D character animation~~ Done: `bones` keys, `three.ik` (CCD), `make character3d` rigged GLB | 3D | Only GLB clip playback; no authored bones, no 3D IK, no retargeting | Bone keys and 3D IK on GLB skeletons; docs for free CC0 rigs (Quaternius, Kenney) and Mixamo |
 | ~~3D physics~~ Done: `three.physics` baked rigid bodies | 3D | Falls, collisions and debris are hand-keyed | Bake rigid-body motion into object keys with a small solver |
 | ~~Render quality~~ Done: `quality: high` (soft shadows, GTAO, SMAA, OutputPass); speed unchanged | 3D | Real-time WebGL look; no path tracing; ~2 min per 15 s at 540p | Accept for stylised channels; add a quality preset (SSAO, soft shadows) and parallel shot rendering |
-| Music | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
-| Voices | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
+| ~~Music~~ Done: `make music-import`, `music: {mood, energy, bpm}` | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
+| ~~Voices~~ Done: `command` engine, per-line `pitch`/`pace`/`intensity`, free options documented in the audio reference | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 97 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 100 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Music library and voice acting (command TTS engine, pitch/pace/intensity) landed.
 - 2026-11-15: 3D high-quality render preset landed.
 - 2026-11-15: 3D bone posing, 3D IK and the rigged GLB character generator landed.
 - 2026-11-15: Baked 3D physics landed.

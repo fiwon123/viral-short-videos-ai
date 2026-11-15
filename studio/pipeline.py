@@ -16,6 +16,7 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     from .poses import expand as expand_poses
     from .markers import expand as expand_markers
     from .morph import expand as expand_morph
+    from .music import expand as expand_music
     from .paint import expand as expand_paint
     from .particles import expand as expand_particles
     from .presets import apply_style
@@ -34,6 +35,7 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     episode = expand_rig3d(expand_physics3d(episode, library), library)
     if style:
         episode = apply_style(episode, channel, channel_dir)
+    episode = expand_music(episode, channel, channel_dir)
     episode = expand_markers(episode, channel_dir)
     episode = expand_trails(episode)
     episode = expand_particles(episode)

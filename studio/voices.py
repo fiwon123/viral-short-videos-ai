@@ -77,3 +77,42 @@ class KokoroTakes:
                 except FileExistsError:
                     pass
         return target, {**settings, "take": str(target.relative_to(self.cache.parent))}
+
+
+class CommandTakes:
+    """Any local TTS program as a voice engine, cached like Kokoro takes.
+
+    Profile: ``{"engine": "command", "command": ["piper", "--model", "voice.onnx",
+    "--output_file", "{out}"], "input": "stdin"}``. ``{out}`` is the WAV to write and
+    ``{text}`` (with ``"input": "arg"``) is the line. Works with Piper, eSpeak,
+    Coqui, F5-TTS, Chatterbox or any script that writes a WAV.
+    """
+
+    def __init__(self, episode_dir):
+        self.cache = episode_dir / ".audio-takes"
+
+    def take(self, text, profile):
+        import subprocess
+        command = [str(part) for part in profile["command"]]
+        settings = {"engine": "command", "command": command, "input": profile.get("input", "stdin"),
+                    "speed": profile.get("speed", 1.0)}
+        name = sha256(json.dumps([text, settings], ensure_ascii=False, sort_keys=True).encode()).hexdigest() + ".wav"
+        target = self.cache / name
+        if not target.is_file():
+            self.cache.mkdir(exist_ok=True)
+            with TemporaryDirectory(prefix=".take-", dir=self.cache) as folder:
+                staged = Path(folder) / "take.wav"
+                args = [part.replace("{out}", str(staged)).replace("{text}", text) for part in command]
+                stdin = text.encode("utf-8") if settings["input"] == "stdin" else None
+                try:
+                    result = subprocess.run(args, input=stdin, capture_output=True, timeout=600)
+                except FileNotFoundError as error:
+                    raise ValueError(f"Voice command not found: {command[0]}. Install it or fix the cast profile.") from error
+                if result.returncode or not staged.is_file():
+                    detail = result.stderr.decode("utf-8", errors="replace")[-800:]
+                    raise ValueError(f"Voice command failed ({command[0]}): {detail}")
+                try:
+                    os.link(staged, target)
+                except FileExistsError:
+                    pass
+        return target, {**settings, "take": str(target.relative_to(self.cache.parent))}

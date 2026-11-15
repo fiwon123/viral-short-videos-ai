@@ -1002,6 +1002,72 @@ class Rig3DTests(unittest.TestCase):
             validate_three(missing, library)
 
 
+class VoiceActingTests(unittest.TestCase):
+    def test_pitch_pace_and_intensity_change_the_take(self):
+        import numpy as np
+        from studio.audio import act
+        from studio.core import SAMPLE_RATE
+        t = np.arange(SAMPLE_RATE) / SAMPLE_RATE
+        tone = (0.5 * np.sin(2 * np.pi * 220 * t)).astype(np.float32)
+
+        def peak(signal):
+            spectrum = np.abs(np.fft.rfft(signal * np.hanning(len(signal))))
+            return np.argmax(spectrum) * SAMPLE_RATE / len(signal)
+        self.assertAlmostEqual(peak(act(tone, {"pitch": 12})), 440, delta=3)
+        self.assertAlmostEqual(len(act(tone, {"pace": 1.25})) / SAMPLE_RATE, 0.8, delta=0.03)
+        self.assertIs(act(tone, {}), tone)
+
+    def test_command_engine_runs_a_local_tts_program(self):
+        import sys
+        from tempfile import TemporaryDirectory
+        from studio.audio import spoken_take
+        script = ("import sys, wave, math\n"
+                  "text = sys.stdin.read()\n"
+                  "w = wave.open(sys.argv[1], 'wb'); w.setparams((1, 2, 24000, 0, 'NONE', 'none'))\n"
+                  "w.writeframes(b''.join(int(12000 * math.sin(i / 8)).to_bytes(2, 'little', signed=True)"
+                  " for i in range(2400 * max(1, len(text) // 5))))\n")
+        with TemporaryDirectory() as folder:
+            tts = Path(folder) / "tts.py"
+            tts.write_text(script)
+            profile = {"engine": "command", "command": [sys.executable, str(tts), "{out}"], "direction": "test"}
+            clip, source, detail = spoken_take({"speaker": "N", "text": "Hello there friend"}, {}, Path(folder),
+                                               Path(folder), profile, None)
+            self.assertIn("Local TTS", source)
+            self.assertGreater(len(clip), 1000)
+            cached = list((Path(folder) / ".audio-takes").glob("*.wav"))
+            self.assertEqual(len(cached), 1)
+
+
+class MusicLibraryTests(unittest.TestCase):
+    def test_import_tags_moods_and_episode_mood_picks_a_track(self):
+        import subprocess
+        from tempfile import TemporaryDirectory
+        from studio.music import expand, import_music
+        from studio.core import validate
+        with TemporaryDirectory() as folder:
+            source, channel_dir = Path(folder) / "pack", Path(folder) / "channel"
+            (source / "Calm Piano").mkdir(parents=True)
+            (source / "Hype").mkdir()
+            channel_dir.mkdir()
+            for path, freq in ((source / "Calm Piano" / "soft_morning.wav", 220), (source / "Hype" / "drive_fast.wav", 440)):
+                subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i",
+                                f"sine=frequency={freq}:duration=8", str(path)], check=True)
+            result = import_music(channel_dir, source)
+            self.assertEqual(len(result["added"]), 2)
+            self.assertEqual(import_music(channel_dir, source)["added"], [])  # Deduplicated by hash.
+            channel = {"music_library": "audio/music/index.json"}
+            episode = {"title": "Test", "music": {"mood": "action", "gain": 0.05},
+                       "scenes": [{"shots": [{"duration": 6}]}]}
+            picked = expand(episode, channel, channel_dir)["music"]
+            self.assertTrue(picked["library_file"].endswith(".wav"))
+            self.assertIn("drive", picked["library_file"])
+            self.assertEqual(picked["gain"], 0.05)
+            self.assertNotIn("mood", picked)
+            validate({"mood": "calm", "energy": "low", "bpm": [70, 90]}, "music")
+            with self.assertRaises(Exception):
+                validate({"preset": "pulse", "file": "a.wav"}, "music")
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

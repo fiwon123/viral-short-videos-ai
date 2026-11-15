@@ -209,7 +209,9 @@ def probe(path, count_frames=False):
     return json.loads(run("ffprobe", "-v", "error", *flags, "-show_format", "-show_streams", "-of", "json", str(path)))
 
 
-def ffmpeg(*args):
+def ffmpeg(*args, data=None):
+    if data is not None:  # Reading pipe:0, so stdin must stay open.
+        return run("ffmpeg", "-hide_banner", "-loglevel", "error", *args, data=data)
     return run("ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", *args)
 
 

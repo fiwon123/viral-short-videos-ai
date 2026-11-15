@@ -12,6 +12,15 @@ Use the `audio_library` definition in the [manifest schema](../../../../studio/s
 
 For richer acting or an original recorded identity, use a `recorded` profile with a stable `identity` and supply dry takes in each speech line's `file`. A file can also override the synthesis for one line in a Kokoro profile. Reuse the same performer or approved provider voice ID and settings. If using an external voice design or recording service, audition it and bring the resulting audio files into the project.
 
+Any local TTS program can be a voice: a `command` profile runs it once per line and caches the take like Kokoro. `{out}` is the WAV to write; the line goes to stdin, or into `{text}` with `"input": "arg"`. Free options by need: Piper (fast, many languages, one voice per model), Coqui XTTS or F5-TTS (zero-shot cloning from a short reference the user owns), Chatterbox (English with emotion control), eSpeak NG (scratch). Check each model's licence for commercial use.
+
+```json
+"narrator": {"engine": "command", "direction": "Warm, dry storyteller.",
+             "command": ["piper", "--model", "audio-models/en_US-ryan-high.onnx", "--output_file", "{out}"]}
+```
+
+Direct a single line without a new profile: `pitch` (semitones, -7..7, length kept), `pace` (0.6–1.6; Kokoro synthesises at that speed, other engines are time-stretched) and `intensity` (0–1: compression plus a presence lift for a firmer, more forward read). They work on every engine, recorded takes included.
+
 ```json
 {
   "version": 1,
@@ -73,6 +82,24 @@ Spot sound from the animation with `make spot` (proposals) and `make spot APPLY=
 Shape individual cues like an editor would. Use `highpass` (Hz) to clear low mud from whooshes and UI sounds, `lowpass` to push a sound behind a wall or into the distance, `punch` (0–1) to sharpen an impact's attack for phone speakers, and `saturate` (0–1) for warmth and grit. Spotted cues get sensible defaults. `video.py check-visual` lists `sound_notes` when more than five cues land within one second, and `caption_notes` for captions that are too fast, flicker, or sit under the platform UI.
 
 The mixer puts SFX through a gentle glue compressor and dips the music bed briefly under each hit (`music.sfx_duck`) so effects punch through without pumping.
+
+## Music library
+
+The `pulse` preset is a scratch bed. For finished episodes, import a folder of tracks the user owns or that are free to use (FreePD and Pixabay Music are CC0-like, the YouTube Audio Library is fine for YouTube uploads, CC-BY needs the credit line in the description):
+
+```bash
+make music-import DIR=~/music/pack DRY=1   # preview moods, energy and tempo
+make music-import DIR=~/music/pack         # copy into audio/music/, write index.json, set music_library
+make music-list
+```
+
+Moods (calm, happy, funny, epic, tense, sad, action, dreamy) come from folder and file names, with measured energy and tempo as the fallback. Fix any tag by hand in `audio/music/index.json`, and record the licence and credit there. Episodes then ask by feel, and the voice and SFX ducking still apply:
+
+```json
+"music": {"mood": "funny", "energy": "high", "bpm": [100, 130], "gain": 0.06}
+```
+
+The pick is deterministic per episode title and prefers tracks at least as long as the episode, so a channel keeps one sound without reusing one track every upload. Put the mood in the channel style preset's `music` to give every episode the same default.
 
 ## Generate fresh Foley
 

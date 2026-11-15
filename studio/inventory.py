@@ -79,6 +79,12 @@ def report(channel_path):
         required.add((base / channel["scene_library"]).resolve())
     if "rig_library" in channel:
         required.add((base / channel["rig_library"]).resolve())
+    if "music_library" in channel:
+        music_index = (base / channel["music_library"]).resolve()
+        required.add(music_index)
+        if music_index.is_file():
+            for track in json.loads(music_index.read_text(encoding="utf-8")).get("tracks", []):
+                required.add((base / track["file"]).resolve())
     for rig in load_rigs(channel, base).values():
         for layer in rig:
             if "file" in layer:

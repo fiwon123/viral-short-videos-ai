@@ -200,10 +200,19 @@
     },
     "music": {
       "type": "object", "additionalProperties": false,
-      "oneOf": [{"required": ["preset"]}, {"required": ["file"]}],
+      "anyOf": [{"required": ["preset"]}, {"required": ["file"]}, {"required": ["mood"]}, {"required": ["energy"]},
+                {"required": ["bpm"]}, {"required": ["library_file"]}],
+      "not": {"required": ["preset", "file"]},
       "properties": {
         "preset": {"const": "pulse"},
         "file": {"$ref": "#/$defs/path"},
+        "mood": {"description": "Pick a track from the channel music_library by mood.",
+                 "enum": ["calm", "happy", "funny", "epic", "tense", "sad", "action", "dreamy"]},
+        "energy": {"enum": ["low", "medium", "high"]},
+        "bpm": {"description": "Preferred tempo range [min, max].", "type": "array", "minItems": 2, "maxItems": 2,
+                "items": {"type": "number", "minimum": 40, "maximum": 240}},
+        "library_file": {"description": "Set by the music expander; do not author.", "type": "string"},
+        "library_track": {"type": "string"},
         "gain": {"$ref": "#/$defs/unit"},
         "loop": {"type": "boolean"},
         "fade_in": {"type": "number", "minimum": 0, "maximum": 30},
@@ -373,6 +382,7 @@
         "scene_library": {"$ref": "#/$defs/path"},
         "rig_library": {"$ref": "#/$defs/path"},
         "audio_library": {"$ref": "#/$defs/path"},
+        "music_library": {"$ref": "#/$defs/path"},
         "captions": {"$ref": "#/$defs/captions"},
         "style": {"$ref": "#/$defs/style"},
         "audio": {"$ref": "#/$defs/audio"},
@@ -678,7 +688,10 @@
     "cast_voice": {
       "type": "object", "required": ["engine", "direction"], "additionalProperties": false,
       "properties": {
-        "engine": {"enum": ["kokoro", "recorded"]},
+        "engine": {"enum": ["kokoro", "recorded", "command"]},
+        "command": {"description": "Local TTS command; {out} is the WAV to write, {text} the line (with input arg).",
+                    "type": "array", "minItems": 1, "items": {"type": "string"}},
+        "input": {"enum": ["stdin", "arg"]},
         "direction": {"$ref": "#/$defs/text"},
         "identity": {"$ref": "#/$defs/text"},
         "character_design": {
@@ -700,9 +713,11 @@
       },
       "if": {"properties": {"engine": {"const": "kokoro"}}},
       "then": {"required": ["blend", "language"]},
-      "else": {"required": ["identity"], "not": {"anyOf": [
-        {"required": ["blend"]}, {"required": ["language"]}, {"required": ["speed"]}
-      ]}}
+      "else": {"if": {"properties": {"engine": {"const": "command"}}},
+               "then": {"required": ["command"], "not": {"anyOf": [{"required": ["blend"]}, {"required": ["language"]}]}},
+               "else": {"required": ["identity"], "not": {"anyOf": [
+                 {"required": ["blend"]}, {"required": ["language"]}, {"required": ["speed"]}, {"required": ["command"]}
+               ]}}}
     },
     "audio_library": {
       "type": "object", "required": ["version"], "additionalProperties": false,
@@ -743,6 +758,9 @@
         "caption": {"$ref": "#/$defs/text"},
         "spoken_text": {"$ref": "#/$defs/text"},
         "delivery": {"$ref": "#/$defs/text"},
+        "pitch": {"description": "Shift the take in semitones (-7..7) without changing its length.", "type": "number", "minimum": -7, "maximum": 7},
+        "pace": {"description": "Speak faster (>1) or slower (<1); Kokoro synthesises at that speed.", "type": "number", "minimum": 0.6, "maximum": 1.6},
+        "intensity": {"description": "0-1: firmer, brighter, more forward delivery (compression and presence).", "$ref": "#/$defs/unit"},
         "at": {"$ref": "#/$defs/seconds"},
         "file": {"$ref": "#/$defs/path"},
         "voice": {"$ref": "#/$defs/text"},

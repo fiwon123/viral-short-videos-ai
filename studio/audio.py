@@ -11,7 +11,7 @@ import wave
 import numpy as np
 
 from .core import MAX_SECONDS, SAMPLE_RATE, asset, ffmpeg, require, run
-from .voices import KokoroTakes
+from .voices import CommandTakes, KokoroTakes
 
 
 def read_audio(path, channels=1):
@@ -26,13 +26,43 @@ def read_audio(path, channels=1):
     return samples
 
 
-def spoken_take(line, voice, base, temp, profile, takes):
+def act(raw, line, paced=False):
+    """Per-line acting on any take: ``pitch`` (semitones), ``pace`` (speed) and ``intensity`` (0-1)."""
+    pitch = float(line.get("pitch", 0) or 0)
+    pace = 1.0 if paced else float(line.get("pace", 1) or 1)
+    intensity = float(line.get("intensity", 0) or 0)
+    filters = []
+    if abs(pitch) > 0.01:
+        ratio = 2 ** (pitch / 12)
+        filters += [f"asetrate={SAMPLE_RATE * ratio:.3f}", f"aresample={SAMPLE_RATE}", f"atempo={1 / ratio:.5f}"]
+    if abs(pace - 1) > 0.005:
+        filters.append(f"atempo={max(0.5, min(2.0, pace)):.4f}")
+    if intensity > 0.01:
+        # Firmer, brighter and more forward: compression plus a presence lift.
+        filters += [f"acompressor=threshold={-14 - 10 * intensity:.1f}dB:ratio={2 + 3 * intensity:.2f}:attack=4:release=80:makeup=2",
+                    f"equalizer=f=3200:t=q:w=1.2:g={5 * intensity:.2f}"]
+    if not filters:
+        return raw
+    data = ffmpeg("-f", "f32le", "-ar", str(SAMPLE_RATE), "-ac", "1", "-i", "pipe:0", "-af", ",".join(filters),
+                  "-f", "f32le", "-ar", str(SAMPLE_RATE), "-ac", "1", "pipe:1", data=raw.astype("<f4").tobytes())
+    return np.frombuffer(data, dtype="<f4").astype(np.float32)
+
+
+def spoken_take(line, voice, base, temp, profile, takes, commands=None):
     text = line.get("spoken_text", line["text"]).replace("*", "")
+    paced = False
     if "file" in line:
         raw = read_audio(asset(base, line["file"]))
         source = line["file"]
         detail = {"engine": "recorded"}
+    elif profile and profile.get("engine") == "command":
+        path, detail = (commands or CommandTakes(base)).take(text, profile)
+        raw = read_audio(path)
+        source = f"Local TTS ({Path(profile['command'][0]).name})"
     elif profile:
+        if line.get("pace"):
+            profile = {**profile, "speed": float(profile.get("speed", 1.0)) * float(line["pace"])}
+            paced = True
         path, detail = takes.take(text, profile)
         raw = read_audio(path)
         source = "Kokoro (" + " + ".join(sorted(profile["blend"])) + ")"
@@ -45,6 +75,7 @@ def spoken_take(line, voice, base, temp, profile, takes):
         raw = read_audio(path)
         source = f"eSpeak NG ({name})"
         detail = {"engine": "espeak"}
+    raw = act(raw, line, paced)
     peak = float(np.max(np.abs(raw)))
     if peak < 0.002:
         raise ValueError(f"Voice take is silent: {source}")
@@ -128,6 +159,8 @@ def effect(name):
 
 
 def music_bed(spec, base):
+    if "library_file" in spec:  # Picked from the channel music library by studio.music.
+        return read_audio(Path(spec["library_file"]), channels=2)
     if "file" in spec:
         return read_audio(asset(base, spec["file"]), channels=2)
     notes = []
