@@ -948,6 +948,29 @@ class CharacterArchetypeTests(unittest.TestCase):
         self.assertGreater(len(bends), 5)
 
 
+class Physics3DTests(unittest.TestCase):
+    def test_bodies_fall_bounce_collide_and_settle(self):
+        import math
+        from studio.physics3d import expand, simulate
+        objects = [{"id": "ball", "kind": "sphere", "position": [0, 3, -3], "scale": [0.5, 0.5, 0.5]},
+                   {"id": "roller", "kind": "sphere", "position": [-1.5, 0.25, 0], "scale": [0.5, 0.5, 0.5]},
+                   {"id": "target", "kind": "sphere", "position": [1.0, 0.25, 0], "scale": [0.5, 0.5, 0.5]},
+                   {"id": "crate", "kind": "box", "position": [-2, 2, 0], "scale": [0.6, 0.6, 0.6]}]
+        keys = simulate(objects, {"bodies": {"ball": {"bounce": 0.5}, "roller": {"velocity": [3, 0, 0]}, "target": {},
+                                             "crate": {"spin": [0, 0, 200]}}}, 4.0)
+        ball_heights = [key["position"][1] for key in keys["ball"]]
+        self.assertAlmostEqual(min(ball_heights), 0.25, places=3)  # Rests on its radius, never sinks.
+        self.assertGreater(keys["target"][-1]["position"][0], 1.3)  # Knocked along by the roller.
+        turn = keys["crate"][-1]["rotation"][2] / (math.pi / 2)
+        self.assertAlmostEqual(turn, round(turn), places=2)  # Settled on a face.
+        episode = {"scenes": [{"shots": [{"id": "A", "duration": 1.0, "three": {
+            "scene": "s", "physics": {"bodies": {"ball": {}}}, "objects": {"ball": [{"at": 1, "visible": False}]}}}]}]}
+        expand(episode, ({"scenes": {"s": {"objects": objects}}}, None))
+        baked = episode["scenes"][0]["shots"][0]["three"]["objects"]["ball"]
+        self.assertTrue(all("position" in key for key in baked))
+        self.assertFalse(baked[-1]["visible"])
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

@@ -1066,6 +1066,30 @@
       "properties": {
         "scene": {"$ref": "#/$defs/text"},
         "camera": {"type": "array", "items": {"$ref": "#/$defs/three_camera_key"}},
+        "physics": {
+          "description": "Baked rigid-body motion for scene objects (see studio/physics3d.py).",
+          "type": "object", "required": ["bodies"], "additionalProperties": false,
+          "properties": {
+            "gravity": {"type": "number", "minimum": -100, "maximum": 100},
+            "ground": {"type": ["number", "null"]},
+            "start": {"type": "number", "minimum": 0, "maximum": 720},
+            "walls": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}},
+            "bodies": {
+              "type": "object", "minProperties": 1,
+              "additionalProperties": {
+                "type": "object", "additionalProperties": false,
+                "properties": {
+                  "velocity": {"$ref": "#/$defs/vector3"}, "spin": {"$ref": "#/$defs/vector3"},
+                  "bounce": {"type": "number", "minimum": 0, "maximum": 1.2},
+                  "friction": {"type": "number", "minimum": 0, "maximum": 5},
+                  "mass": {"type": "number", "exclusiveMinimum": 0}, "radius": {"type": "number", "exclusiveMinimum": 0},
+                  "half_height": {"type": "number", "exclusiveMinimum": 0},
+                  "fixed": {"type": "boolean"}, "rolls": {"type": "boolean"}
+                }
+              }
+            }
+          }
+        },
         "camera_rig": {
           "description": "Generate camera keys from a named move (see studio/rig3d.py).",
           "type": "object", "required": ["kind"], "additionalProperties": false,
