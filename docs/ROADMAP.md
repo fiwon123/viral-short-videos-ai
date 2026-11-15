@@ -40,16 +40,17 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Bug fix: child layers got the camera twice | Done | The camera now applies only to top-level layers in both renderers. Rig parts no longer drift on zooms or pans. |
 | Phase 4.1: 3D camera rigs | Done | `studio/rig3d.py` `three.camera_rig`: orbit, dolly, crane, flyby and follow, with handheld and fov. |
 | Phase 4.2: lights and atmosphere | Done | Scene `lights` (point, spot, hemisphere), `fog`, and `environment: room` (PMREM). Lights keyable per shot. |
-| Phase 4.3: text in 3D | Partial | `text` object is a canvas-textured plane. Extruded TextGeometry needs a bundled typeface font. |
+| Phase 4.3: text in 3D | Done | `text` is a canvas-textured plane, or extruded `TextGeometry` with `depth`/`bevel`. `studio/typeface.py` reads TrueType `glyf` outlines (no dependency) into typeface JSON with only the used glyphs, staged by `browser._stage_typeface`. CFF .otf falls back to the plane. |
 | Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Partial | Keyable `tint_color` (RGB lists in poses, hex in keys) and `wipe` draw-on (`wipe_from`) work in both renderers. Fill/gradient/stroke-width keys need per-frame re-rasterising and are not done. |
-| Still pending | Pending | 4.3 extruded text, 2.4 fill/stroke keys, morph targets, IK. |
+| Still pending | Pending | 2.4 fill/stroke keys, morph targets, IK. |
 
-Tests: `make test` passes, 67 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 70 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 4.3 extruded 3D text landed.
 - 2026-11-15: C5 contrast check landed in the motion report.
 - 2026-11-15: C3 `finish` style pass for existing SVGs landed.
 - 2026-11-15: Phase 5.4 browser pose parity test landed and fixed `auto` easing on colour lists.

@@ -14,6 +14,8 @@ import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
 import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
 import {BokehPass} from "three/addons/postprocessing/BokehPass.js";
 import {UnrealBloomPass} from "three/addons/postprocessing/UnrealBloomPass.js";
+import {Font} from "three/addons/loaders/FontLoader.js";
+import {TextGeometry} from "three/addons/geometries/TextGeometry.js";
 
 import {lightingFor} from "./lighting.mjs";
 import {objectTrack, poseAt, poseTrack} from "./pose.mjs";
@@ -111,6 +113,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
   let roomTexture = null;
   const loader = new GLTFLoader();
   const models = new Map();
+  const fonts = new Map();
   const scenes = new Map();
   try {
     for (const [id, spec] of Object.entries(specs)) {
@@ -172,6 +175,19 @@ export async function createThreeStage(specs, width, height, urlFor) {
           const model = models.get(obj.file);
           node = clone(model.scene);
           animations = model.animations ?? [];
+        } else if (obj.kind === "text" && obj.depth && obj.typeface) {
+          // Extruded text. Em size 0.727 matches the cap height of the flat text plane.
+          if (!fonts.has(obj.typeface)) {
+            fonts.set(obj.typeface, new Font(await (await fetch(urlFor(obj.typeface))).json()));
+          }
+          const bevel = obj.bevel ?? 0.3;
+          const geometry = new TextGeometry(obj.text, {
+            font: fonts.get(obj.typeface), size: 0.727, depth: obj.depth, curveSegments: 8,
+            bevelEnabled: bevel > 0, bevelThickness: 0.05 * bevel, bevelSize: 0.03 * bevel, bevelSegments: 3,
+          });
+          geometry.center();
+          node = new Mesh(geometry, makeMaterial({...obj, double_sided: false, kind: "extruded"}, ramp));
+          node.userData.aspect = 1;
         } else if (obj.kind === "text") {
           const {texture, aspect} = textTexture(obj.text, {color: obj.color ?? "#ffffff",
             font: obj.font ?? "800 160px sans-serif"});

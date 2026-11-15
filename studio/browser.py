@@ -68,6 +68,40 @@ def _kinetic_cue(cue, caption_config, canvas, font, channel, assets, number, fps
             "config": {key: config[key] for key in keys}}
 
 
+def _system_font():
+    try:
+        import subprocess
+        found = subprocess.run(["fc-match", "-f", "%{file}", "sans:bold"], capture_output=True, text=True,
+                               timeout=10).stdout.strip()
+        return found if found.lower().endswith(".ttf") else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _stage_typeface(obj, font, channel, channel_base, library_base, assets, cache):
+    """Write typeface JSON for an extruded text object; without a readable .ttf it stays a plane."""
+    from .design import resolve_font
+    from .typeface import convert
+    source = None
+    if obj.get("typeface"):
+        roles = (channel.get("fonts") or {})
+        source = resolve_font(channel, channel_base, obj["typeface"]) if obj["typeface"] in roles \
+            else str(asset(library_base, obj["typeface"]))
+    candidates = [source] if source else [font, _system_font()]
+    for candidate in filter(None, candidates):
+        key = (candidate, obj["text"])
+        if key not in cache:
+            data = convert(candidate, obj["text"])
+            cache[key] = None
+            if data:
+                cache[key] = f"typeface-{len(cache)}.json"
+                write_json(assets / cache[key], data)
+        if cache[key]:
+            return {**obj, "typeface": cache[key]}
+    print(f"studio: no TrueType outline font for 3D text {obj['id']!r}; drawing it flat.")
+    return {key: value for key, value in obj.items() if key != "depth"}
+
+
 def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channel_base, library, work, burn,
                   config=None):
     assets = work / "assets"
@@ -81,7 +115,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             "captions": [], "cover": {"hide": cover.get("hide_layers", [])},
             "caption_style": caption_config.get("style", "box"),
             "palette": channel.get("palette", {})}
-    models, vectors = {}, {}
+    models, vectors, typefaces = {}, {}, {}
 
     for source_scene, resolved_scene in zip(episode["scenes"], timeline["scenes"]):
         for shot, resolved in zip(source_scene["shots"], resolved_scene["shots"]):
@@ -125,6 +159,8 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                                 models[path] = f"model-{len(models)}.glb"
                                 shutil.copyfile(path, assets / models[path])
                             obj = {**obj, "file": models[path]}
+                        elif obj["kind"] == "text" and obj.get("depth"):
+                            obj = _stage_typeface(obj, font, channel, channel_base, library[1], assets, typefaces)
                         objects.append(obj)
                     scenes[scene_id] = {**scene, "objects": objects}
                 prepared["three"] = {**three, "duration": duration}

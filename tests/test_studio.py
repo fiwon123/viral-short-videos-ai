@@ -767,6 +767,40 @@ class FinishPassTests(unittest.TestCase):
         self.assertIn("outline", finish["properties"])
 
 
+class TypefaceTests(unittest.TestCase):
+    def test_outline_handles_implied_on_curve_points(self):
+        from studio.typeface import outline
+        # Square with straight edges, then a contour of only off-curve points (a TrueType circle).
+        square = [(0, 0, True), (10, 0, True), (10, 10, True), (0, 10, True)]
+        self.assertEqual(outline([square]), "m 0 0 l 10 0 l 10 10 l 0 10 l 0 0")
+        circle = outline([[(0, 10, False), (10, 10, False), (10, 0, False), (0, 0, False)]])
+        self.assertTrue(circle.startswith("m 5 10 q"))
+        self.assertEqual(circle.count("q"), 4)
+
+    def test_convert_reads_a_system_truetype_font(self):
+        import glob
+        from studio.typeface import convert
+        fonts = [path for pattern in ("/usr/share/fonts/**/*Sans*Bold.ttf", "/usr/share/fonts/**/*.ttf",
+                                      "/Library/Fonts/*.ttf", "C:/Windows/Fonts/*.ttf")
+                 for path in glob.glob(pattern, recursive=True)]
+        if not fonts:
+            self.skipTest("no TrueType font installed")
+        data = convert(fonts[0], "AO")
+        self.assertIsNotNone(data)
+        self.assertGreater(data["resolution"], 0)
+        # "O" has an outer contour and a hole.
+        self.assertEqual(data["glyphs"]["O"]["o"].count("m "), 2)
+        self.assertGreater(data["glyphs"]["A"]["ha"], 0)
+
+    def test_convert_rejects_non_truetype(self):
+        from tempfile import NamedTemporaryFile
+        from studio.typeface import convert
+        with NamedTemporaryFile(suffix=".otf") as handle:
+            handle.write(b"OTTO" + bytes(64))
+            handle.flush()
+            self.assertIsNone(convert(handle.name, "A"))
+
+
 POSE_MODES = ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic",
               "bounce", "spring", "hold", "auto",
               {"type": "cubic-bezier", "points": [0.2, 0, 0, 1]},
