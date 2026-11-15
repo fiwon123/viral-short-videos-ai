@@ -1,9 +1,13 @@
 import {
   ACESFilmicToneMapping, AdditiveBlending, AmbientLight, AnimationMixer, BoxGeometry,
-  BufferGeometry, CanvasTexture, Color, CylinderGeometry, DirectionalLight, Float32BufferAttribute, Mesh,
-  MeshStandardMaterial, NormalBlending, PCFShadowMap, PerspectiveCamera, Points, PointsMaterial,
-  Scene, SphereGeometry, SRGBColorSpace, TorusGeometry, Vector2, WebGLRenderer,
+  BufferGeometry, CanvasTexture, CapsuleGeometry, Color, ConeGeometry, CylinderGeometry, DataTexture,
+  DirectionalLight, DoubleSide, Float32BufferAttribute, Fog, FogExp2, HemisphereLight, Mesh, MeshBasicMaterial,
+  MeshStandardMaterial, MeshToonMaterial, NearestFilter, NormalBlending, PCFShadowMap, PerspectiveCamera,
+  PlaneGeometry, PMREMGenerator, PointLight, Points, PointsMaterial, RedFormat, Scene, SphereGeometry,
+  SpotLight, SRGBColorSpace, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from "three";
+import {RoomEnvironment} from "three/addons/environments/RoomEnvironment.js";
+import {OutlineEffect} from "three/addons/effects/OutlineEffect.js";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {clone} from "three/addons/utils/SkeletonUtils.js";
 import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
@@ -39,6 +43,51 @@ function sparkTexture() {
   return spark;
 }
 
+function toonRamp() {
+  // Three hard bands: shadow, mid, lit. Shared by every toon material.
+  const texture = new DataTexture(new Uint8Array([70, 160, 255]), 3, 1, RedFormat);
+  texture.minFilter = texture.magFilter = NearestFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function textTexture(text, {color = "#ffffff", font = "800 160px sans-serif"} = {}) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.font = font;
+  const width = Math.ceil(ctx.measureText(text).width) + 40;
+  canvas.width = width;
+  canvas.height = 220;
+  ctx.font = font;
+  ctx.textBaseline = "middle";
+  ctx.lineWidth = 18;
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.strokeText(text, 20, 110);
+  ctx.fillStyle = color;
+  ctx.fillText(text, 20, 110);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return {texture, aspect: canvas.width / canvas.height};
+}
+
+function makeMaterial(obj, ramp, extra = {}) {
+  const common = {
+    color: obj.color ?? "#ffffff",
+    transparent: (obj.opacity ?? 1) < 1 || Boolean(extra.map),
+    opacity: obj.opacity ?? 1,
+    side: obj.double_sided || obj.kind === "plane" || obj.kind === "text" ? DoubleSide : undefined,
+    ...extra,
+  };
+  if (obj.material === "basic") return new MeshBasicMaterial(common);
+  if (obj.material === "toon") {
+    return new MeshToonMaterial({...common, gradientMap: ramp,
+      emissive: new Color(obj.emissive ?? "#000000"), emissiveIntensity: obj.emissive_intensity ?? 1});
+  }
+  return new MeshStandardMaterial({...common,
+    metalness: obj.metalness ?? 0, roughness: obj.roughness ?? 0.62,
+    emissive: new Color(obj.emissive ?? "#000000"), emissiveIntensity: obj.emissive_intensity ?? 1});
+}
+
 export async function createThreeStage(specs, width, height, urlFor) {
   const renderer = new WebGLRenderer({alpha: true, antialias: true});
   renderer.setSize(width, height, false);
@@ -53,7 +102,13 @@ export async function createThreeStage(specs, width, height, urlFor) {
     sphere: new SphereGeometry(0.5, 36, 24),
     cylinder: new CylinderGeometry(0.5, 0.5, 1, 48),
     torus: new TorusGeometry(0.38, 0.12, 16, 48),
+    plane: new PlaneGeometry(1, 1),
+    cone: new ConeGeometry(0.5, 1, 48),
+    capsule: new CapsuleGeometry(0.3, 0.4, 8, 24),
   };
+  const ramp = toonRamp();
+  const pmrem = new PMREMGenerator(renderer);
+  let roomTexture = null;
   const loader = new GLTFLoader();
   const models = new Map();
   const scenes = new Map();
@@ -76,6 +131,37 @@ export async function createThreeStage(specs, width, height, urlFor) {
         key.shadow.camera.updateProjectionMatrix();
         key.shadow.normalBias = 0.015;
       }
+      const lights = new Map();
+      for (const item of spec.lights ?? []) {
+        let node;
+        if (item.kind === "point") {
+          node = new PointLight(item.color ?? "#ffffff", item.intensity ?? 8, item.distance ?? 0, 2);
+        } else if (item.kind === "spot") {
+          node = new SpotLight(item.color ?? "#ffffff", item.intensity ?? 12, item.distance ?? 0,
+            (item.angle ?? 30) * Math.PI / 180, item.penumbra ?? 0.35, 2);
+          node.target.position.set(...(item.target ?? [0, 0, 0]));
+          scene.add(node.target);
+        } else {
+          node = new HemisphereLight(item.color ?? "#cfe4ff", item.ground ?? "#3a2f28", item.intensity ?? 1);
+        }
+        if (item.position) node.position.set(...item.position);
+        if (item.shadows && node.shadow) {
+          node.castShadow = true;
+          node.shadow.mapSize.set(1024, 1024);
+        }
+        scene.add(node);
+        lights.set(item.id, {node, spec: item});
+      }
+      if (spec.fog) {
+        scene.fog = spec.fog.density
+          ? new FogExp2(spec.fog.color, spec.fog.density)
+          : new Fog(spec.fog.color, spec.fog.near ?? 4, spec.fog.far ?? 30);
+      }
+      if (spec.environment === "room") {
+        roomTexture ??= pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        scene.environment = roomTexture;
+        scene.environmentIntensity = spec.environment_intensity ?? 0.6;
+      }
       const camera = new PerspectiveCamera(spec.camera.fov ?? 37, width / height, 0.01, 2000);
       const objects = new Map();
       for (const obj of spec.objects) {
@@ -86,14 +172,14 @@ export async function createThreeStage(specs, width, height, urlFor) {
           const model = models.get(obj.file);
           node = clone(model.scene);
           animations = model.animations ?? [];
+        } else if (obj.kind === "text") {
+          const {texture, aspect} = textTexture(obj.text, {color: obj.color ?? "#ffffff",
+            font: obj.font ?? "800 160px sans-serif"});
+          node = new Mesh(geometries.plane, makeMaterial({...obj, color: "#ffffff"}, ramp,
+            {map: texture, alphaTest: 0.02}));
+          node.userData.aspect = aspect;
         } else {
-          node = new Mesh(geometries[obj.kind], new MeshStandardMaterial({
-            color: obj.color ?? "#ffffff",
-            metalness: obj.metalness ?? 0,
-            roughness: obj.roughness ?? 0.62,
-            emissive: new Color(obj.emissive ?? "#000000"),
-            emissiveIntensity: obj.emissive_intensity ?? 1,
-          }));
+          node = new Mesh(geometries[obj.kind], makeMaterial(obj, ramp));
         }
         if (light.shadowExtent !== null) {
           node.traverse((child) => {
@@ -147,7 +233,7 @@ export async function createThreeStage(specs, width, height, urlFor) {
         scene.add(points);
         particleSystems.push({points, data, spec: particles, life});
       }
-      scenes.set(id, {scene, camera, initialCamera: {
+      scenes.set(id, {scene, camera, lights, initialCamera: {
         position: spec.camera.position, target: spec.camera.target,
         fov: spec.camera.fov ?? 37,
       }, objects, particles: particleSystems});
@@ -159,7 +245,16 @@ export async function createThreeStage(specs, width, height, urlFor) {
 
   return {
     compile(shot) {
-      const {scene, camera, initialCamera, objects, particles} = scenes.get(shot.scene);
+      const {scene, camera, lights, initialCamera, objects, particles} = scenes.get(shot.scene);
+      const lightTracks = Array.from(lights, ([id, {node, spec}]) => ({
+        node,
+        poses: poseTrack({intensity: spec.intensity ?? node.intensity, position: spec.position ?? [0, 0, 0]},
+          (shot.lights ?? {})[id] ?? []),
+      }));
+      const outline = shot.outline
+        ? new OutlineEffect(renderer, {defaultThickness: shot.outline.thickness ?? 0.006,
+          defaultColor: new Color(shot.outline.color ?? "#111111").toArray()})
+        : null;
       const cameraTrack = poseTrack(initialCamera, shot.camera);
       const duration = shot.duration ?? 1;
       const focusTrack = shot.focus?.length
@@ -191,14 +286,21 @@ export async function createThreeStage(specs, width, height, urlFor) {
           action.setEffectiveWeight(entry.weight ?? 1);
           actions.push({action, clip, entry});
         }
+        const keys = Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : [];
+        const strip = (key, names) => Object.fromEntries(Object.entries(key).filter(([name]) => !names.includes(name)));
+        const looks = keys.filter((key) => "opacity" in key || "emissive_intensity" in key);
         return {
           node,
-          poses: objectTrack(spec, Object.hasOwn(shot.objects ?? {}, id) ? shot.objects[id] : []),
+          aspect: node.userData.aspect ?? 1,
+          poses: objectTrack(spec, keys.map((key) => strip(key, ["opacity", "emissive_intensity"]))),
+          looks: looks.length ? poseTrack({opacity: spec.opacity ?? 1, emissive_intensity: spec.emissive_intensity ?? 1},
+            looks.map((key) => ({at: key.at, ease: key.ease, ...("opacity" in key ? {opacity: key.opacity} : {}),
+              ...("emissive_intensity" in key ? {emissive_intensity: key.emissive_intensity} : {})}))) : null,
           mixer: actions.length ? mixer : null,
           actions,
         };
       });
-      return (progress) => {
+      const draw = (progress) => {
         const {position, target, fov} = poseAt(cameraTrack, progress);
         camera.position.set(...position);
         camera.lookAt(...target);
@@ -206,12 +308,18 @@ export async function createThreeStage(specs, width, height, urlFor) {
           camera.fov = fov;
           camera.updateProjectionMatrix();
         }
-        for (const {node, poses, mixer, actions} of tracks) {
+        for (const {node, poses, looks, aspect, mixer, actions} of tracks) {
           const pose = poseAt(poses, progress);
           node.visible = pose.visible;
           node.position.set(...pose.position);
           node.rotation.set(...pose.rotation);
-          node.scale.set(...pose.scale);
+          node.scale.set(pose.scale[0] * aspect, pose.scale[1], pose.scale[2]);
+          if (looks && node.material) {
+            const look = poseAt(looks, progress);
+            node.material.transparent = true;
+            node.material.opacity = look.opacity;
+            if ("emissiveIntensity" in node.material) node.material.emissiveIntensity = look.emissive_intensity;
+          }
           if (mixer) {
             const now = progress * duration;
             for (const {action, clip, entry} of actions) {
@@ -224,6 +332,11 @@ export async function createThreeStage(specs, width, height, urlFor) {
             }
             mixer.update(0);
           }
+        }
+        for (const {node, poses} of lightTracks) {
+          const look = poseAt(poses, progress);
+          node.intensity = look.intensity;
+          node.position.set(...look.position);
         }
         const now = progress * duration;
         for (const system of particles ?? []) {
@@ -262,11 +375,25 @@ export async function createThreeStage(specs, width, height, urlFor) {
           }
           composer.setSize(width, height);
           composer.render();
+        } else if (outline) {
+          // OutlineEffect leaves autoClear off between its passes; clear so frames never stack.
+          renderer.setRenderTarget(null);
+          renderer.clear(true, true, true);
+          outline.autoClear = false;
+          outline.render(scene, camera);
         } else {
           renderer.render(scene, camera);
         }
         return renderer.domElement;
       };
+      // Screen position (0..1) of an object plus an optional 3D offset, for anchor3d layers.
+      draw.project = (id, offset = [0, 0, 0]) => {
+        const entry = objects.get(id);
+        if (!entry) return null;
+        const point = new Vector3(...offset).add(entry.node.position).project(camera);
+        return [(point.x + 1) / 2, (1 - point.y) / 2, point.z < 1];
+      };
+      return draw;
     },
     dispose() {
       // Geometries, materials and textures can be shared by multiple GLB instances.
@@ -284,7 +411,10 @@ export async function createThreeStage(specs, width, height, urlFor) {
           }
         });
       }
+      resources.add(ramp);
+      if (roomTexture) resources.add(roomTexture);
       for (const resource of resources) resource.dispose();
+      pmrem.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
     },

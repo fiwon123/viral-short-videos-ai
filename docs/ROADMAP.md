@@ -38,12 +38,18 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 3.2: perspective tilt | Pending | Needs a quad-mesh warp in the browser and `PERSPECTIVE` in Python. |
 | Phase 3.3: depth camera presets | Done | `dolly-in`, `dolly-out`, `dolly-zoom` (vertigo) and `fly-through`. |
 | Bug fix: child layers got the camera twice | Done | The camera now applies only to top-level layers in both renderers. Rig parts no longer drift on zooms or pans. |
-| Phases 4, 2.4 | Pending | Next up: Phase 4 (3D camera rigs, lights, fog, environment, text3D), then 2.4 paint. |
+| Phase 4.1: 3D camera rigs | Done | `studio/rig3d.py` `three.camera_rig`: orbit, dolly, crane, flyby and follow, with handheld and fov. |
+| Phase 4.2: lights and atmosphere | Done | Scene `lights` (point, spot, hemisphere), `fog`, and `environment: room` (PMREM). Lights keyable per shot. |
+| Phase 4.3: text in 3D | Partial | `text` object is a canvas-textured plane. Extruded TextGeometry needs a bundled typeface font. |
+| Phase 4.4: materials | Done | `material: toon/basic/standard`, `opacity`, keyable `opacity` and `emissive_intensity`, shot `outline` (OutlineEffect, cleared each frame). New shapes: plane, cone, capsule. Morph targets are not done. |
+| Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
+| Phase 2.4: animatable paint | Pending | Next up. Also pending: 3.2 tilt, C3 line boil, C4 LUT, A2 caption face avoidance, B2 cue EQ. |
 
-Tests: `make test` passes, 46 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 49 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 4 3D upgrades landed (rigs, lights, fog, env, toon/outline, text plane, anchor3d).
 - 2026-11-15: Phase 3 depth landed, along with the double-camera fix for child layers.
 - 2026-11-15: Phase 5 onion stills and motion report landed.
 - 2026-11-15: Phase 2 motion primitives and poses landed. `studio/keys.py` is the shared resampler.

@@ -17,12 +17,15 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     from .particles import expand as expand_particles
     from .presets import apply_style
     from .reveal import expand as expand_reveal
+    from .rig3d import expand as expand_rig3d
     from .rigs import load_rig_poses, load_rigs
+    from .scenes import load_library
     from .trails import expand as expand_trails
 
     episode = expand_defs(copy.deepcopy(episode), load_rigs(channel, channel_dir))
     episode = expand_poses(episode, load_rig_poses(channel, channel_dir))
     episode = expand_life(expand_moves(episode))
+    episode = expand_rig3d(episode, load_library(channel, channel_dir))
     if style:
         episode = apply_style(episode, channel, channel_dir)
     episode = expand_markers(episode, channel_dir)

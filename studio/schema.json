@@ -473,6 +473,15 @@
         "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop"]},
         "mouth_shape": {"$ref": "#/$defs/text"},
         "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
+        "anchor3d": {
+          "description": "Pin this top-level 2D layer to a 3D object's screen position (browser renderers).",
+          "type": "object", "required": ["object"], "additionalProperties": false,
+          "properties": {
+            "object": {"$ref": "#/$defs/text"},
+            "offset": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+            "offset3d": {"$ref": "#/$defs/vector3"}
+          }
+        },
         "pose_keys": {
           "type": "array",
           "items": {
@@ -792,7 +801,12 @@
       "type": "object", "required": ["id", "kind", "position"], "additionalProperties": false,
       "properties": {
         "id": {"$ref": "#/$defs/text"},
-        "kind": {"enum": ["box", "sphere", "cylinder", "torus", "glb"]},
+        "kind": {"enum": ["box", "sphere", "cylinder", "torus", "glb", "plane", "cone", "capsule", "text"]},
+        "text": {"$ref": "#/$defs/text"},
+        "font": {"$ref": "#/$defs/text"},
+        "material": {"enum": ["standard", "toon", "basic"]},
+        "opacity": {"$ref": "#/$defs/unit"},
+        "double_sided": {"type": "boolean"},
         "position": {"$ref": "#/$defs/vector3"},
         "rotation": {"$ref": "#/$defs/vector3"},
         "scale": {"$ref": "#/$defs/scale3"},
@@ -811,9 +825,12 @@
           "properties": {"size": {"$ref": "#/$defs/scale3"}, "center": {"$ref": "#/$defs/vector3"}}
         }
       },
-      "if": {"properties": {"kind": {"const": "glb"}}},
-      "then": {"required": ["file"], "not": {"required": ["color"]}},
-      "else": {"not": {"required": ["file"]}}
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "glb"}}},
+         "then": {"required": ["file"], "not": {"required": ["color"]}},
+         "else": {"not": {"required": ["file"]}}},
+        {"if": {"properties": {"kind": {"const": "text"}}}, "then": {"required": ["text"]}}
+      ]
     },
     "three_particles": {
       "type": "object", "required": ["position"], "additionalProperties": false,
@@ -849,7 +866,33 @@
         "objects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/three_object"}},
         "particles": {"type": "array", "items": {"$ref": "#/$defs/three_particles"}},
         "lighting": {"$ref": "#/$defs/lighting"},
-        "lighting_rig": {"$ref": "#/$defs/text"}
+        "lighting_rig": {"$ref": "#/$defs/text"},
+        "lights": {"type": "array", "items": {
+          "type": "object", "required": ["id", "kind"], "additionalProperties": false,
+          "properties": {
+            "id": {"$ref": "#/$defs/text"},
+            "kind": {"enum": ["point", "spot", "hemisphere"]},
+            "color": {"$ref": "#/$defs/color"},
+            "ground": {"$ref": "#/$defs/color"},
+            "intensity": {"type": "number", "minimum": 0, "maximum": 1000},
+            "position": {"$ref": "#/$defs/vector3"},
+            "target": {"$ref": "#/$defs/vector3"},
+            "distance": {"type": "number", "minimum": 0, "maximum": 10000},
+            "angle": {"type": "number", "minimum": 1, "maximum": 89},
+            "penumbra": {"$ref": "#/$defs/unit"},
+            "shadows": {"type": "boolean"}
+          }
+        }},
+        "fog": {
+          "type": "object", "required": ["color"], "additionalProperties": false,
+          "properties": {
+            "color": {"$ref": "#/$defs/color"},
+            "near": {"type": "number", "minimum": 0}, "far": {"type": "number", "exclusiveMinimum": 0},
+            "density": {"type": "number", "exclusiveMinimum": 0, "maximum": 2}
+          }
+        },
+        "environment": {"enum": ["none", "room"], "description": "Image-based light for PBR reflections."},
+        "environment_intensity": {"type": "number", "minimum": 0, "maximum": 10}
       }
     },
     "library": {
@@ -905,7 +948,9 @@
         "at": {"$ref": "#/$defs/unit"}, "ease": {"$ref": "#/$defs/ease"},
         "position": {"$ref": "#/$defs/vector3"}, "rotation": {"$ref": "#/$defs/vector3"},
         "scale": {"$ref": "#/$defs/scale3"},
-        "visible": {"type": "boolean"}
+        "visible": {"type": "boolean"},
+        "opacity": {"$ref": "#/$defs/unit"},
+        "emissive_intensity": {"type": "number", "minimum": 0, "maximum": 10}
       }
     },
     "three_animation": {
@@ -932,6 +977,42 @@
       "properties": {
         "scene": {"$ref": "#/$defs/text"},
         "camera": {"type": "array", "items": {"$ref": "#/$defs/three_camera_key"}},
+        "camera_rig": {
+          "description": "Generate camera keys from a named move (see studio/rig3d.py).",
+          "type": "object", "required": ["kind"], "additionalProperties": false,
+          "properties": {
+            "kind": {"enum": ["orbit", "dolly", "crane", "flyby", "follow"]},
+            "from": {"anyOf": [{"type": "number"}, {"$ref": "#/$defs/vector3"}]},
+            "to": {"anyOf": [{"type": "number"}, {"$ref": "#/$defs/vector3"}]},
+            "target": {"$ref": "#/$defs/vector3"},
+            "radius": {"type": "number", "exclusiveMinimum": 0},
+            "height": {"type": "number"},
+            "object": {"$ref": "#/$defs/text"},
+            "offset": {"$ref": "#/$defs/vector3"},
+            "lag": {"type": "number", "minimum": 0, "maximum": 3},
+            "fov": {"anyOf": [{"type": "number", "minimum": 10, "maximum": 110},
+                              {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 10, "maximum": 110}}]},
+            "ease": {"$ref": "#/$defs/ease"},
+            "at": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/unit"}},
+            "handheld": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "lights": {
+          "description": "Keyed light changes by light id: intensity, color, position.",
+          "type": "object",
+          "additionalProperties": {"type": "array", "items": {
+            "type": "object", "required": ["at"], "additionalProperties": false,
+            "properties": {
+              "at": {"$ref": "#/$defs/unit"}, "ease": {"$ref": "#/$defs/ease"},
+              "intensity": {"type": "number", "minimum": 0, "maximum": 1000},
+              "position": {"$ref": "#/$defs/vector3"}
+            }
+          }}
+        },
+        "outline": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"thickness": {"type": "number", "minimum": 0, "maximum": 0.05}, "color": {"$ref": "#/$defs/color"}}
+        },
         "focus": {"type": "array", "items": {"$ref": "#/$defs/three_focus_key"}},
         "bloom": {"$ref": "#/$defs/unit"},
         "bloom_radius": {"type": "number", "minimum": 0, "maximum": 2},

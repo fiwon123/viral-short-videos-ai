@@ -82,6 +82,17 @@ Give top-level layers a `z` (0 is the picture plane, positive is farther, slight
 
 Children inherit their parent's depth, and paint order runs far to near automatically. Overscan far backdrops (`width`/`height` 1.4–2) when the camera zooms out or uses `dolly-zoom`, or their edges show. Typical depths: sky 6–10, mountains 2–4, trees 0.6–1.5, characters and ground 0, foreground foliage −0.3 to −0.5.
 
+## 3D shots
+
+The scene library (`scene_library` in the channel) holds reusable sets. Shots key them through `three`.
+
+- **Camera rigs:** `"camera_rig": {"kind": "orbit", "from": -30, "to": 40, "ease": "smooth"}`. The kinds are `orbit`, `dolly` (`to` distance), `crane` (`to` height), `flyby` (`from`/`to` positions) and `follow` (`object`, `offset`, `lag`). Add `handheld: 0.02` for life and `fov: [40, 30]` for a lens change. Missing values come from the scene camera.
+- **Light and atmosphere:** scene `lights` (`point`, `spot`, `hemisphere`), `fog` (`near`/`far` or `density`), and `environment: "room"` for believable reflections on PBR materials. Key a light per shot with `"lights": {"spot": [{"at": 1, "intensity": 4}]}`, for example a lamp flicker or a reveal.
+- **Look:** object `material: "toon"` (three-band cel shading) plus shot `outline` reads as 2D-friendly 3D. Use `standard` with `metalness`/`roughness` for realism. Objects can fade (`opacity`) and glow (`emissive_intensity`) per key.
+- **Shapes and text:** `plane`, `cone`, `capsule` and `text` (a flat title plane in the scene) join `box`, `sphere`, `cylinder`, `torus` and `glb`.
+- **Labels on 3D:** a top-level 2D layer with `"anchor3d": {"object": "ball", "offset3d": [0, 0.7, 0]}` follows that object on screen. Its own `x`/`y` are ignored; use `offset` for a screen nudge.
+- Outline and bloom/focus don't combine; when `bloom` or `focus` is set, the outline is skipped.
+
 ## See and check the motion
 
 - `make motion-report EPISODE=...` lists dead holds (nothing moves for 1 s or more), long `linear` moves, layers that start in lockstep, one-frame snaps and frozen rigs. It also writes `motion-report.png` with speed curves per shot. Fix every note or say why it is intentional.

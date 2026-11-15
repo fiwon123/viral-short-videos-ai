@@ -354,12 +354,25 @@ export async function createPainter(canvas, data, urlFor) {
     return maskCanvas;
   }
 
+  let projector = null;
+
   function paintLayers(target, layers, progress, offset, speech, isCover, camera, visemes = {}, shotDuration = 1) {
     const matrices = new Map();
     const alphas = new Map();
     const origins = new Map();
     const byId = new Map(layers.map((layer) => [layer.id, layer]));
-    const states = new Map(layers.map((layer) => [layer.id, layer.getPose(progress)]));
+    const states = new Map(layers.map((layer) => {
+      const pose = layer.getPose(progress);
+      if (layer.anchor3d && projector) {
+        // Pin to a 3D object's screen position; authored x/y become an extra offset.
+        const point = projector(layer.anchor3d.object, layer.anchor3d.offset3d ?? [0, 0, 0]);
+        if (point) {
+          const [dx, dy] = layer.anchor3d.offset ?? [0, 0];
+          return [layer.id, {...pose, x: point[0] + dx, y: point[1] + dy, visible: (pose.visible ?? true) && point[2]}];
+        }
+      }
+      return [layer.id, pose];
+    }));
     const chosen = new Map();
     for (const layer of layers) {
       const state = states.get(layer.id);
@@ -661,8 +674,11 @@ export async function createPainter(canvas, data, urlFor) {
     const camera = trackedCamera(index, progress);
     target.fillStyle = shot.background;
     target.fillRect(0, 0, width, height);
+    // Render 3D first so anchor3d layers project through the current camera.
+    const threeCanvas = three[index] ? three[index](progress) : null;
+    projector = three[index]?.project ?? null;
     paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1);
-    if (three[index]) target.drawImage(three[index](progress), 0, 0);
+    if (threeCanvas) target.drawImage(threeCanvas, 0, 0);
     paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1);
     applyPost(target.canvas, shot.post, frame);
   }

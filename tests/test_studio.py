@@ -556,5 +556,32 @@ class DepthTests(unittest.TestCase):
         self.assertEqual([layer["id"] for layer in depth_order(layers)], ["far", "kid", "mid", "near"])
 
 
+class CameraRigTests(unittest.TestCase):
+    scene = {"camera": {"position": [0, 1, 4], "target": [0, 0, 0]},
+             "objects": [{"id": "hero", "kind": "box", "position": [0, 0, 0]}]}
+
+    def test_orbit_keeps_radius_and_height(self):
+        import math
+        from studio.rig3d import camera_keys
+        keys = camera_keys({"kind": "orbit", "from": -30, "to": 60}, self.scene, {}, 2.0)
+        for key in keys:
+            x, y, z = key["position"]
+            self.assertAlmostEqual(math.hypot(x, z), 4, places=3)
+            self.assertAlmostEqual(y, 1, places=3)
+        self.assertAlmostEqual(math.degrees(math.atan2(keys[-1]["position"][0], keys[-1]["position"][2])), 60, places=2)
+
+    def test_dolly_moves_toward_target(self):
+        from studio.rig3d import camera_keys
+        keys = camera_keys({"kind": "dolly", "to": 2.0}, self.scene, {}, 1.0)
+        self.assertAlmostEqual(sum(v * v for v in keys[-1]["position"]) ** 0.5, 2.0, places=3)
+
+    def test_follow_tracks_object_keys(self):
+        from studio.rig3d import camera_keys
+        three = {"objects": {"hero": [{"at": 1, "position": [4, 0, 0]}]}}
+        keys = camera_keys({"kind": "follow", "object": "hero", "offset": [0, 1, 3], "lag": 0}, self.scene, three, 2.0)
+        self.assertEqual(keys[-1]["target"], [4, 0, 0])
+        self.assertEqual(keys[-1]["position"], [4, 1, 3])
+
+
 if __name__ == "__main__":
     unittest.main()
