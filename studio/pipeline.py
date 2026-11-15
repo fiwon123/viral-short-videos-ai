@@ -15,6 +15,7 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     from .moves import expand as expand_moves
     from .poses import expand as expand_poses
     from .markers import expand as expand_markers
+    from .morph import expand as expand_morph
     from .paint import expand as expand_paint
     from .particles import expand as expand_particles
     from .presets import apply_style
@@ -25,7 +26,7 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     from .trails import expand as expand_trails
 
     episode = expand_defs(copy.deepcopy(episode), load_rigs(channel, channel_dir))
-    episode = expand_paint(episode, channel)
+    episode = expand_morph(expand_paint(episode, channel))
     episode = expand_poses(episode, load_rig_poses(channel, channel_dir))
     episode = expand_ik(expand_life(expand_moves(episode)))
     episode = expand_rig3d(episode, load_library(channel, channel_dir))

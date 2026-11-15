@@ -861,6 +861,36 @@ class DiscoverTests(unittest.TestCase):
             self.assertEqual(len(os.listdir(folder)), 2)
 
 
+class MorphShapeTests(unittest.TestCase):
+    def test_svg_blend_interpolates_numbers_and_colours(self):
+        from studio.morph import blend, compatible
+        a = '<svg viewBox="0 0 10 10"><path d="M0 0 L10 0" fill="#000000"/></svg>'
+        b = '<svg viewBox="0 0 10 10"><path d="M0 4 L10 8" fill="#FF8000"/></svg>'
+        self.assertIsNone(compatible(a, b))
+        self.assertEqual(blend(a, b, 0.5), '<svg viewBox="0 0 10 10"><path d="M0 2 L10 4" fill="#804000"/></svg>')
+        self.assertIn("structure", compatible(a, a.replace("L10 0", "C1 1 2 2 10 0")))
+
+    def test_svg_morph_keys_frames(self):
+        from studio.morph import MORPH_LEVELS, expand
+        layer = {"id": "m", "kind": "svg", "file": "a.svg", "morph_to": "b.svg", "x": 0.5, "y": 0.5,
+                 "keyframes": [{"at": 1, "morph": 1}]}
+        expand({"fps": 24, "scenes": [{"shots": [{"id": "A", "duration": 1.0, "layers": [layer]}]}]})
+        points = poses(layer)
+        self.assertEqual(pose_at(points, 1.0)["frame"], MORPH_LEVELS - 1)
+        self.assertEqual(pose_at(points, 0.5)["frame"], (MORPH_LEVELS - 1) // 2)
+
+    def test_polygon_morph_keeps_corners(self):
+        from studio.paint import look, paint_at, track
+        star = [[0.5, 0], [0.62, 0.35], [1, 0.38], [0.7, 0.6], [0.8, 1], [0.5, 0.78], [0.2, 1], [0.3, 0.6],
+                [0, 0.38], [0.38, 0.35]]
+        layer = {"id": "p", "kind": "polygon", "x": 0.5, "y": 0.5, "points": [[0, 0], [1, 0], [1, 1], [0, 1]],
+                 "keyframes": [{"at": 1, "points": star}]}
+        end = look(paint_at(track(layer, {}), 1.0))["points"]
+        for corner in star:
+            self.assertIn(corner, end)
+        self.assertEqual(len(end), len(look(paint_at(track(layer, {}), 0.0))["points"]))
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

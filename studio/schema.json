@@ -414,6 +414,10 @@
                  "anyOf": [{"$ref": "#/$defs/paint"}, {"$ref": "#/$defs/gradient"}]},
         "stroke_width": {"description": "Keyed stroke width (same units as stroke.width).", "$ref": "#/$defs/unit"},
         "stroke_color": {"description": "Keyed stroke colour.", "$ref": "#/$defs/paint"},
+        "morph": {"description": "Keyed SVG morph amount (see morph_to).", "type": "number", "minimum": -0.5, "maximum": 1.5},
+        "points": {"description": "Keyed polygon outline (0-1 box fractions); any point count morphs into any other.",
+                   "type": "array", "minItems": 3, "items": {"type": "array", "minItems": 2, "maxItems": 2,
+                                                             "items": {"type": "number"}}},
         "z": {"description": "Depth into the scene in screen heights; 0 is the picture plane, positive is farther.",
               "type": "number", "minimum": -0.9, "maximum": 50}
       }
@@ -428,7 +432,7 @@
         "ease_props": {
           "description": "Per-property easing overrides for this keyframe.",
           "type": "object",
-          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z", "wipe", "tint_color", "turn_x", "turn_y", "fill", "stroke_width", "stroke_color"]},
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z", "wipe", "tint_color", "turn_x", "turn_y", "fill", "stroke_width", "stroke_color", "points", "morph"]},
           "additionalProperties": {"$ref": "#/$defs/ease"}
         }
       }
@@ -491,6 +495,10 @@
         "boil": {"description": "Hand-drawn line wobble for SVG layers (browser renderers); 0.3-0.6 is subtle.",
                  "type": "number", "minimum": 0, "maximum": 3},
         "boil_fps": {"type": "number", "minimum": 1, "maximum": 30},
+        "morph_to": {"description": "SVG to blend into with keyable morph (same structure, different numbers/colours).",
+                     "$ref": "#/$defs/path"},
+        "morph": {"description": "0 = file, 1 = morph_to.", "type": "number", "minimum": -0.5, "maximum": 1.5},
+        "morph_levels": {"description": "Set by morph expansion.", "type": "integer", "minimum": 2},
         "finish": {
           "description": "Finish pass for SVG layers (browser renderers): cel shade, rim light, grain and outline.",
           "type": "object", "additionalProperties": false,

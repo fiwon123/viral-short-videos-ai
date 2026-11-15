@@ -6,6 +6,10 @@ track, rasterises one sprite per distinct look (``paint_frames``), and keys
 ``frame`` to step through them at the composed rate. Motion keys are
 resampled with ``keys.compose`` so authored easing is kept.
 
+Polygon ``points`` morph too: every key's outline is resampled by arc length
+to a shared point count and rotated to line up with the first, so any
+polygon can morph into any other without twisting.
+
 Fills interpolate in RGB: solid to solid, solid to gradient, and gradient to
 gradient with the same number of stops (stop colours, positions and angle).
 Gradients with different stop counts switch at the key. ``ease`` and
@@ -13,11 +17,12 @@ Gradients with different stop counts switch at the key. ``ease`` and
 """
 
 import json
+import math
 
 from .design import DEFAULT_PALETTE, resolve_color
 from .easing import ease
 
-PAINT = ("fill", "stroke_width", "stroke_color")
+PAINT = ("fill", "stroke_width", "stroke_color", "points")
 KINDS = ("rect", "ellipse", "polygon", "text")
 MAX_FRAMES = 120
 RATE_DEFAULT = 24
@@ -79,15 +84,57 @@ def _fill_spec(state):
     return spec
 
 
+def _resample(points, count):
+    """Closed polygon with ``count`` points: every original vertex is kept, and the extra
+    points are spread along the edges in proportion to their length."""
+    points = [[float(x), float(y)] for x, y in points]
+    edges = [math.dist(points[i], points[(i + 1) % len(points)]) for i in range(len(points))]
+    total = sum(edges) or 1.0
+    extra = max(0, count - len(points))
+    shares = [extra * edge / total for edge in edges]
+    splits = [int(share) for share in shares]
+    for index in sorted(range(len(edges)), key=lambda i: shares[i] - splits[i], reverse=True)[:extra - sum(splits)]:
+        splits[index] += 1
+    result = []
+    for index, point in enumerate(points):
+        nxt = points[(index + 1) % len(points)]
+        result.append(point)
+        for step in range(1, splits[index] + 1):
+            k = step / (splits[index] + 1)
+            result.append([point[0] + (nxt[0] - point[0]) * k, point[1] + (nxt[1] - point[1]) * k])
+    return result
+
+
+def _align(points, reference):
+    """Rotate the point order so it lines up with ``reference`` (least total travel)."""
+    best = min(range(len(points)), key=lambda shift: sum(
+        math.dist(points[(i + shift) % len(points)], reference[i]) for i in range(len(points))))
+    return points[best:] + points[:best]
+
+
+def _outlines(layer):
+    keyed = [key["points"] for key in layer.get("keyframes", []) if "points" in key]
+    if layer.get("kind") != "polygon" or not keyed:
+        return {}
+    shapes = [layer.get("points") or keyed[0]] + keyed
+    count = max(24, max(len(shape) for shape in shapes))
+    base = _resample(shapes[0], count)
+    return {id(shape): _align(_resample(shape, count), base) for shape in shapes} | {"base": base}
+
+
 def track(layer, palette):
     """Paint keyframe points ``(at, state, ease, ease_props)``, cumulative like pose keys."""
     stroke = layer.get("stroke") or {}
+    outlines = _outlines(layer)
     state = {"fill": _fill_state(layer.get("fill", "foreground"), palette),
              "stroke_width": float(stroke.get("width", 0)),
-             "stroke_color": _rgb(stroke.get("color", "background"), palette)}
+             "stroke_color": _rgb(stroke.get("color", "background"), palette),
+             "points": outlines.get("base")}
     points = [(0.0, state, "linear", {})]
     for key in layer.get("keyframes", []):
         state = dict(state)
+        if "points" in key and outlines:
+            state["points"] = outlines[id(key["points"])]
         if "fill" in key:
             state["fill"] = _fill_state(key["fill"], palette)
         if "stroke_width" in key:
@@ -114,13 +161,17 @@ def paint_at(points, progress):
         return {"fill": _mix_fill(before["fill"], after["fill"], eased("fill")),
                 "stroke_width": before["stroke_width"] + (after["stroke_width"] - before["stroke_width"])
                 * eased("stroke_width"),
-                "stroke_color": _mix_rgb(before["stroke_color"], after["stroke_color"], eased("stroke_color"))}
+                "stroke_color": _mix_rgb(before["stroke_color"], after["stroke_color"], eased("stroke_color")),
+                "points": [_mix_rgb(a, b, eased("points")) for a, b in zip(before["points"], after["points"])]
+                if before["points"] else None}
     return points[-1][1]
 
 
 def look(state):
     """Layer fields for one sampled paint state."""
     result = {"fill": _fill_spec(state["fill"])}
+    if state.get("points"):
+        result["points"] = [[round(x, 4), round(y, 4)] for x, y in state["points"]]
     width = round(max(0.0, min(1.0, state["stroke_width"])), 4)
     if width > 0:
         result["stroke"] = {"width": width, "color": _hex(state["stroke_color"])}

@@ -204,7 +204,22 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                     visual["sprite"] = vectors[key]
                     visual["box"] = [max(1, round(layer.get("width", 0.55) * width)),
                                      max(1, round(layer.get("height", 0.2) * height))]
-                    if layer.get("boil"):
+                    if layer.get("morph_levels"):
+                        from .morph import blend
+                        from .stylepass import apply as style_pass
+                        target = svg_asset({**layer, "file": layer["morph_to"]}, base, channel_base)
+                        first, second = path.read_text(encoding="utf-8"), target.read_text(encoding="utf-8")
+                        frames = []
+                        for level in range(layer["morph_levels"]):
+                            copy = blend(first, second, level / (layer["morph_levels"] - 1))
+                            if styled:
+                                copy = style_pass(copy, styled, uid=f"style-m{len(vectors)}-{level}")
+                            name = f"{vectors[key][:-4]}-morph-{index}-{level}.svg"
+                            (assets / name).write_text(copy, encoding="utf-8")
+                            frames.append(name)
+                        visual["frames"] = frames
+                        visual["sprite"] = frames[0]
+                    elif layer.get("boil"):
                         from .boil import variants
                         frames = []
                         source = (assets / vectors[key]).read_text(encoding="utf-8")
