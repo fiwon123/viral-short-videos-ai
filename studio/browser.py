@@ -189,7 +189,9 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                           "shadow": layer.get("shadow"), "glow": layer.get("glow"),
                           "tint": layer.get("tint"),
                           "viseme_for": layer.get("viseme_for"), "viseme": layer.get("viseme"),
-                          "lit": float(layer["lit"]) if layer.get("lit") else None}
+                          "lit": float(layer["lit"]) if layer.get("lit") else None,
+                          "turn_depth": layer.get("turn_depth", 0),
+                          "dynamic_z": any("z" in key for key in layer.get("keyframes", []))}
                 if layer["kind"] == "svg":
                     path = svg_asset(layer, base, channel_base)
                     styled = layer.get("finish")

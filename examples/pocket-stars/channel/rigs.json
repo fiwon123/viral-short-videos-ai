@@ -74,6 +74,401 @@
         "boil": 0.35
       },
       {
+        "id": "antenna",
+        "kind": "svg",
+        "file": "art/characters/pip/antenna.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.17971,
+        "width": 0.071,
+        "height": 0.09235,
+        "pivot": [
+          0.5,
+          0.97
+        ],
+        "role": "antenna",
+        "parent": "body",
+        "boil": 0.35
+      },
+      {
+        "id": "eye-l",
+        "kind": "svg",
+        "file": "art/characters/pip/eye-l.svg",
+        "asset_scope": "channel",
+        "x": -0.06009,
+        "y": -0.11981,
+        "width": 0.07303,
+        "height": 0.04953,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "role": "eye",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12
+      },
+      {
+        "id": "pupil-l",
+        "kind": "svg",
+        "file": "art/characters/pip/pupil-l.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": 0.00338,
+        "width": 0.0349,
+        "height": 0.01963,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "role": "pupil",
+        "parent": "eye-l",
+        "boil": 0.35
+      },
+      {
+        "id": "brow-l",
+        "kind": "svg",
+        "file": "art/characters/pip/brow-l.svg",
+        "asset_scope": "channel",
+        "x": -0.06009,
+        "y": -0.15023,
+        "width": 0.07904,
+        "height": 0.01456,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "role": "brow",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12
+      },
+      {
+        "id": "eye-r",
+        "kind": "svg",
+        "file": "art/characters/pip/eye-r.svg",
+        "asset_scope": "channel",
+        "x": 0.06009,
+        "y": -0.11981,
+        "width": 0.07303,
+        "height": 0.04953,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "role": "eye",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12
+      },
+      {
+        "id": "pupil-r",
+        "kind": "svg",
+        "file": "art/characters/pip/pupil-r.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": 0.00338,
+        "width": 0.0349,
+        "height": 0.01963,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "role": "pupil",
+        "parent": "eye-r",
+        "boil": 0.35
+      },
+      {
+        "id": "brow-r",
+        "kind": "svg",
+        "file": "art/characters/pip/brow-r.svg",
+        "asset_scope": "channel",
+        "x": 0.06009,
+        "y": -0.15023,
+        "width": 0.07904,
+        "height": 0.01456,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "role": "brow",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12
+      },
+      {
+        "id": "mouth-rest",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-rest.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "rest"
+      },
+      {
+        "id": "mouth-open",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-open.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "open",
+        "visible": false
+      },
+      {
+        "id": "mouth-wide",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-wide.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "wide",
+        "visible": false
+      },
+      {
+        "id": "mouth-o",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-o.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "o",
+        "visible": false
+      },
+      {
+        "id": "mouth-smile",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-smile.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "smile",
+        "visible": false
+      },
+      {
+        "id": "mouth-frown",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-frown.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "frown",
+        "visible": false
+      },
+      {
+        "id": "mouth-flat",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-flat.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "flat",
+        "visible": false
+      },
+      {
+        "id": "mouth-mbp",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-mbp.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "mbp",
+        "visible": false
+      },
+      {
+        "id": "mouth-e",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-e.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "e",
+        "visible": false
+      },
+      {
+        "id": "mouth-u",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-u.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "u",
+        "visible": false
+      },
+      {
+        "id": "mouth-fv",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-fv.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "fv",
+        "visible": false
+      },
+      {
+        "id": "mouth-l",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-l.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "l",
+        "visible": false
+      },
+      {
+        "id": "mouth-etc",
+        "kind": "svg",
+        "file": "art/characters/pip/mouth-etc.svg",
+        "asset_scope": "channel",
+        "x": 0.0,
+        "y": -0.07114,
+        "width": 0.09152,
+        "height": 0.04043,
+        "pivot": [
+          0.5,
+          0.3
+        ],
+        "role": "mouth",
+        "parent": "body",
+        "boil": 0.35,
+        "turn_depth": 0.12,
+        "variant_group": "mouth",
+        "mouth_shape": "etc",
+        "visible": false
+      },
+      {
         "id": "arm-l",
         "kind": "svg",
         "file": "art/characters/pip/arm-l.svg",
@@ -116,264 +511,6 @@
           0.0793
         ],
         "rotate": -18
-      },
-      {
-        "id": "antenna",
-        "kind": "svg",
-        "file": "art/characters/pip/antenna.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.17971,
-        "width": 0.071,
-        "height": 0.09235,
-        "pivot": [
-          0.5,
-          0.97
-        ],
-        "role": "antenna",
-        "parent": "body",
-        "boil": 0.35
-      },
-      {
-        "id": "eye-l",
-        "kind": "svg",
-        "file": "art/characters/pip/eye-l.svg",
-        "asset_scope": "channel",
-        "x": -0.06009,
-        "y": -0.11981,
-        "width": 0.07303,
-        "height": 0.04953,
-        "pivot": [
-          0.5,
-          0.5
-        ],
-        "role": "eye",
-        "parent": "body",
-        "boil": 0.35
-      },
-      {
-        "id": "pupil-l",
-        "kind": "svg",
-        "file": "art/characters/pip/pupil-l.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": 0.00338,
-        "width": 0.0349,
-        "height": 0.01963,
-        "pivot": [
-          0.5,
-          0.5
-        ],
-        "role": "pupil",
-        "parent": "eye-l",
-        "boil": 0.35
-      },
-      {
-        "id": "brow-l",
-        "kind": "svg",
-        "file": "art/characters/pip/brow-l.svg",
-        "asset_scope": "channel",
-        "x": -0.06009,
-        "y": -0.15023,
-        "width": 0.07904,
-        "height": 0.01456,
-        "pivot": [
-          0.5,
-          0.5
-        ],
-        "role": "brow",
-        "parent": "body",
-        "boil": 0.35
-      },
-      {
-        "id": "eye-r",
-        "kind": "svg",
-        "file": "art/characters/pip/eye-r.svg",
-        "asset_scope": "channel",
-        "x": 0.06009,
-        "y": -0.11981,
-        "width": 0.07303,
-        "height": 0.04953,
-        "pivot": [
-          0.5,
-          0.5
-        ],
-        "role": "eye",
-        "parent": "body",
-        "boil": 0.35
-      },
-      {
-        "id": "pupil-r",
-        "kind": "svg",
-        "file": "art/characters/pip/pupil-r.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": 0.00338,
-        "width": 0.0349,
-        "height": 0.01963,
-        "pivot": [
-          0.5,
-          0.5
-        ],
-        "role": "pupil",
-        "parent": "eye-r",
-        "boil": 0.35
-      },
-      {
-        "id": "brow-r",
-        "kind": "svg",
-        "file": "art/characters/pip/brow-r.svg",
-        "asset_scope": "channel",
-        "x": 0.06009,
-        "y": -0.15023,
-        "width": 0.07904,
-        "height": 0.01456,
-        "pivot": [
-          0.5,
-          0.5
-        ],
-        "role": "brow",
-        "parent": "body",
-        "boil": 0.35
-      },
-      {
-        "id": "mouth-rest",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-rest.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "rest"
-      },
-      {
-        "id": "mouth-open",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-open.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "open",
-        "visible": false
-      },
-      {
-        "id": "mouth-wide",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-wide.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "wide",
-        "visible": false
-      },
-      {
-        "id": "mouth-o",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-o.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "o",
-        "visible": false
-      },
-      {
-        "id": "mouth-smile",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-smile.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "smile",
-        "visible": false
-      },
-      {
-        "id": "mouth-frown",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-frown.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "frown",
-        "visible": false
-      },
-      {
-        "id": "mouth-flat",
-        "kind": "svg",
-        "file": "art/characters/pip/mouth-flat.svg",
-        "asset_scope": "channel",
-        "x": 0.0,
-        "y": -0.07114,
-        "width": 0.09152,
-        "height": 0.04043,
-        "pivot": [
-          0.5,
-          0.3
-        ],
-        "role": "mouth",
-        "parent": "body",
-        "boil": 0.35,
-        "variant_group": "mouth",
-        "mouth_shape": "flat",
-        "visible": false
       }
     ]
   },
@@ -382,56 +519,56 @@
       "idle": {},
       "wave": {
         "arm-r": {
-          "rotate": -150
+          "rotate": 150
         },
         "mouth": "smile"
       },
       "cheer": {
         "arm-l": {
-          "rotate": 155
-        },
-        "arm-r": {
           "rotate": -155
         },
+        "arm-r": {
+          "rotate": 155
+        },
         "brow-l": {
-          "y": -0.006
+          "y": -0.15623
         },
         "brow-r": {
-          "y": -0.006
+          "y": -0.15623
         },
         "mouth": "wide"
       },
       "point-left": {
         "arm-l": {
-          "rotate": 95
+          "rotate": -95
         }
       },
       "point-right": {
         "arm-r": {
-          "rotate": -95
+          "rotate": 95
         }
       },
       "shrug": {
         "arm-l": {
-          "rotate": 62
-        },
-        "arm-r": {
           "rotate": -62
         },
+        "arm-r": {
+          "rotate": 62
+        },
         "brow-l": {
-          "y": -0.005
+          "y": -0.15523
         },
         "brow-r": {
-          "y": -0.005
+          "y": -0.15523
         },
         "mouth": "flat"
       },
       "surprise": {
         "arm-l": {
-          "rotate": 40
+          "rotate": -40
         },
         "arm-r": {
-          "rotate": -40
+          "rotate": 40
         },
         "eye-l": {
           "scale": 1.18
@@ -440,54 +577,54 @@
           "scale": 1.18
         },
         "brow-l": {
-          "y": -0.009
+          "y": -0.15923
         },
         "brow-r": {
-          "y": -0.009
+          "y": -0.15923
         },
         "mouth": "o"
       },
       "sad": {
         "arm-l": {
-          "rotate": 4
-        },
-        "arm-r": {
           "rotate": -4
         },
+        "arm-r": {
+          "rotate": 4
+        },
         "brow-l": {
-          "rotate": -14
+          "rotate": 14
         },
         "brow-r": {
-          "rotate": 14
+          "rotate": -14
         },
         "mouth": "frown"
       },
       "angry": {
         "arm-l": {
-          "rotate": 28
-        },
-        "arm-r": {
           "rotate": -28
         },
+        "arm-r": {
+          "rotate": 28
+        },
         "brow-l": {
-          "rotate": 18,
-          "y": 0.003
+          "rotate": -18,
+          "y": -0.14723
         },
         "brow-r": {
-          "rotate": -18,
-          "y": 0.003
+          "rotate": 18,
+          "y": -0.14723
         },
         "mouth": "frown"
       },
       "think": {
         "arm-r": {
-          "rotate": -140
+          "rotate": -46.2
         },
         "pupil-l": {
-          "y": -0.004
+          "y": -0.00062
         },
         "pupil-r": {
-          "y": -0.004
+          "y": -0.00062
         },
         "mouth": "flat"
       }

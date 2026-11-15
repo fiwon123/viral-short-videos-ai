@@ -670,6 +670,7 @@ def build_parts(spec):
         face.parent = "body"
         face.offset = (0, -(body.extra["h"] * (1 - head_spec["overlap"])))
         face_name = "head"
+    arm_parts = []
     if arms:
         for side, label in ((-1, "l"), (1, "r")):
             arm = limb(spec, f"arm-{label}", "arm", "body",
@@ -677,7 +678,7 @@ def build_parts(spec):
                         -body.extra["h"] * 0.5),
                        arms["length"] * UNIT, arms["width"] * UNIT)
             arm.extra = {"rest_rotate": side * -18}
-            parts.append(arm)
+            arm_parts.append(arm)
     face_details(spec, face)
     ears = ear_parts(spec, face_name, face)
     hair_behind, hair_front = hair_parts(spec, face_name, face)
@@ -704,6 +705,9 @@ def build_parts(spec):
     parts.extend(mouth_parts(spec, face_name, face))
     parts.extend(hair_front)
     parts.extend(floppy)
+    # Arms hang in front of the torso and face: a hand at the chin or a raised arm must cover
+    # the eyes, ears and hair, never slide behind them.
+    parts.extend(arm_parts)
     return spec, parts
 
 
@@ -711,23 +715,30 @@ def build_parts(spec):
 
 # Starter acting poses. Arm rotation is degrees from hanging down; positive swings
 # the left arm out and up, negative the right. Brow y is a canvas fraction.
+# Angles follow the studio convention: positive rotate turns counter-clockwise on screen, so
+# raising arm-r (screen right) outward is positive and arm-l (screen left) is negative.
 POSES = {
     "idle": {},
-    "wave": {"arm-r": {"rotate": -150}, "mouth": "smile"},
-    "cheer": {"arm-l": {"rotate": 155}, "arm-r": {"rotate": -155}, "brow-l": {"y": -0.006}, "brow-r": {"y": -0.006},
+    "wave": {"arm-r": {"rotate": 150}, "mouth": "smile"},
+    "cheer": {"arm-l": {"rotate": -155}, "arm-r": {"rotate": 155}, "brow-l": {"y": -0.006}, "brow-r": {"y": -0.006},
               "mouth": "wide"},
-    "point-left": {"arm-l": {"rotate": 95}},
-    "point-right": {"arm-r": {"rotate": -95}},
-    "shrug": {"arm-l": {"rotate": 62}, "arm-r": {"rotate": -62}, "brow-l": {"y": -0.005}, "brow-r": {"y": -0.005},
+    "point-left": {"arm-l": {"rotate": -95}},
+    "point-right": {"arm-r": {"rotate": 95}},
+    "shrug": {"arm-l": {"rotate": -62}, "arm-r": {"rotate": 62}, "brow-l": {"y": -0.005}, "brow-r": {"y": -0.005},
               "mouth": "flat"},
-    "surprise": {"arm-l": {"rotate": 40}, "arm-r": {"rotate": -40}, "eye-l": {"scale": 1.18}, "eye-r": {"scale": 1.18},
+    "surprise": {"arm-l": {"rotate": -40}, "arm-r": {"rotate": 40}, "eye-l": {"scale": 1.18}, "eye-r": {"scale": 1.18},
                  "brow-l": {"y": -0.009}, "brow-r": {"y": -0.009}, "mouth": "o"},
-    "sad": {"arm-l": {"rotate": 4}, "arm-r": {"rotate": -4}, "brow-l": {"rotate": -14}, "brow-r": {"rotate": 14},
+    "sad": {"arm-l": {"rotate": -4}, "arm-r": {"rotate": 4}, "brow-l": {"rotate": 14}, "brow-r": {"rotate": -14},
             "mouth": "frown"},
-    "angry": {"arm-l": {"rotate": 28}, "arm-r": {"rotate": -28}, "brow-l": {"rotate": 18, "y": 0.003},
-              "brow-r": {"rotate": -18, "y": 0.003}, "mouth": "frown"},
-    "think": {"arm-r": {"rotate": -140}, "pupil-l": {"y": -0.004}, "pupil-r": {"y": -0.004}, "mouth": "flat"},
+    "angry": {"arm-l": {"rotate": -28}, "arm-r": {"rotate": 28}, "brow-l": {"rotate": -18, "y": 0.003},
+              "brow-r": {"rotate": 18, "y": 0.003}, "mouth": "frown"},
+    "think": {"arm-r": {"rotate": -118},  # Inward: hand to the chin.
+              "pupil-l": {"y": -0.004}, "pupil-r": {"y": -0.004}, "mouth": "flat"},
 }
+
+# How far face features sit in front of the face, so a head turn slides them like a cartoon.
+FEATURE_DEPTH = {"eye": 0.12, "brow": 0.12, "mouth": 0.12, "nose": 0.16}
+
 
 def rig_layers(spec, parts, folder):
     canvas_w, canvas_h = spec["canvas"]
@@ -742,6 +753,8 @@ def rig_layers(spec, parts, folder):
             layer["parent"] = part.parent
         if spec.get("boil") and part.role != "shadow":
             layer["boil"] = spec["boil"]
+        if part.role in FEATURE_DEPTH:
+            layer["turn_depth"] = FEATURE_DEPTH[part.role]
         if part.role == "mouth":
             layer["variant_group"] = "mouth"
             layer["mouth_shape"] = part.extra["shape"]
@@ -789,6 +802,54 @@ def preview_svg(parts, spec):
             f'height="{UNIT * 1.15:.0f}" fill="#EEF1F7"/>{"".join(groups)}</svg>\n')
 
 
+def world_pivots(parts):
+    """Each part's pivot in character design units (feet at 0, y down)."""
+    by_name = {part.name: part for part in parts}
+    origin = {}
+
+    def point(part):
+        if part.name not in origin:
+            base = (0.0, 0.0) if not part.parent else point(by_name[part.parent])
+            origin[part.name] = (base[0] + part.offset[0], base[1] + part.offset[1])
+        return origin[part.name]
+    return {part.name: point(part) for part in parts}
+
+
+def fit_poses(spec, parts, layers):
+    """Starter poses for one rig.
+
+    Pose values replace the rest value (``studio/poses.py``), so position offsets in
+    ``POSES`` are added to each part's rest ``x``/``y`` here, and ``think`` aims the
+    hand at this character's chin instead of using one angle for every body shape.
+    """
+    rest = {layer["id"]: layer for layer in layers}
+    fitted = {}
+    for name, pose in POSES.items():
+        out = {}
+        for part, props in pose.items():
+            if part == "mouth":
+                out[part] = props
+                continue
+            if part not in rest:
+                continue
+            out[part] = {prop: (round(float(rest[part].get(prop, 0)) + value, 5) if prop in ("x", "y") else value)
+                         for prop, value in props.items()}
+        fitted[name] = out
+    pivots = world_pivots(parts)
+    by_name = {part.name: part for part in parts}
+    if "arm-r" in pivots and "mouth-rest" in pivots:
+        shoulder, mouth = pivots["arm-r"], pivots["mouth-rest"]
+        width = spec["mouth"]["width"] * UNIT
+        target = (mouth[0] + width * 0.45, mouth[1] + width * 0.6)
+        dx, dy = target[0] - shoulder[0], target[1] - shoulder[1]
+        reach = getattr(by_name["arm-r"], "tip", (0, 1))[1] or 1
+        angle = math.degrees(math.atan2(dx, dy))
+        if math.hypot(dx, dy) < reach * 0.6:
+            angle *= 0.85  # A short reach would push the hand over the face; keep it lower.
+        fitted["think"] = {**fitted.get("think", {}), "arm-r": {"rotate": round(angle, 1)}}
+    return fitted
+
+
 def generate(channel_dir, spec_path, *, rig_library=None):
     channel_dir = Path(channel_dir).resolve()
     spec_file = (channel_dir / spec_path) if not Path(spec_path).is_absolute() else Path(spec_path)
@@ -808,10 +869,7 @@ def generate(channel_dir, spec_path, *, rig_library=None):
     rig_path = channel_dir / rig_name
     library = json.loads(rig_path.read_text(encoding="utf-8")) if rig_path.is_file() else {"version": 1, "rigs": {}}
     library["rigs"][raw["id"]] = rig_layers(spec, parts, folder)
-    names = {part.name for part in parts}
-    library.setdefault("poses", {})[raw["id"]] = {
-        name: {part: props for part, props in pose.items() if part == "mouth" or part in names}
-        for name, pose in POSES.items()}
+    library.setdefault("poses", {})[raw["id"]] = fit_poses(spec, parts, library["rigs"][raw["id"]])
     rig_path.write_text(json.dumps(library, indent=2) + "\n", encoding="utf-8")
     linked = False
     if channel.get("rig_library") != rig_name:

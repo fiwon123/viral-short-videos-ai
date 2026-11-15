@@ -500,6 +500,8 @@
         "glow": {"$ref": "#/$defs/glow"},
         "tint": {"$ref": "#/$defs/paint"},
         "tint_opacity": {"$ref": "#/$defs/unit"},
+        "turn_depth": {"description": "How far this child sits in front of its parent's surface when the parent turns (turn_x/turn_y), as a fraction of the parent's smaller side. 0 follows the parent exactly; face features use about 0.12.",
+                       "type": "number", "minimum": 0, "maximum": 1},
         "depth_photo": {"description": "Set by make depth-photo; marks the layers of one photo split.", "$ref": "#/$defs/text"},
         "lit": {"description": "Shade this layer (and its children) with the shot light; a number scales it.",
                 "anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 2}]},
@@ -549,7 +551,9 @@
           "properties": {
             "object": {"$ref": "#/$defs/text"},
             "offset": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
-            "offset3d": {"$ref": "#/$defs/vector3"}
+            "offset3d": {"$ref": "#/$defs/vector3"},
+            "occlude": {"description": "Hide while another solid 3D object is between the camera and the anchor (default true).",
+                        "type": "boolean"}
           }
         },
         "ik": {

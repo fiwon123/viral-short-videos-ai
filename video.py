@@ -368,7 +368,9 @@ def execute(args):
     episode = prepare_episode(source_episode, channel, args.channel.parent)
     from studio.lint import lint
 
-    lint_warnings = lint(source_episode, episode)
+    from studio.scenes import load_library as _load_scenes
+
+    lint_warnings = lint(source_episode, episode, _load_scenes(channel, args.channel.parent))
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)

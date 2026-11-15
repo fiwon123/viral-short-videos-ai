@@ -57,6 +57,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Lip sync | Done | `studio/lipsync.py`: eSpeak NG IPA (spelling fallback) to 9 visemes, spread over measured words, closed on silences, 2-frame hold with closure priority, 1-frame lead. Auto for any speaker with `viseme_for` layers, resolved to the mouths a character has (fallback chain, Rhubarb letters). Active viseme overrides keyed/variant visibility in both renderers. Generator adds `mbp`/`e`/`u`/`fv`/`l`/`etc` mouths; `alive.talk` lip-syncs when a rig has them. |
 | Lighting on 2D layers | Done | `studio/light2d.py` and `lightTile` in `painter.mjs`: episode/shot `light` (angle, colour, intensity, shadow, rim, softness, depth, elevation), layer `lit` inherited by children. Dome normals from a wide alpha blur plus rim from a narrow one, in layer space via world rotation and flips, cached per tile and 5° bucket. Parity fixture shot A lights the ball. |
 | Depth from a photo | Done | `studio/depthphoto.py`, `make depth-photo`: depth from a supplied map, a local Depth Anything ONNX model, or a rough fallback. Crops to the frame, cuts equal-area feathered bands, push-pull fills hidden areas, writes image layers with `z` (inserted into a shot with `SHOT=`). |
+| Layering and contact audit | Done | Starter poses were mirrored since the rotation fix (arms crossed the face, brows set absolute dropped to the feet): angles flipped, x/y written as rest + offset, `think` aimed per rig. Arms draw last. `turn_x`/`turn_y` children follow (`turn_child`/`turnChild`, `turn_depth`). Keyed `z` re-sorts per frame. Physics: scene objects are static colliders (GLB bounds from accessors), rotated extents on floors, SAT box contacts, resting tolerance. `anchor3d` occlusion raycast. Lint `contact_warnings` for 3D interpenetration and hovering. |
 | Still pending | Pending | Nothing from the original plan or the 2026-11-15 audit. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -75,10 +76,11 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~Music~~ Done: `make music-import`, `music: {mood, energy, bpm}` | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | ~~Voices~~ Done: `command` engine, per-line `pitch`/`pace`/`intensity`, free options documented in the audio reference | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 106 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 108 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Layering and contact audit across 2D, 2.5D and 3D (see the status row).
 - 2026-11-15: 2D scene lighting and photo depth layers landed; the audit's gap list is done.
 - 2026-11-15: Automatic lip sync landed.
 - 2026-11-15: Music library and voice acting (command TTS engine, pitch/pace/intensity) landed.

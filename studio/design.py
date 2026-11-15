@@ -534,6 +534,28 @@ def bend_tile(tile, degrees, pivot):
     return Image.fromarray(pixels, "RGBA"), [(-left) / out_w, (-top) / out_h]
 
 
+def turn_child(state, turn_x, turn_y, parent_size, width, height, depth=0.0):
+    """Carry a child with its turned parent and pass the turn on so its own art foreshortens.
+
+    With ``depth`` 0 the child moves exactly like that point of the parent's turned card, so it
+    never leaves the parent's outline. A face feature's ``turn_depth`` (a fraction of the parent's
+    smaller side) puts it in front of the surface, so it slides toward the turn like a cartoon
+    head. ``parent_size`` is None for groups. Mirrors painter.mjs turnChild.
+    """
+    if not turn_x and not turn_y:
+        return state
+    dx, dy = float(state["x"]) * width, float(state["y"]) * height
+    dz = -float(depth) * min(parent_size) if parent_size else 0.0
+    focal = TURN_FOCAL * (max(parent_size) if parent_size else max(width, height))
+    ty, tx = math.radians(turn_y), math.radians(turn_x)
+    x1, z1 = dx * math.cos(ty) + dz * math.sin(ty), -dx * math.sin(ty) + dz * math.cos(ty)
+    y2, z2 = dy * math.cos(tx) - z1 * math.sin(tx), dy * math.sin(tx) + z1 * math.cos(tx)
+    scale = max(focal * 0.05, focal + dz) / max(focal * 0.05, focal + z2)
+    return {**state, "x": x1 * scale / width, "y": y2 * scale / height,
+            "turn_x": float(state.get("turn_x", 0) or 0) + turn_x,
+            "turn_y": float(state.get("turn_y", 0) or 0) + turn_y}
+
+
 def bend_child(state, bend, parent_size, parent_pivot, width, height):
     """Move a child's attach point and add the tangent turn when its parent is bent."""
     w, h = parent_size
@@ -780,6 +802,7 @@ class Composition:
                 "spec": layer,
             })
         self.layer_map = {layer["id"]: layer for layer in self.layers}
+        self.dynamic_depth = any("z" in key for layer in shot["layers"] for key in layer.get("keyframes", []))
         from .light2d import resolve as resolve_light
         self.light = resolve_light(shot.get("light"), self.palette)
         self._lit_cache = {}
@@ -789,6 +812,17 @@ class Composition:
             if layer.get("mask"):
                 inherited.append(layer["mask"])
             self.masks[layer["id"]] = inherited
+
+    def _draw_order(self, states):
+        """Far-to-near by each root's current ``z`` when any layer keys ``z`` (mirrors painter.mjs)."""
+        if not self.dynamic_depth:
+            return self.layers
+
+        def root_z(layer):
+            while layer["parent"] in self.layer_map:
+                layer = self.layer_map[layer["parent"]]
+            return float(states[layer["id"]].get("z", 0) or 0)
+        return sorted(self.layers, key=lambda layer: (layer["plane"] != "background", -root_z(layer)))
 
     def _lit(self, layer, tile, state, parent_matrix):
         """Scene light baked into the tile in its own space (studio/light2d.py)."""
@@ -938,8 +972,8 @@ class Composition:
                 state["visible"] = False
             if layer["parent"] and not states[layer["parent"]]["visible"]:
                 state["visible"] = False
-        matrices, alphas, origins, mask_cache, depths, bends = {}, {}, {}, {}, {}, {}
-        for layer in self.layers:
+        matrices, alphas, origins, mask_cache, depths, bends, turns = {}, {}, {}, {}, {}, {}, {}
+        for layer in self._draw_order(states):
             state = states[layer["id"]]
             if layer["id"] in hidden_ids or not state["visible"]:
                 continue
@@ -980,6 +1014,12 @@ class Composition:
             if state.get("blur"):
                 tile = tile.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * float(state["blur"]) * 0.02)))
             pivot = layer["pivot"]
+            if layer["parent"] in turns:
+                state = turn_child(state, *turns[layer["parent"]], width, height,
+                                   layer["spec"].get("turn_depth", 0))
+            if state.get("turn_x") or state.get("turn_y"):
+                turns[layer["id"]] = (float(state.get("turn_x", 0) or 0), float(state.get("turn_y", 0) or 0),
+                                      None if layer["kind"] == "group" else tile.size)
             if layer["parent"] in bends:
                 state = bend_child(state, *bends[layer["parent"]], width, height)
             if state.get("bend") and layer["kind"] != "group":

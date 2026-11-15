@@ -490,7 +490,7 @@ class PoseTests(unittest.TestCase):
         layers = {item["id"]: item for item in episode["scenes"][0]["shots"][0]["layers"]}
         arm = poses(layers["hero/arm-r"])
         self.assertAlmostEqual(pose_at(arm, 0.1)["rotate"], -18, places=3)
-        self.assertAlmostEqual(pose_at(arm, 0.9)["rotate"], -150, places=3)
+        self.assertAlmostEqual(pose_at(arm, 0.9)["rotate"], 150, places=3)  # Outward: positive is counter-clockwise.
         smile, rest = poses(layers["hero/mouth-smile"]), poses(layers["hero/mouth-rest"])
         self.assertTrue(pose_at(smile, 0.9)["visible"])
         self.assertFalse(pose_at(rest, 0.9)["visible"])
@@ -975,6 +975,46 @@ class Physics3DTests(unittest.TestCase):
         baked = episode["scenes"][0]["shots"][0]["three"]["objects"]["ball"]
         self.assertTrue(all("position" in key for key in baked))
         self.assertFalse(baked[-1]["visible"])
+
+
+class PhysicsContactTests(unittest.TestCase):
+    def test_no_sinking_and_no_passing_through_scene_objects(self):
+        from studio.physics3d import _extent, simulate
+        hero = {"id": "hero", "kind": "glb", "position": [0.6, 0, 0], "_bounds": [[-0.275, 0, -0.16], [0.275, 1.83, 0.16]]}
+        objects = [hero,
+                   {"id": "ball", "kind": "sphere", "position": [1.8, 0.8, 0], "scale": [0.5, 0.5, 0.5]},
+                   {"id": "crate", "kind": "box", "position": [-1.5, 2.5, 0], "scale": [0.6, 0.6, 0.6]},
+                   {"id": "doll", "kind": "glb", "position": [-3, 2, 0], "_bounds": [[-0.2, 0, -0.1], [0.2, 1.0, 0.1]]}]
+        keys = simulate(objects, {"bodies": {"ball": {"velocity": [-4, 0, 0]}, "crate": {"spin": [150, 0, 230]},
+                                             "doll": {}}}, 3.0)
+        hero_right = 0.6 + 0.275
+        self.assertTrue(all(key["position"][0] - 0.25 >= hero_right - 0.01 for key in keys["ball"]))
+        for key in keys["crate"]:
+            lowest = key["position"][1] - _extent([0.3, 0.3, 0.3], key["rotation"])[1]
+            self.assertGreaterEqual(lowest, -0.005)  # A tumbling corner never goes through the floor.
+        self.assertAlmostEqual(keys["doll"][-1]["position"][1], 0.0, places=3)  # Feet on the ground.
+        alone = simulate(objects, {"bodies": {"ball": {"velocity": [-4, 0, 0]}}, "colliders": False}, 1.0)
+        self.assertLess(min(key["position"][0] for key in alone["ball"]), hero_right)
+
+
+class ContactLintTests(unittest.TestCase):
+    def test_flags_passing_through_and_hovering_but_not_resting_or_rooms(self):
+        from studio.lint import contact_warnings
+        objects = [{"id": "floor", "kind": "box", "position": [0, -0.05, 0], "scale": [8, 0.1, 8]},
+                   {"id": "room", "kind": "glb", "position": [0, 0, 0], "_bounds": [[-5, 0, -5], [5, 4, 5]]},
+                   {"id": "table", "kind": "box", "position": [0, 0.4, 0], "scale": [1, 0.8, 1]},
+                   {"id": "cup", "kind": "box", "position": [0.2, 0.88, 0], "scale": [0.1, 0.1, 0.1]},
+                   {"id": "ball", "kind": "sphere", "position": [-2, 0.3, 0], "scale": [0.5, 0.5, 0.5]}]
+        shot = {"id": "A", "duration": 1.0, "three": {"scene": "s", "objects": {
+            "ball": [{"at": 0, "position": [-2, 0.3, 0]}, {"at": 1, "position": [2, 0.3, 0]}]}}}
+        warnings = contact_warnings(shot, objects)
+        self.assertTrue(any("ball and table" in item for item in warnings))
+        self.assertTrue(any("cup hovers" in item for item in warnings))
+        self.assertFalse(any("room" in item for item in warnings))
+        self.assertFalse(any("floor" in item for item in warnings))
+        objects[3]["position"] = [0.2, 0.85, 0]  # Cup resting on the table top (0.8).
+        still = {"id": "B", "duration": 1.0, "three": {"scene": "s", "objects": {}}}
+        self.assertEqual(contact_warnings(still, objects), [])
 
 
 class Rig3DTests(unittest.TestCase):

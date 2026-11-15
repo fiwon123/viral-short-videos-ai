@@ -76,6 +76,10 @@ SUPPORT = {
     "lipsync.auto": {"python": True, "hyperframes": True, "remotion": True},
     "light.2d-layers": {"python": True, "hyperframes": True, "remotion": True},
     "depth.photo-layers": {"python": True, "hyperframes": True, "remotion": True},
+    "turn.children-follow": {"python": True, "hyperframes": True, "remotion": True},
+    "depth.keyed-z-order": {"python": True, "hyperframes": True, "remotion": True},
+    "three.static-colliders": {"python": False, "hyperframes": True, "remotion": True},
+    "three.anchor-occlusion": {"python": False, "hyperframes": True, "remotion": True},
     "review.still": {"python": True, "hyperframes": True, "remotion": True},
     "review.contact-sheet": {"python": True, "hyperframes": True, "remotion": True},
 }

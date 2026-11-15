@@ -70,6 +70,10 @@
 | `lipsync.auto` | ✅ | ✅ | ✅ |
 | `light.2d-layers` | ✅ | ✅ | ✅ |
 | `depth.photo-layers` | ✅ | ✅ | ✅ |
+| `turn.children-follow` | ✅ | ✅ | ✅ |
+| `depth.keyed-z-order` | ✅ | ✅ | ✅ |
+| `three.static-colliders` | ❌ | ✅ | ✅ |
+| `three.anchor-occlusion` | ❌ | ✅ | ✅ |
 | `review.still` | ✅ | ✅ | ✅ |
 | `review.contact-sheet` | ✅ | ✅ | ✅ |
 

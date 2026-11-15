@@ -1,6 +1,7 @@
 """Load and validate reusable Three.js scene assets."""
 
 import json
+import math
 import re
 import struct
 
@@ -34,6 +35,41 @@ def node_names(model):
             names.add(node["name"])
             names.add(re.sub(r"[\[\]\.:/]", "", re.sub(r"\s", "_", node["name"])))
     return names
+
+
+def model_bounds(model):
+    """Axis-aligned bounds [[min x, y, z], [max x, y, z]] of a glTF model in its own units.
+
+    Uses the POSITION accessor min/max (required by glTF) and each mesh node's translation
+    and scale through the node tree; node rotations are ignored. None when unknown.
+    """
+    nodes = model.get("nodes", [])
+    accessors = model.get("accessors", [])
+    low, high = [math.inf] * 3, [-math.inf] * 3
+
+    def visit(index, offset, scale):
+        node = nodes[index]
+        t = node.get("translation", [0, 0, 0])
+        s = node.get("scale", [1, 1, 1])
+        here = [offset[i] + t[i] * scale[i] for i in range(3)]
+        size = [scale[i] * s[i] for i in range(3)]
+        if "mesh" in node:
+            for primitive in model["meshes"][node["mesh"]].get("primitives", []):
+                accessor = accessors[primitive.get("attributes", {}).get("POSITION", -1)] \
+                    if primitive.get("attributes", {}).get("POSITION") is not None else None
+                if accessor and "min" in accessor and "max" in accessor:
+                    for i in range(3):
+                        a, b = here[i] + accessor["min"][i] * size[i], here[i] + accessor["max"][i] * size[i]
+                        low[i], high[i] = min(low[i], a, b), max(high[i], a, b)
+        for child in node.get("children", []):
+            visit(child, here, size)
+    scene = model.get("scenes", [{}])[model.get("scene", 0)] if model.get("scenes") else {"nodes": range(len(nodes))}
+    roots = scene.get("nodes", [])
+    for root in roots:
+        visit(root, [0, 0, 0], [1, 1, 1])
+    if not all(math.isfinite(value) for value in low + high):
+        return None
+    return [[round(v, 4) for v in low], [round(v, 4) for v in high]]
 
 
 def morph_names(model):
@@ -72,6 +108,7 @@ def load_library(channel, base):
                 model = check_glb(asset(path.parent, obj["file"]))
                 obj["_morphs"] = sorted(morph_names(model))
                 obj["_nodes"] = sorted(node_names(model))
+                obj["_bounds"] = model_bounds(model)
     return library, path.parent
 
 

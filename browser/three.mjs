@@ -5,7 +5,7 @@ import {
   DirectionalLight, DoubleSide, Float32BufferAttribute, Fog, FogExp2, HemisphereLight, Mesh, MeshBasicMaterial,
   MeshStandardMaterial, MeshToonMaterial, NearestFilter, NormalBlending, PCFShadowMap, PCFSoftShadowMap,
   PerspectiveCamera,
-  PlaneGeometry, PMREMGenerator, PointLight, Points, PointsMaterial, RedFormat, Scene, SphereGeometry,
+  PlaneGeometry, PMREMGenerator, PointLight, Points, PointsMaterial, Raycaster, RedFormat, Scene, SphereGeometry,
   SpotLight, SRGBColorSpace, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from "three";
 import {RoomEnvironment} from "three/addons/environments/RoomEnvironment.js";
@@ -542,11 +542,28 @@ export async function createThreeStage(specs, width, height, urlFor) {
         return renderer.domElement;
       };
       // Screen position (0..1) of an object plus an optional 3D offset, for anchor3d layers.
-      draw.project = (id, offset = [0, 0, 0]) => {
+      // With occlude, a layer hides while another solid object sits between the camera and its anchor.
+      const raycaster = new Raycaster();
+      draw.project = (id, offset = [0, 0, 0], occlude = true) => {
         const entry = objects.get(id);
         if (!entry) return null;
-        const point = new Vector3(...offset).add(entry.node.position).project(camera);
-        return [(point.x + 1) / 2, (1 - point.y) / 2, point.z < 1];
+        const world = new Vector3(...offset).add(entry.node.position);
+        const point = world.clone().project(camera);
+        let visible = point.z < 1;
+        if (visible && occlude) {
+          const from = camera.position.clone();
+          const direction = world.clone().sub(from);
+          const distance = direction.length();
+          raycaster.set(from, direction.normalize());
+          raycaster.far = Math.max(0, distance - 0.02);
+          const hits = raycaster.intersectObjects(scene.children, true).filter((hit) => {
+            if (!hit.object.isMesh || hit.object.material?.transparent) return false;
+            for (let node = hit.object; node; node = node.parent) if (node === entry.node) return false;
+            return true;
+          });
+          visible = hits.length === 0;
+        }
+        return [(point.x + 1) / 2, (1 - point.y) / 2, visible];
       };
       return draw;
     },

@@ -162,6 +162,20 @@ function bendPoint(u, d, k, length) {
   return [(1 - cos) / k + u * cos + (d - along) * sin, sin / k - u * sin + (d - along) * cos, phi * 180 / Math.PI];
 }
 
+// Mirrors studio/design.py turn_child: children ride a turned parent like features on a rounded head.
+function turnChild(pose, info, width, height, depth = 0) {
+  if (!info.turnX && !info.turnY) return pose;
+  const dx = pose.x * width, dy = pose.y * height;
+  const dz = info.size ? -depth * Math.min(info.size[0], info.size[1]) : 0;
+  const f = TURN_FOCAL * (info.size ? Math.max(info.size[0], info.size[1]) : Math.max(width, height));
+  const ty = info.turnY * Math.PI / 180, tx = info.turnX * Math.PI / 180;
+  const x1 = dx * Math.cos(ty) + dz * Math.sin(ty), z1 = -dx * Math.sin(ty) + dz * Math.cos(ty);
+  const y2 = dy * Math.cos(tx) - z1 * Math.sin(tx), z2 = dy * Math.sin(tx) + z1 * Math.cos(tx);
+  const s = Math.max(f * 0.05, f + dz) / Math.max(f * 0.05, f + z2);
+  return {...pose, x: x1 * s / width, y: y2 * s / height,
+    turn_x: (pose.turn_x ?? 0) + info.turnX, turn_y: (pose.turn_y ?? 0) + info.turnY};
+}
+
 function bendChild(pose, info, width, height) {
   const length = info.height - (info.pivot?.[1] ?? 0.5) * info.height;
   if (length < 2 || !info.bend) return pose;
@@ -708,7 +722,7 @@ export async function createPainter(canvas, data, urlFor) {
       const pose = layer.getPose(progress);
       if (layer.anchor3d && projector) {
         // Pin to a 3D object's screen position; authored x/y become an extra offset.
-        const point = projector(layer.anchor3d.object, layer.anchor3d.offset3d ?? [0, 0, 0]);
+        const point = projector(layer.anchor3d.object, layer.anchor3d.offset3d ?? [0, 0, 0], layer.anchor3d.occlude ?? true);
         if (point) {
           const [dx, dy] = layer.anchor3d.offset ?? [0, 0];
           return [layer.id, {...pose, x: point[0] + dx, y: point[1] + dy, visible: (pose.visible ?? true) && point[2]}];
@@ -716,6 +730,15 @@ export async function createPainter(canvas, data, urlFor) {
       }
       return [layer.id, pose];
     }));
+    if (layers.some((layer) => layer.dynamic_z)) {
+      // Keyed z: re-sort far to near each frame by the root's current z (stable, mirrors design.py _draw_order).
+      const rootZ = (layer) => {
+        let root = layer;
+        while (root.parent && byId.has(root.parent)) root = byId.get(root.parent);
+        return states.get(root.id)?.z ?? 0;
+      };
+      layers = [...layers].sort((a, b) => rootZ(b) - rootZ(a));
+    }
     const chosen = new Map();
     for (const layer of layers) {
       const state = states.get(layer.id);
@@ -723,9 +746,11 @@ export async function createPainter(canvas, data, urlFor) {
     }
     const depths = new Map();
     const bends = new Map();
+    const turns = new Map();
     for (const layer of layers) {
       if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
-      const pose = states.get(layer.id);
+      let pose = states.get(layer.id);
+      if (layer.parent && turns.has(layer.parent)) pose = turnChild(pose, turns.get(layer.parent), width, height, layer.turn_depth ?? 0);
       // A speaking viseme mouth overrides keyed visibility and its variant group.
       const lipShape = layer.viseme_for && layer.viseme ? visemes[layer.viseme_for] : undefined;
       if (lipShape !== undefined) {
@@ -766,6 +791,10 @@ export async function createPainter(canvas, data, urlFor) {
         const level = speech?.[2] === layer.mouth ? speech[3][offset - speech[0]] : 0;
         const floor = layer.talk_only ? 0.4 : 0.18;
         mouth = floor + (1 - floor) * level;
+      }
+      if (pose.turn_x || pose.turn_y) {
+        turns.set(layer.id, {turnX: pose.turn_x ?? 0, turnY: pose.turn_y ?? 0,
+          size: layer.kind === "group" ? null : [layer.width, layer.height]});
       }
       const placed = layer.parent && bends.has(layer.parent)
         ? bendChild(pose, bends.get(layer.parent), width, height) : pose;
