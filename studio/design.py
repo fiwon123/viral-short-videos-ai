@@ -321,6 +321,7 @@ def make_brand(channel, base, out):
 
 
 TALK_LEVEL = 0.08  # Mouth level above which a speaker counts as talking.
+MOTION_SHUTTER = 0.08  # Seconds a layer's motion_blur of 1 smears across.
 
 
 def poses(layer):
@@ -536,13 +537,13 @@ def apply_post(image, config, *, seed=0, palette=None):
 class Composition:
     def __init__(self, shot, canvas, channel, font, base, *, episode_post=None, motion_blur=0,
                  channel_base=None):
+        self.shot = shot
         self.canvas = canvas
         self.base = base
         self.channel_base = channel_base
         self.palette = channel["palette"]
         self.background = resolve_color(shot.get("background", "background"), self.palette)
         self.post = _merge(channel.get("post"), episode_post, shot.get("post"))
-        self.motion_blur = shot.get("motion_blur", motion_blur)
         self.camera = resolve_camera(shot) if shot.get("camera") else None
         self.camera_points = camera_points({**shot, "camera": self.camera}) if shot.get("camera") else None
         self.track = (self.camera or {}).get("track")
@@ -767,17 +768,37 @@ class Composition:
                 tinted.putalpha(placed.getchannel("A"))
                 placed = Image.blend(placed, tinted, tint_opacity)
             motion = float(layer.get("motion_blur", 0) or 0)
-            if motion > 0:
-                future = pose_at(layer["points"], min(1.0, progress + 0.05))
-                shift_x = (future["x"] - state["x"]) * width * motion
-                shift_y = (future["y"] - state["y"]) * height * motion
+            if motion > 0 and (self.masks.get(layer["id"]) or (layer.get("tint") and tint_opacity > 0)):
+                # Masked or tinted layers keep the cheaper smear of the finished patch.
+                future = pose_at(layer["points"], min(1.0, progress + motion * MOTION_SHUTTER
+                                                      / max(0.1, float(self.shot.get("duration", 1)))))
+                shift_x, shift_y = (future["x"] - state["x"]) * width, (future["y"] - state["y"]) * height
                 samples = 5 if motion >= 0.5 else 3
                 for index in range(samples):
                     factor = (index - (samples - 1) / 2) / max(1, samples - 1)
                     sample = placed.copy()
                     sample.putalpha(placed.getchannel("A").point(lambda value: round(value / samples)))
-                    sample_left = left + round(shift_x * factor)
-                    sample_top = top + round(shift_y * factor)
+                    image = (_paste(image, sample, left + round(shift_x * factor), top + round(shift_y * factor))
+                             if layer["blend"] == "normal" else
+                             _blend_at(image, sample, left + round(shift_x * factor), top + round(shift_y * factor),
+                                       layer["blend"]))
+                continue
+            if motion > 0:
+                # Sample the full pose (move, turn, scale) over a fixed shutter in seconds,
+                # mirrored in browser/painter.mjs.
+                window = motion * MOTION_SHUTTER / max(0.1, float(self.shot.get("duration", 1)))
+                samples = 5 if motion >= 0.5 else 3
+                for index in range(samples):
+                    factor = (index - (samples - 1) / 2) / max(1, samples - 1)
+                    sample_state = {**state, **{key: value for key, value in pose_at(
+                        layer["points"], max(0.0, min(1.0, progress + window * factor))).items()
+                        if key in ("x", "y", "scale", "scale_x", "scale_y", "rotate", "skew_x", "skew_y")}}
+                    sample_matrix = layer_matrix(sample_state, width, height, layer["pivot"], parent=parent_matrix,
+                                                 parent_origin=origins.get(layer["parent"]), camera=camera,
+                                                 parallax=layer["parallax"], box=(tile.width, tile.height))
+                    sample, sample_left, sample_top = _transformed(tile, sample_matrix)
+                    sample = sample.copy()
+                    sample.putalpha(sample.getchannel("A").point(lambda value: round(value * alpha / samples)))
                     if layer["blend"] == "normal":
                         image = _paste(image, sample, sample_left, sample_top)
                     else:

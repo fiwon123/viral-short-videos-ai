@@ -1,4 +1,3 @@
-import {gsap} from "gsap";
 import {easing, poseAt, poseTrack} from "./pose.mjs";
 import {createThreeStage} from "./three.mjs";
 import {drawKinetic} from "./captions.mjs";
@@ -141,7 +140,6 @@ export async function createPainter(canvas, data, urlFor) {
         : [cue.sprite]),
   ]);
   const images = new Map(await Promise.all([...names].map(async (name) => [name, await image(urlFor(name))])));
-  const vectorTimelines = [];
   const planes = shots.map(({layers}) => {
     const background = [];
     const foreground = [];
@@ -153,20 +151,6 @@ export async function createPainter(canvas, data, urlFor) {
         width: tile.naturalWidth * fit, height: tile.naturalHeight * fit,
         getPose: (progress) => poseAt(layer.poses, progress),
       };
-      if (layer.box && layer.poses.length > 1) {
-        const state = {...layer.poses[0][1]};
-        const timeline = gsap.timeline({paused: true});
-        for (let i = 1; i < layer.poses.length; i++) {
-          const [start] = layer.poses[i - 1];
-          const [end, pose, mode] = layer.poses[i];
-          timeline.to(state, {...pose, duration: end - start, ease: (t) => easing(t, mode), lazy: false}, start);
-        }
-        prepared.getPose = (progress) => {
-          timeline.seek(progress, true);
-          return state;
-        };
-        vectorTimelines.push(timeline);
-      }
       (layer.plane === "background" ? background : foreground).push(prepared);
     }
     return {background, foreground};
@@ -334,7 +318,7 @@ export async function createPainter(canvas, data, urlFor) {
     return maskCanvas;
   }
 
-  function paintLayers(target, layers, progress, offset, speech, isCover, camera, visemes = {}) {
+  function paintLayers(target, layers, progress, offset, speech, isCover, camera, visemes = {}, shotDuration = 1) {
     const matrices = new Map();
     const alphas = new Map();
     const origins = new Map();
@@ -387,15 +371,21 @@ export async function createPainter(canvas, data, urlFor) {
       if (!masks.length) {
         const motion = Number(layer.motion_blur ?? 0);
         if (motion > 0) {
-          const future = poseAt(layer.poses, Math.min(1, progress + 0.05));
-          const shiftX = (future.x - pose.x) * width * motion;
-          const shiftY = (future.y - pose.y) * height * motion;
+          // Full-pose shutter, mirrored from studio/design.py (MOTION_SHUTTER seconds at motion 1).
+          const window = motion * 0.08 / Math.max(0.1, shotDuration);
           const samples = motion >= 0.5 ? 5 : 3;
           for (let index = 0; index < samples; index += 1) {
             const factor = (index - (samples - 1) / 2) / Math.max(1, samples - 1);
+            const moved = poseAt(layer.poses, Math.max(0, Math.min(1, progress + window * factor)));
+            const samplePose = {...pose};
+            for (const key of ["x", "y", "scale", "scale_x", "scale_y", "rotate", "skew_x", "skew_y"]) {
+              if (moved[key] !== undefined) samplePose[key] = moved[key];
+            }
+            const sampleMatrix = layerMatrix(samplePose, width, height, layer.pivot,
+              {parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
+               camera, parallax: layer.parallax, mouth, box: [layer.width, layer.height]});
             target.save();
-            target.setTransform(...matrix);
-            target.translate(shiftX * factor, shiftY * factor);
+            target.setTransform(...sampleMatrix);
             target.globalAlpha = alpha / samples;
             target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
             target.filter = blur
@@ -612,10 +602,11 @@ export async function createPainter(canvas, data, urlFor) {
       y: (base.y ?? 0) + (targetY - subjectY) / height};
   }
 
-  function paintShot(target, index, frame, isCover) {
+  function paintShot(target, index, frame, isCover, shift = 0) {
     const shot = shots[index];
     const offset = frame - shot.start;
-    const progress = offset / Math.max(1, shot.end - shot.start - 1);
+    // shift is a sub-frame offset for motion blur; audio-driven state stays on the whole frame.
+    const progress = Math.max(0, Math.min(1, (offset + shift) / Math.max(1, shot.end - shot.start - 1)));
     const speech = isCover ? null : shot.speech.find(([start, end]) => start <= offset && offset < end);
     const visemes = {};
     if (!isCover) {
@@ -628,9 +619,9 @@ export async function createPainter(canvas, data, urlFor) {
     const camera = trackedCamera(index, progress);
     target.fillStyle = shot.background;
     target.fillRect(0, 0, width, height);
-    paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera, visemes);
+    paintLayers(target, planes[index].background, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1);
     if (three[index]) target.drawImage(three[index](progress), 0, 0);
-    paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera, visemes);
+    paintLayers(target, planes[index].foreground, progress, offset, speech, isCover, camera, visemes, shot.duration ?? 1);
     applyPost(target.canvas, shot.post, frame);
   }
 
@@ -816,14 +807,20 @@ export async function createPainter(canvas, data, urlFor) {
         transition(t, edge.type, edge.ease ?? "smooth", edge);
         ctx.restore();
       } else {
-        paintShot(ctx, index, frame, isCover);
-      }
-      if (!isCover && shot.motion_blur > 0 && frame > shot.start) {
-        paintShot(motionCtx, index, frame - 1, false);
-        ctx.save();
-        ctx.globalAlpha = Math.min(0.38, shot.motion_blur * 0.38);
-        ctx.drawImage(motion, 0, 0);
-        ctx.restore();
+        // Same shutter as studio/render.py: average 3 or 5 sub-frames spread over motion_blur frames.
+        const blur = isCover ? 0 : Number(shot.motion_blur ?? 0);
+        const subframes = blur >= 0.55 ? 5 : blur >= 0.18 ? 3 : 1;
+        if (subframes > 1) {
+          for (let i = 0; i < subframes; i += 1) {
+            paintShot(motionCtx, index, frame, false, (i - (subframes - 1) / 2) * blur);
+            ctx.save();
+            ctx.globalAlpha = 1 / (i + 1);
+            ctx.drawImage(motion, 0, 0);
+            ctx.restore();
+          }
+        } else {
+          paintShot(ctx, index, frame, isCover);
+        }
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
@@ -831,7 +828,6 @@ export async function createPainter(canvas, data, urlFor) {
       if (!isCover) drawCaption(frame);
     },
     dispose() {
-      for (const timeline of vectorTimelines) timeline.kill();
       stage?.dispose();
     },
   };

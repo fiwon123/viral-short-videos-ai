@@ -113,6 +113,8 @@ def options():
     parity = commands.add_parser("parity", help="render the shared renderer-parity fixture")
     parity.add_argument("--renderers", default="python,hyperframes")
     parity.add_argument("--out", type=Path)
+    parity.add_argument("--threshold", type=float, default=0.03,
+                        help="fail when any frame's mean difference between renderers exceeds this")
     sound = commands.add_parser("sound", help="synthesize a custom Sound Lab recipe")
     sound.add_argument("channel", type=Path)
     sound.add_argument("--recipe", required=True, type=Path)
@@ -283,7 +285,11 @@ def execute(args):
     if args.command == "parity":
         from studio.parity import run
 
-        return run(tuple(item.strip() for item in args.renderers.split(",") if item.strip()), args.out), 0
+        report = run(tuple(item.strip() for item in args.renderers.split(",") if item.strip()), args.out)
+        worst = max(report.get("mean_difference") or [0])
+        report["threshold"] = args.threshold
+        report["passed"] = worst <= args.threshold
+        return report, 0 if report["passed"] else 1
     if args.command == "sound":
         from studio.soundlab import build
 
@@ -345,7 +351,11 @@ def execute(args):
 
     from studio.pipeline import prepare_episode
 
-    episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent)
+    source_episode = load(args.episode, "episode")
+    episode = prepare_episode(source_episode, channel, args.channel.parent)
+    from studio.lint import lint
+
+    lint_warnings = lint(source_episode, episode)
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
@@ -427,7 +437,8 @@ def execute(args):
             validate_three(shot, library)
     validate_visual(episode, library)
     if args.command == "validate":
-        return {"valid": True, "episode": episode["title"], "channel": channel["name"]}, 0
+        return {"valid": True, "episode": episode["title"], "channel": channel["name"],
+                "warnings": lint_warnings}, 0
     if args.command == "check-visual":
         from studio.audio import prepare_audio
         from studio.visual import audit_visual
@@ -462,6 +473,8 @@ def execute(args):
     report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview,
                     not (args.no_burn or args.no_captions), backend=renderer, library=library,
                     audio_library=audio_library, options=options)
+    if lint_warnings:
+        report["lint_warnings"] = lint_warnings
     return {**report, "package": str(args.out.resolve())}, 0
 
 

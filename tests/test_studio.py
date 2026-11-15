@@ -406,5 +406,16 @@ class CharacterTests(unittest.TestCase):
         self.assertEqual(ats, sorted(ats))
 
 
+class LintTests(unittest.TestCase):
+    def test_lint_flags_snaps_particles_and_fov(self):
+        from studio.lint import lint
+        shot = {"id": "A", "duration": 1.0, "camera": {"keyframes": [{"at": 0.5, "fov": 40}]}, "layers": [
+            {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5, "keyframes": [{"at": 0.5}, {"at": 0.51}]},
+            {"id": "p", "kind": "particles", "x": 0.5, "y": 0.5, "rate": 900, "file": "x.svg"}]}
+        episode = {"fps": 30, "scenes": [{"shots": [shot]}]}
+        warnings = lint(episode, episode)
+        self.assertEqual(len(warnings), 3)
+
+
 if __name__ == "__main__":
     unittest.main()
