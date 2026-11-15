@@ -16,13 +16,7 @@ from PIL import Image
 
 from .core import load, validate_episode
 from .design import Composition, apply_post, resolve_font
-from .expand import expand as expand_defs
-from .markers import expand as expand_markers
-from .particles import expand as expand_particles
-from .presets import apply_style
-from .reveal import expand as expand_reveal
-from .rigs import load_rigs
-from .trails import expand as expand_trails
+from .pipeline import prepare_episode
 
 EDITOR = Path(__file__).resolve().parents[1] / "editor"
 
@@ -80,12 +74,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(415, {"error": "Use a renderer preview for SVG or 3D shots"})
         base = self.episode_path.parent
         channel_dir = self.channel_path.parent
-        import copy
-
-        episode = expand_defs(copy.deepcopy(self.episode), load_rigs(self.channel, channel_dir))
-        episode = apply_style(episode, self.channel, channel_dir)
-        episode = expand_particles(expand_trails(expand_markers(episode, channel_dir)))
-        episode = expand_reveal(episode, self.channel, channel_dir)
+        episode = prepare_episode(self.episode, self.channel, channel_dir)
         styled = next((item for scene in episode["scenes"] for item in scene["shots"]
                        if item["id"] == shot_id), shot)
         font = resolve_font(self.channel, channel_dir)

@@ -307,21 +307,11 @@ def execute(args):
         serve(args.episode, args.channel, args.port, not args.no_open)
         return 0
     if args.command == "resolve":
-        from studio.presets import apply_style, resolved_config
+        from studio.presets import resolved_config
 
-        episode = load(args.episode, "episode")
-        from studio.expand import expand as expand_defs
-        from studio.rigs import load_rigs
+        from studio.pipeline import prepare_episode
 
-        episode = expand_defs(episode, load_rigs(channel, args.channel.parent))
-        episode = apply_style(episode, channel, args.channel.parent)
-        from studio.markers import expand as expand_markers
-        from studio.particles import expand as expand_particles
-        from studio.reveal import expand as expand_reveal
-        from studio.trails import expand as expand_trails
-
-        episode = expand_particles(expand_trails(expand_markers(episode, args.channel.parent)))
-        episode = expand_reveal(episode, channel, args.channel.parent)
+        episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent)
         data = resolved_config(episode, channel)
         if args.json:
             return data, 0
@@ -352,23 +342,10 @@ def execute(args):
                 "markdown": str((args.channel.parent / "channel.md").resolve())}, 0
 
     from studio.audio_library import load_audio_library, validate_audio
-    from studio.presets import apply_style
 
-    episode = load(args.episode, "episode")
-    from studio.expand import expand as expand_defs
-    from studio.rigs import load_rigs
+    from studio.pipeline import prepare_episode
 
-    episode = expand_defs(episode, load_rigs(channel, args.channel.parent))
-    episode = apply_style(episode, channel, args.channel.parent)
-    from studio.markers import expand as expand_markers
-    from studio.particles import expand as expand_particles
-    from studio.reveal import expand as expand_reveal
-    from studio.trails import expand as expand_trails
-
-    episode = expand_markers(episode, args.channel.parent)
-    episode = expand_trails(episode)
-    episode = expand_particles(episode)
-    episode = expand_reveal(episode, channel, args.channel.parent)
+    episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent)
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)

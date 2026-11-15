@@ -27,7 +27,7 @@ def read_audio(path, channels=1):
 
 
 def spoken_take(line, voice, base, temp, profile, takes):
-    text = line.get("spoken_text", line["text"])
+    text = line.get("spoken_text", line["text"]).replace("*", "")
     if "file" in line:
         raw = read_audio(asset(base, line["file"]))
         source = line["file"]
@@ -142,6 +142,7 @@ def frame_count(seconds, fps):
 
 
 def caption_lines(text):
+    text = text.replace("*", "")
     return "\n".join(row for line in text.splitlines() if line.strip() for row in textwrap.wrap(line, width=38))
 
 
@@ -160,6 +161,42 @@ def caption_words(text, start, end, fps):
         result.append({"text": word, "start": cursor, "end": min(end, cursor + length)})
         cursor += length
     result[-1]["end"] = end
+    return result
+
+
+def hold_captions(captions, total, fps, seconds):
+    """Keep each caption up briefly after speech ends so the last word can be read."""
+    hold = round(float(seconds) * fps)
+    for index, cue in enumerate(captions):
+        limit = captions[index + 1]["start"] if index + 1 < len(captions) else total
+        cue["end"] = max(cue["end"], min(cue["end"] + hold, limit))
+
+
+def measured_words(line, caption_text, clip, base):
+    """Word timings measured from the take, retargeted to the caption words."""
+    from .wordtiming import measure
+
+    spoken = line.get("spoken_text", line["text"]).replace("*", "")
+    try:
+        timed, method = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes")
+    except Exception:  # Timing is a polish step; never block a render on it.
+        return None
+    if not timed:
+        return None
+    shown = [word for word in caption_text.split() if word]
+    if len(shown) == len(timed):
+        result = [{**item, "text": word} for item, word in zip(timed, shown)]
+    else:
+        # Caption differs from speech: spread caption words over the spoken span.
+        start, end = timed[0]["start"], timed[-1]["end"]
+        weights = [max(1, len(word.strip(".,!?;:"))) for word in shown] or [1]
+        total, cursor, result = sum(weights), start, []
+        for word, weight in zip(shown, weights):
+            length = (end - start) * weight / total
+            result.append({"text": word, "start": cursor, "end": cursor + length})
+            cursor += length
+    if result:
+        result[0]["method"] = method
     return result
 
 
@@ -313,6 +350,29 @@ def _duck_abs(intervals, length, config):
     return envelope
 
 
+def glue(track, threshold_db=-14.0, ratio=2.0, attack=0.004, release=0.12, block=0.0025):
+    """Gentle bus compressor so stacked SFX sit together like a mixed bus."""
+    if not track.size or float(np.max(np.abs(track))) < 1e-4:
+        return track
+    size = max(1, int(SAMPLE_RATE * block))
+    blocks = len(track) // size
+    if blocks < 2:
+        return track
+    level = np.sqrt(np.mean(track[:blocks * size].reshape(blocks, size, -1) ** 2, axis=(1, 2)))
+    smooth = np.empty_like(level)
+    up, down = math.exp(-block / attack), math.exp(-block / release)
+    current = 0.0
+    for index, value in enumerate(level):
+        coefficient = up if value > current else down
+        current = coefficient * current + (1 - coefficient) * value
+        smooth[index] = current
+    db = 20 * np.log10(np.maximum(smooth, 1e-6))
+    reduction = np.minimum(0.0, (threshold_db - db) * (1 - 1 / ratio))
+    gain = 10 ** (reduction / 20)
+    curve = np.interp(np.arange(len(track)), np.arange(blocks) * size + size / 2, gain).astype(np.float32)
+    return track * curve[:, None]
+
+
 def mix_global(path, total_frames, fps, dialogue, sfx, bed, music_config, ambience,
                room_tone, audio_library, base, *, stems=False):
     step = SAMPLE_RATE // fps
@@ -325,10 +385,14 @@ def mix_global(path, total_frames, fps, dialogue, sfx, bed, music_config, ambien
                  pan=line.get("pan", 0), reverb_amount=line.get("reverb", 0),
                  reverb_size=(music_config or {}).get("reverb_size", 0.3), seed=seed)
         intervals.append((offset, offset + len(clip)))
+    hits = []
     for offset, clip, cue, seed in sfx:
         add_clip(tracks["sfx"], clip, offset, cue.get("gain", 0.24),
                  pan=cue.get("pan", 0), reverb_amount=cue.get("reverb", 0),
                  reverb_size=(music_config or {}).get("reverb_size", 0.3), seed=seed)
+        if not cue.get("loop"):
+            hits.append((offset, offset + min(len(clip), SAMPLE_RATE // 4)))
+    tracks["sfx"] = glue(tracks["sfx"])
     if bed is not None and music_config.get("gain", 0):
         stereo = bed if bed.ndim > 1 else np.stack([bed, bed], axis=1)
         absolute = np.arange(length, dtype=np.int64)
@@ -338,6 +402,10 @@ def mix_global(path, total_frames, fps, dialogue, sfx, bed, music_config, ambien
             music = music.copy()
             music[absolute >= len(stereo)] = 0
         music *= _duck_abs(intervals, length, music_config.get("duck"))[:, None]
+        # A short dip under each hit lets SFX punch through without pumping the bed.
+        hit_duck = {"amount": 0.28, "attack": 0.005, "release": 0.22, **(music_config.get("sfx_duck") or {})}
+        if hits and float(hit_duck["amount"]) > 0:
+            music *= _duck_abs(hits, length, hit_duck)[:, None]
         fade_in = float(music_config.get("fade_in", 0) or 0)
         fade_out = float(music_config.get("fade_out", 0) or 0)
         fade = np.ones(length, dtype=np.float32)
@@ -543,7 +611,9 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
                         entry[key] = line[key]
                 timing["speech"].append(entry)
                 text = line.get("caption", line["text"])
-                words = line.get("words")
+                words = line.get("words") or measured_words(line, text, clip, base)
+                if words and not line.get("words"):
+                    entry["word_timing"] = words[0].get("method", "energy")
                 timeline["captions"].append({
                     "start": max(0, absolute_start), "end": cursor + end,
                     "speaker": line["speaker"],
@@ -574,6 +644,8 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
         scene_timing["end"] = cursor
         timeline["scenes"].append(scene_timing)
     timeline["duration_frames"] = cursor
+    caption_config = {**((channel or {}).get("captions") or {}), **(episode.get("captions") or {})}
+    hold_captions(timeline["captions"], cursor, fps, caption_config.get("hold", 0.45))
     music_config = {**(music or {}),
                     "gain": music.get("gain", 0.10) if music else 0,
                     "reverb_size": config.get("reverb", {}).get("size", 0.3),

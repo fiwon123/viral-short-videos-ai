@@ -147,7 +147,8 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
     cue = next(cues, None)
     supersample = max(1, int(config.get("supersample", 1)))
     render_canvas = (canvas[0] * supersample, canvas[1] * supersample)
-    caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
+    caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {}),
+                      "fps": timeline["fps"]}
     thumbnail_font = resolve_font(channel, channel_base or base)
     primary_at = episode["thumbnail"].get("at", 0.5)
     covers = [{**cover, "at": cover.get("at", primary_at)}

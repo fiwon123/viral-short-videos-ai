@@ -57,6 +57,21 @@ Place sounds in space and depth with `pan` (−1 left to 1 right) and `reverb` (
 
 Set channel or episode `audio.reverb` for a shared room, and `audio.room_tone` with a library `sound` or a `file` plus gain. Use low room tone where it helps continuity. Leave the legacy synth presets for scratch work.
 
+## Professional sound: recorded packs, spotting, bus
+
+Synthesized Foley is scratch quality. For a finished channel, import recorded sound packs the user owns or that are CC0 (for example Kenney audio packs or the Sonniss GDC bundles):
+
+```bash
+make sfx-import DIR=~/sounds/pack DRY=1   # preview how files are classified
+make sfx-import DIR=~/sounds/pack         # trim, normalise, copy, and point the library at them
+```
+
+Files are classified by folder and file words into the studio's sound names (whoosh, swish, thud, bonk, thwack, pop, click, tap, riser, boom, splash, glass, metal, sparkle, footstep...). Existing `{"sound": "whoosh"}` cues then use the recordings. Provenance goes to `audio/samples/SOURCES.json`; check licences before publishing.
+
+Spot sound from the animation with `make spot` (proposals) and `make spot APPLY=1` (writes cues marked `"spotted": true`; rerunning replaces only those). It places whooshes on fast moves panned to the layer, impacts where a fast layer stops, pops on appearances, swishes on fast spins, whooshes on whip/slide/zoom transitions and impacts on camera shakes. It skips moments that already have a hand-placed cue and caps density. Treat it as a first pass: keep the hits that sell the action, delete the rest, and give the signature moment a designed layered cue.
+
+The mixer puts SFX through a gentle glue compressor and dips the music bed briefly under each hit (`music.sfx_duck`) so effects punch through without pumping.
+
 ## Generate fresh Foley
 
 When a channel needs a starting bank, synthesize one instead of shipping silence or borrowed samples:

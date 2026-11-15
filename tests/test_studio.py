@@ -272,5 +272,102 @@ class StillTests(unittest.TestCase):
             self.assertEqual(report["renderer"], "python")
 
 
+class CaptionTests(unittest.TestCase):
+    def cue(self, text):
+        words = [{"text": word, "start": index * 10, "end": index * 10 + 9}
+                 for index, word in enumerate(text.split())]
+        return {"start": 0, "end": len(words) * 10 + 5, "words": words}
+
+    def test_pages_break_at_punctuation_without_orphans(self):
+        from studio.captions import pages
+        result = pages(self.cue("This is *really* not fine, okay go"), {"words_per_page": 3})
+        texts = [[word["text"] for word in page["words"]] for page in result]
+        self.assertEqual(texts, [["THIS", "IS", "REALLY"], ["NOT", "FINE,"], ["OKAY", "GO"]])
+        self.assertTrue(result[0]["words"][2]["emphasis"])
+        self.assertEqual(result[1]["start"], result[0]["end"])
+
+    def test_keyword_emphasis_and_word_reveal(self):
+        from studio.captions import pages, settings, word_state
+        config = settings({"emphasis": ["moon"]})
+        page = pages(self.cue("That was the moon."), config)[-1]
+        moon = page["words"][-1]
+        self.assertTrue(moon["emphasis"])
+        self.assertIsNone(word_state(moon, 3, page, moon["start"] - 1, 30, 80, config))
+        state = word_state(moon, 3, page, moon["start"] + 6, 30, 80, config)
+        self.assertEqual(state["state"], "emphasis")
+        self.assertGreater(state["scale"], 1.2)
+
+    def test_kinetic_draw_python(self):
+        from PIL import Image
+        from studio.design import draw_caption
+        image = Image.new("RGB", (360, 640), "#203040")
+        draw_caption(image, self.cue("Small *signal* again"), {"palette": {"accent": "#FFBD54"}}, None,
+                     config={"style": "kinetic", "fps": 30}, frame=25)
+        self.assertNotEqual(image.getbbox(), None)
+        self.assertGreater(len(image.getcolors(1 << 20)), 10)
+
+    def test_caption_hold_never_overlaps_next(self):
+        from studio.audio import hold_captions
+        cues = [{"start": 0, "end": 30}, {"start": 35, "end": 60}]
+        hold_captions(cues, 100, 30, 0.5)
+        self.assertEqual(cues[0]["end"], 35)
+        self.assertEqual(cues[1]["end"], 75)
+
+
+class WordTimingTests(unittest.TestCase):
+    def test_energy_pins_punctuation_to_pause(self):
+        import numpy as np
+        from studio.wordtiming import energy
+        rate = 24000
+
+        def burst(seconds):
+            return 0.5 * np.sin(np.arange(int(seconds * rate)) * 0.05) * np.hanning(int(seconds * rate))
+        clip = np.concatenate([burst(0.5), np.zeros(int(0.4 * rate)), burst(0.5)])
+        words = energy(clip, rate, ["Hello", "there,", "small", "world."])
+        self.assertLessEqual(words[1]["end"], 0.56)
+        self.assertGreaterEqual(words[2]["start"], 0.85)
+        self.assertEqual([word["text"] for word in words], ["Hello", "there,", "small", "world."])
+
+    def test_recognised_words_map_onto_script(self):
+        from studio.wordtiming import map_recognised
+        heard = [{"text": "I", "start": 0, "end": 0.1}, {"text": "very", "start": 0.3, "end": 0.6}]
+        mapped = map_recognised(["I", "am", "very"], heard)
+        self.assertAlmostEqual(mapped[1]["start"], 0.1)
+        self.assertAlmostEqual(mapped[2]["start"], 0.3)
+
+
+class SoundDesignTests(unittest.TestCase):
+    def test_sample_classification(self):
+        from studio.samples import classify
+        self.assertEqual(classify(Path("Kenney/Impacts/impactWood_heavy_002.ogg")), "thud")
+        self.assertEqual(classify(Path("Whooshes/fast whoosh 3.wav")), "whoosh")
+        self.assertEqual(classify(Path("UI/click_soft.wav")), "click")
+        self.assertEqual(classify(Path("Cinematic/riser_long.wav")), "riser")
+        self.assertIsNone(classify(Path("misc/untitled.wav")))
+
+    def test_spotting_hits_fast_move_and_stop(self):
+        from studio.spotting import propose
+        shot = {"id": "A", "duration": 2.0, "layers": [{
+            "id": "ball", "kind": "ellipse", "x": 0.1, "y": 0.5,
+            "keyframes": [{"at": 0.2, "x": 0.1}, {"at": 0.45, "x": 0.9, "ease": "in"}]}]}
+        cues = propose(shot, 30, {"whoosh", "thud", "pop"})
+        kinds = [cue["sound"] for cue in cues]
+        self.assertIn("whoosh", kinds)
+        self.assertIn("thud", kinds)
+        self.assertTrue(all(cue["spotted"] for cue in cues))
+        shot["sfx"] = [{"at": cue["at"], "sound": "pop"} for cue in cues]
+        self.assertEqual(propose(shot, 30, {"whoosh", "thud", "pop"}), [])
+
+    def test_glue_reduces_only_loud_material(self):
+        import numpy as np
+        from studio.audio import glue
+        track = np.zeros((48000, 2), dtype=np.float32)
+        track[1000:6000] = 0.9
+        track[20000:24000] = 0.05
+        out = glue(track)
+        self.assertLess(out[5000, 0], 0.8)
+        self.assertAlmostEqual(float(out[23000, 0]), 0.05, places=3)
+
+
 if __name__ == "__main__":
     unittest.main()

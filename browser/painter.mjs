@@ -1,6 +1,7 @@
 import {gsap} from "gsap";
 import {easing, poseAt, poseTrack} from "./pose.mjs";
 import {createThreeStage} from "./three.mjs";
+import {drawKinetic} from "./captions.mjs";
 
 const IDENTITY = [1, 0, 0, 1, 0, 0];
 
@@ -133,9 +134,11 @@ export async function createPainter(canvas, data, urlFor) {
         layer.mask?.sprite].filter(Boolean)),
       ...(transition?.mask_sprite ? [transition.mask_sprite] : []),
     ]),
-    ...captions.flatMap((cue) => cue.karaoke
-      ? [cue.background.sprite, ...cue.words.flatMap((word) => [word.normal.sprite, word.active.sprite])]
-      : [cue.sprite]),
+    ...captions.flatMap((cue) => cue.kinetic
+      ? cue.pages.flatMap((page) => page.words.flatMap((word) => Object.values(word.sprites).map((item) => item.sprite)))
+      : cue.karaoke
+        ? [cue.background.sprite, ...cue.words.flatMap((word) => [word.normal.sprite, word.active.sprite])]
+        : [cue.sprite]),
   ]);
   const images = new Map(await Promise.all([...names].map(async (name) => [name, await image(urlFor(name))])));
   const vectorTimelines = [];
@@ -597,6 +600,10 @@ export async function createPainter(canvas, data, urlFor) {
   function drawCaption(frame) {
     const caption = captions[findFrame(captions, frame)];
     if (!caption || caption.start > frame) return;
+    if (caption.kinetic) {
+      drawKinetic(ctx, caption, frame, data.fps, images);
+      return;
+    }
     const animation = caption.animation ?? "none";
     ctx.save();
     if (animation !== "none") {

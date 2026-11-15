@@ -85,6 +85,7 @@ def render_still(episode, channel, episode_dir, channel_dir, target, *, shot_id=
     if caption_font:
         font = resolve_font(channel, channel_dir, caption_font)
     caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
+    caption_config.setdefault("fps", episode.get("fps", 30))
 
     with TemporaryDirectory(prefix=".still-") as temp:
         work = Path(temp)

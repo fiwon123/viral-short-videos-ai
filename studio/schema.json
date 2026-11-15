@@ -198,6 +198,14 @@
             "attack": {"type": "number", "minimum": 0, "maximum": 2},
             "release": {"type": "number", "minimum": 0, "maximum": 3}
           }
+        },
+        "sfx_duck": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "amount": {"$ref": "#/$defs/unit"},
+            "attack": {"type": "number", "minimum": 0, "maximum": 2},
+            "release": {"type": "number", "minimum": 0, "maximum": 3}
+          }
         }
       }
     },
@@ -219,7 +227,20 @@
     "captions": {
       "type": "object", "additionalProperties": false,
       "properties": {
-        "style": {"enum": ["box", "karaoke", "minimal"]},
+        "style": {"enum": ["box", "karaoke", "minimal", "kinetic"]},
+        "preset": {"enum": ["hormozi-pop", "clean-karaoke", "kinetic-big", "documentary-lower", "typewriter"]},
+        "words_per_page": {"type": "integer", "minimum": 1, "maximum": 8},
+        "word_in": {"enum": ["pop", "bounce", "slide", "fade", "typewriter", "none"]},
+        "active": {"enum": ["color", "scale", "color+scale", "pill", "pill+scale", "none"]},
+        "reveal": {"enum": ["word", "page"]},
+        "outline": {"$ref": "#/$defs/paint"},
+        "emphasis": {"type": "array", "items": {"type": "string"}},
+        "emphasis_color": {"$ref": "#/$defs/paint"},
+        "emphasis_scale": {"type": "number", "minimum": 1, "maximum": 2},
+        "active_scale": {"type": "number", "minimum": 1, "maximum": 1.6},
+        "max_width": {"type": "number", "minimum": 0.4, "maximum": 1},
+        "wave": {"$ref": "#/$defs/unit"},
+        "hold": {"type": "number", "minimum": 0, "maximum": 2},
         "position": {"enum": ["top", "center", "bottom"]},
         "highlight": {"$ref": "#/$defs/paint"},
         "highlight_text": {"$ref": "#/$defs/paint"},
@@ -231,7 +252,7 @@
         "font": {"$ref": "#/$defs/text"},
         "font_size": {"type": "number", "minimum": 0.5, "maximum": 2},
         "stroke": {"$ref": "#/$defs/unit"},
-        "shadow": {"type": "boolean"},
+        "shadow": {"anyOf": [{"type": "boolean"}, {"$ref": "#/$defs/unit"}]},
         "shadow_color": {"$ref": "#/$defs/paint"},
         "radius": {"$ref": "#/$defs/unit"},
         "offset": {"type": "number", "minimum": -0.5, "maximum": 0.5},
@@ -604,6 +625,7 @@
         "fade_in": {"type": "number", "minimum": 0, "maximum": 5},
         "fade_out": {"type": "number", "minimum": 0, "maximum": 10},
         "loop": {"type": "boolean"},
+        "spotted": {"type": "boolean"},
         "duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 720},
         "layers": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"$ref": "#/$defs/sfx_layer"}}
       }

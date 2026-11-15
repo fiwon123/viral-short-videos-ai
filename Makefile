@@ -25,7 +25,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets sfx vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init assets sfx sfx-import spot vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -40,6 +40,8 @@ help:
 	@echo "  make sfx                    regenerate the channel Foley bank"
 	@echo "  make vfx                    redraw the channel VFX kit from its palette"
 	@echo "  make sound RECIPE=...       synthesize a custom Sound Lab recipe"
+	@echo "  make sfx-import DIR=...     import recorded SFX packs into the library [DRY=1]"
+	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make motion MOTION=pop      emit a manifest-ready motion recipe"
 	@echo "  make still EPISODE=... SHOT=A PROGRESS=0.5 [NOAUDIO=1]  render one review frame"
@@ -90,6 +92,15 @@ assets:
 sfx:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }
 	@$(PYTHON) -m studio.sfx $(CHANNEL_DIR) --library $(LIBRARY) $(VOICES_ARG)
+
+sfx-import:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@test -n "$(DIR)" || { echo "Set DIR=path/to/sound-pack"; exit 1; }
+	@$(PYTHON) -m studio.samples $(CHANNEL_DIR) --source "$(DIR)" --library $(LIBRARY) $(if $(DRY),--dry-run,)
+
+spot:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
+	@$(PYTHON) -m studio.spotting $(EPISODE) $(CHANNEL_ARG) $(if $(APPLY),--apply,)
 
 vfx:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=channels/<slug>/channel.json"; exit 1; }

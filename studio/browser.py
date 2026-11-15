@@ -31,6 +31,33 @@ def _save_caption_tile(tile, assets, name):
     return {"sprite": name, "x": box[0], "y": box[1]}
 
 
+def _kinetic_cue(cue, caption_config, canvas, font, channel, assets, number, fps):
+    """Stage per-word sprites and page layout for the browser kinetic captions."""
+    from .captions import layout, pages, settings, word_sprite
+
+    config = settings(caption_config)
+    palette = channel.get("palette", {})
+    staged = []
+    for page_index, page in enumerate(pages(cue, config)):
+        placed, size = layout(page, canvas, font, config)
+        words = []
+        for word_index, (word, spot) in enumerate(zip(page["words"], placed)):
+            states = ["emphasis"] if word["emphasis"] else ["normal", "active"]
+            sprites = {}
+            for state in states:
+                name = f"caption-{number}-p{page_index}-w{word_index}-{state}.png"
+                word_sprite(word["text"], font, size, state, config, palette).save(assets / name)
+                sprites[state] = {"sprite": name}
+            if "normal" not in sprites:
+                sprites["normal"] = sprites["emphasis"]
+            words.append({"start": word["start"], "end": word["end"], "emphasis": word["emphasis"],
+                          "cx": round(spot["cx"], 2), "cy": round(spot["cy"], 2), "sprites": sprites})
+        staged.append({"start": page["start"], "end": page["end"], "size": size, "words": words})
+    keys = ("reveal", "word_in", "active", "active_scale", "emphasis_scale", "wave")
+    return {"start": cue["start"], "end": cue["end"], "kinetic": True, "pages": staged,
+            "config": {key: config[key] for key in keys}}
+
+
 def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channel_base, library, work, burn,
                   config=None):
     assets = work / "assets"
@@ -140,7 +167,10 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
     if burn:
         style = caption_config.get("style", "box")
         for cue in timeline["captions"]:
-            if style == "karaoke":
+            if style == "kinetic":
+                data["captions"].append(_kinetic_cue(cue, caption_config, canvas, font, channel,
+                                                     assets, len(data["captions"]), timeline["fps"]))
+            elif style == "karaoke":
                 text = cue["text"]
                 if caption_config.get("uppercase"):
                     text = text.upper()

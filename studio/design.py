@@ -1035,6 +1035,12 @@ def draw_caption(image, cue, channel, font, config=None, frame=None):
     if isinstance(cue, str):
         cue = {"text": cue}
     config = config or {}
+    if config.get("style") == "kinetic":
+        from .captions import draw_kinetic
+        if frame is None:
+            frame = cue.get("start", 0) + max(0, (cue.get("end", 0) - cue.get("start", 0)) // 2)
+        draw_kinetic(image, cue, channel, font, config, frame, float(config.get("fps", 30)))
+        return
     text = cue.get("text", "")
     if config.get("uppercase"):
         text = text.upper()
