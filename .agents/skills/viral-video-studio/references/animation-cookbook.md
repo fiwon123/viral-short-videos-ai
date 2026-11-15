@@ -79,6 +79,8 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 
 `boil: 0.4` on an SVG layer (or `"boil": 0.4` in a character spec, which is the default for generated characters) redraws its lines with slight seeded wobble at `boil_fps` (12). It makes vector art feel drawn rather than clip-art. Combine it with `post.paper` and light `grain`.
 
+`finish` on an SVG layer gives flat or stock vector art the same finish as generated characters: `{"shade": 0.35, "rim": 0.4, "texture": 0.2, "outline": 0.015}`. `shade` adds a cel shadow band away from `light` (`[-1, -1]` is top left), `rim` a thin lit edge, `texture` paper grain and `outline` an ink line (fraction of the artwork size, colour `line`). `per: "silhouette"` (default) shades the drawing as one shape. `per: "shapes"` shades each top-level element, which suits separated parts, but bands are sized from the whole artwork, so keep `outline` low there. Browser renderers only. It runs before `boil`, so the two combine.
+
 ## Colour and draw-on
 
 - `tint_color` (hex) is keyable and blends with `tint_opacity`: a blush, a danger flash, a sunset shift. Set `tint_opacity` to 1 on the layer and key the colour.

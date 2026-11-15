@@ -485,6 +485,18 @@
         "boil": {"description": "Hand-drawn line wobble for SVG layers (browser renderers); 0.3-0.6 is subtle.",
                  "type": "number", "minimum": 0, "maximum": 3},
         "boil_fps": {"type": "number", "minimum": 1, "maximum": 30},
+        "finish": {
+          "description": "Finish pass for SVG layers (browser renderers): cel shade, rim light, grain and outline.",
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "shade": {"$ref": "#/$defs/unit"}, "rim": {"$ref": "#/$defs/unit"}, "texture": {"$ref": "#/$defs/unit"},
+            "outline": {"description": "Ink line width as a fraction of the artwork size.", "type": "number", "minimum": 0, "maximum": 0.05},
+            "line": {"$ref": "#/$defs/color"}, "shade_color": {"$ref": "#/$defs/color"}, "rim_color": {"$ref": "#/$defs/color"},
+            "light": {"description": "Direction the light comes from, [x, y]; [-1, -1] is top left.",
+                      "type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+            "per": {"enum": ["silhouette", "shapes"]}
+          }
+        },
         "caption_avoid": {"description": "Kinetic captions move to keep clear of this layer.", "type": "boolean"},
         "anchor3d": {
           "description": "Pin this top-level 2D layer to a 3D object's screen position (browser renderers).",

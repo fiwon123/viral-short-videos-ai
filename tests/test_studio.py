@@ -721,6 +721,37 @@ class GradeTests(unittest.TestCase):
         self.assertGreater(graded[2], graded[0])  # Shadows lean teal.
 
 
+class FinishPassTests(unittest.TestCase):
+    SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">'
+           '<defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs>'
+           '<circle cx="50" cy="50" r="40"/><g><rect x="100" y="10" width="80" height="80"/></g></svg>')
+
+    def test_silhouette_wraps_whole_drawing(self):
+        import xml.etree.ElementTree as ET
+        from studio.stylepass import apply
+        out = apply(self.SVG, {"shade": 0.4, "rim": 0.3, "texture": 0.2, "outline": 0.02}, uid="f")
+        root = ET.fromstring(out)
+        self.assertEqual(out.count('filter="url(#f)"'), 1)
+        names = {child.tag.split("}")[1] for child in root.iter()}
+        self.assertTrue({"feOffset", "feTurbulence", "feMorphology"} <= names)
+        # Light from the top left: the shade band offsets toward the light.
+        offset = next(node for node in root.iter() if node.tag.endswith("feOffset"))
+        self.assertLess(float(offset.get("dx")), 0)
+
+    def test_shapes_mode_wraps_each_top_level_element(self):
+        import xml.etree.ElementTree as ET
+        from studio.stylepass import apply
+        out = apply(self.SVG, {"per": "shapes"}, uid="f")
+        ET.fromstring(out)
+        self.assertEqual(out.count('filter="url(#f)"'), 2)
+        self.assertNotIn('<g filter="url(#f)"><defs>', out)
+
+    def test_finish_is_valid_layer_field(self):
+        schema = json.loads((ROOT / "studio" / "schema.json").read_text())
+        finish = schema["$defs"]["layer"]["properties"]["finish"]
+        self.assertIn("outline", finish["properties"])
+
+
 POSE_MODES = ["linear", "in", "out", "smooth", "sine", "expo", "circ", "quint", "back", "elastic",
               "bounce", "spring", "hold", "auto",
               {"type": "cubic-bezier", "points": [0.2, 0, 0, 1]},

@@ -1,6 +1,7 @@
 """Prepare one frame-accurate visual plan for the optional browser renderers."""
 
 from pathlib import Path
+import json
 import shutil
 
 from PIL import Image, ImageDraw
@@ -153,18 +154,26 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                           "viseme_for": layer.get("viseme_for"), "viseme": layer.get("viseme")}
                 if layer["kind"] == "svg":
                     path = svg_asset(layer, base, channel_base)
-                    if path not in vectors:
-                        vectors[path] = f"vector-{len(vectors)}.svg"
-                        shutil.copyfile(path, assets / vectors[path])
-                    visual["sprite"] = vectors[path]
+                    styled = layer.get("finish")
+                    key = (path, json.dumps(styled, sort_keys=True)) if styled else path
+                    if key not in vectors:
+                        vectors[key] = f"vector-{len(vectors)}.svg"
+                        if styled:
+                            from .stylepass import apply as style_pass
+                            (assets / vectors[key]).write_text(
+                                style_pass(path.read_text(encoding="utf-8"), styled, uid=f"style-{len(vectors)}"),
+                                encoding="utf-8")
+                        else:
+                            shutil.copyfile(path, assets / vectors[key])
+                    visual["sprite"] = vectors[key]
                     visual["box"] = [max(1, round(layer.get("width", 0.55) * width)),
                                      max(1, round(layer.get("height", 0.2) * height))]
                     if layer.get("boil"):
                         from .boil import variants
                         frames = []
-                        source = path.read_text(encoding="utf-8")
+                        source = (assets / vectors[key]).read_text(encoding="utf-8")
                         for frame_index, copy in enumerate(variants(source, layer["boil"], seed=len(vectors) + 7)):
-                            name = f"{vectors[path][:-4]}-boil-{frame_index}.svg"
+                            name = f"{vectors[key][:-4]}-boil-{frame_index}.svg"
                             (assets / name).write_text(copy, encoding="utf-8")
                             frames.append(name)
                         visual["frames"] = frames
