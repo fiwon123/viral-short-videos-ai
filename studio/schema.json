@@ -255,6 +255,7 @@
         "max_width": {"type": "number", "minimum": 0.4, "maximum": 1},
         "wave": {"$ref": "#/$defs/unit"},
         "hold": {"type": "number", "minimum": 0, "maximum": 2},
+        "avoid": {"description": "Move kinetic captions off faces and caption_avoid layers (default true).", "type": "boolean"},
         "position": {"enum": ["top", "center", "bottom"]},
         "highlight": {"$ref": "#/$defs/paint"},
         "highlight_text": {"$ref": "#/$defs/paint"},
@@ -476,6 +477,7 @@
         "mouth_shape": {"$ref": "#/$defs/text"},
         "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
         "wipe_from": {"enum": ["left", "right", "top", "bottom", "center"]},
+        "caption_avoid": {"description": "Kinetic captions move to keep clear of this layer.", "type": "boolean"},
         "anchor3d": {
           "description": "Pin this top-level 2D layer to a 3D object's screen position (browser renderers).",
           "type": "object", "required": ["object"], "additionalProperties": false,

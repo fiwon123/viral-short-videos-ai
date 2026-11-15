@@ -251,7 +251,7 @@ def word_sprite(text, font_path, size, state, config, palette):
 
 def draw_kinetic(image, cue, channel, font_path, config, frame, fps):
     """Composite the kinetic caption page that is live at ``frame``."""
-    config = settings(config)
+    config = settings({**config, **(cue.get("placement") or {})})
     palette = (channel or {}).get("palette", {})
     page = next((item for item in pages(cue, config) if item["start"] <= frame < item["end"]), None)
     if page is None:

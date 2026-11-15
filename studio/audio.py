@@ -646,6 +646,8 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
     timeline["duration_frames"] = cursor
     caption_config = {**((channel or {}).get("captions") or {}), **(episode.get("captions") or {})}
     hold_captions(timeline["captions"], cursor, fps, caption_config.get("hold", 0.45))
+    from .caption_place import place as place_captions
+    place_captions(timeline, episode, caption_config)
     music_config = {**(music or {}),
                     "gain": music.get("gain", 0.10) if music else 0,
                     "reverb_size": config.get("reverb", {}).get("size", 0.3),

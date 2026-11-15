@@ -610,5 +610,28 @@ class PaintKeyTests(unittest.TestCase):
         self.assertTrue(all(key["tint_color"].startswith("#") for key in layer["keyframes"]))
 
 
+class CaptionPlacementTests(unittest.TestCase):
+    def test_kinetic_caption_moves_off_face(self):
+        from studio.caption_place import place
+        shot = {"id": "A", "duration": 2.0, "layers": [
+            {"id": "hero", "kind": "group", "x": 0.5, "y": 0.62},
+            {"id": "hero/head", "kind": "svg", "role": "head", "parent": "hero", "x": 0, "y": 0,
+             "width": 0.4, "height": 0.2, "pivot": [0.5, 0.5]}]}
+        episode = {"scenes": [{"shots": [shot]}]}
+        timeline = {"scenes": [{"shots": [{"id": "A", "start": 0, "end": 48}]}],
+                    "captions": [{"start": 5, "end": 30, "words": []}]}
+        place(timeline, episode, {"style": "kinetic", "position": "center", "offset": 0.12})
+        self.assertEqual(timeline["captions"][0]["placement"]["position"], "top")
+
+    def test_clear_caption_keeps_its_position(self):
+        from studio.caption_place import place
+        shot = {"id": "A", "duration": 2.0, "layers": [
+            {"id": "sign", "kind": "rect", "caption_avoid": True, "x": 0.5, "y": 0.2, "width": 0.3, "height": 0.1}]}
+        timeline = {"scenes": [{"shots": [{"id": "A", "start": 0, "end": 48}]}],
+                    "captions": [{"start": 5, "end": 30, "words": []}]}
+        place(timeline, {"scenes": [{"shots": [shot]}]}, {"style": "kinetic", "position": "bottom"})
+        self.assertNotIn("placement", timeline["captions"][0])
+
+
 if __name__ == "__main__":
     unittest.main()

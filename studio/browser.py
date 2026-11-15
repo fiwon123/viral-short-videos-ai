@@ -35,7 +35,7 @@ def _kinetic_cue(cue, caption_config, canvas, font, channel, assets, number, fps
     """Stage per-word sprites and page layout for the browser kinetic captions."""
     from .captions import layout, pages, settings, word_sprite
 
-    config = settings(caption_config)
+    config = settings({**caption_config, **(cue.get("placement") or {})})
     palette = channel.get("palette", {})
     staged = []
     for page_index, page in enumerate(pages(cue, config)):
