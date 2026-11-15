@@ -45,10 +45,6 @@ Dusk turns to night over layered hills while the camera drifts. Pip waits on the
 - pip/leg-r (svg, foreground) at (0.05732, -0.03809), box 0.12924 × 0.07111, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/leg-r.svg`.
 - pip/body (svg, foreground) at (0.0, -0.02873), box 0.31246 × 0.20176, scale 0.988 × 1.024, rotation 0.72339°, opacity 1. Channel asset `art/characters/pip/body.svg`.
   - 00:00:00.042–00:00:03.583 · 86 composed keys animating rotate, scale_x, scale_y.
-- pip/arm-l (svg, foreground) at (-0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 16.12654°, opacity 1. Channel asset `art/characters/pip/arm-l.svg`.
-  - 00:00:00.042–00:00:03.583 · 86 composed keys animating rotate.
-- pip/arm-r (svg, foreground) at (0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation -16.12654°, opacity 1. Channel asset `art/characters/pip/arm-r.svg`.
-  - 00:00:00.042–00:00:03.583 · 86 composed keys animating rotate.
 - pip/antenna (svg, foreground) at (0.0, -0.17971), box 0.071 × 0.09235, scale 1 × 1, rotation 3.61067°, opacity 1. Channel asset `art/characters/pip/antenna.svg`.
   - 00:00:00.042–00:00:03.583 · 86 composed keys animating rotate.
 - pip/eye-l (svg, foreground) at (-0.06009, -0.11981), box 0.07303 × 0.04953, scale 1 × 1.0, rotation 0°, opacity 1. Channel asset `art/characters/pip/eye-l.svg`.
@@ -77,6 +73,22 @@ Dusk turns to night over layered hills while the camera drifts. Pip waits on the
   - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
 - pip/mouth-flat (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-flat.svg`.
   - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/mouth-mbp (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-mbp.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/mouth-e (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-e.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/mouth-u (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-u.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/mouth-fv (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-fv.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/mouth-l (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-l.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/mouth-etc (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-etc.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating visible.
+- pip/arm-l (svg, foreground) at (-0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 16.12654°, opacity 1. Channel asset `art/characters/pip/arm-l.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating rotate.
+- pip/arm-r (svg, foreground) at (0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation -16.12654°, opacity 1. Channel asset `art/characters/pip/arm-r.svg`.
+  - 00:00:00.042–00:00:03.583 · 86 composed keys animating rotate.
 - badge (rect, foreground) at (0.5, 0.075), box 0.5 × 0.04, scale 1 × 1, rotation 0°, opacity 0.85. Fill #3B3F8F.
 - badge-text (text, foreground) at (0.5, 0.075), box 0.42 × 0.022, scale 1 × 1, rotation 0°, opacity 1. Fill #FFD45C. Screen text: POCKET STARS / 01
 - 00:00:00.292–00:00:01.958 · Narrator: Pip has one job tonight. [Kokoro (af_heart)].
@@ -121,10 +133,6 @@ A star tumbles in on a long arc, spinning like a coin. Pip spots it and reaches 
 - pip/leg-r (svg, foreground) at (0.05732, -0.03809), box 0.12924 × 0.07111, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/leg-r.svg`.
 - pip/body (svg, foreground) at (0.0, -0.02873), box 0.31246 × 0.20176, scale 0.988 × 1.024, rotation 0.72623°, opacity 1. Channel asset `art/characters/pip/body.svg`.
   - 00:00:03.667–00:00:07.792 · 100 composed keys animating rotate, scale_x, scale_y.
-- pip/arm-l (svg, foreground) at (-0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 16.23877°, opacity 1. Channel asset `art/characters/pip/arm-l.svg`.
-  - 00:00:03.667–00:00:07.792 · 100 composed keys animating rotate.
-- pip/arm-r (svg, foreground) at (0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation -16.23877°, opacity 1. Channel asset `art/characters/pip/arm-r.svg`.
-  - 00:00:03.667–00:00:07.792 · 100 composed keys animating rotate.
 - pip/antenna (svg, foreground) at (0.0, -0.17971), box 0.071 × 0.09235, scale 1 × 1, rotation 3.75744°, opacity 1. Channel asset `art/characters/pip/antenna.svg`.
   - 00:00:03.667–00:00:07.792 · 100 composed keys animating rotate.
 - pip/eye-l (svg, foreground) at (-0.06009, -0.11981), box 0.07303 × 0.04953, scale 1.0 × 1.0, rotation 0°, opacity 1. Channel asset `art/characters/pip/eye-l.svg`.
@@ -153,6 +161,22 @@ A star tumbles in on a long arc, spinning like a coin. Pip spots it and reaches 
   - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
 - pip/mouth-flat (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-flat.svg`.
   - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/mouth-mbp (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-mbp.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/mouth-e (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-e.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/mouth-u (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-u.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/mouth-fv (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-fv.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/mouth-l (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-l.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/mouth-etc (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-etc.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating visible.
+- pip/arm-l (svg, foreground) at (-0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 16.23877°, opacity 1. Channel asset `art/characters/pip/arm-l.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating rotate.
+- pip/arm-r (svg, foreground) at (0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation -16.23877°, opacity 1. Channel asset `art/characters/pip/arm-r.svg`.
+  - 00:00:03.667–00:00:07.792 · 100 composed keys animating rotate.
 - badge (rect, foreground) at (0.5, 0.075), box 0.5 × 0.04, scale 1 × 1, rotation 0°, opacity 0.85. Fill #3B3F8F.
 - badge-text (text, foreground) at (0.5, 0.075), box 0.42 × 0.022, scale 1 × 1, rotation 0°, opacity 1. Fill #FFD45C. Screen text: POCKET STARS / 01
 - 00:00:04.042–00:00:06.083 · Narrator: Stars never fall where you expect. [Kokoro (af_heart)].
@@ -201,10 +225,6 @@ Caught. A glow ring swells from Pip's hand, the sky warms for a beat, and Pip ch
 - pip/leg-r (svg, foreground) at (0.05732, -0.03809), box 0.12924 × 0.07111, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/leg-r.svg`.
 - pip/body (svg, foreground) at (0.0, -0.02873), box 0.31246 × 0.20176, scale 0.99004 × 1.01991, rotation 1.39821°, opacity 1. Channel asset `art/characters/pip/body.svg`.
   - 00:00:07.875–00:00:11.625 · 91 composed keys animating rotate, scale_x, scale_y.
-- pip/arm-l (svg, foreground) at (-0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 17.59131°, opacity 1. Channel asset `art/characters/pip/arm-l.svg`.
-  - 00:00:07.875–00:00:11.625 · 91 composed keys animating rotate.
-- pip/arm-r (svg, foreground) at (0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 130.83321°, opacity 1. Channel asset `art/characters/pip/arm-r.svg`.
-  - 00:00:07.875–00:00:11.625 · 91 composed keys animating rotate.
 - pip/antenna (svg, foreground) at (0.0, -0.17971), box 0.071 × 0.09235, scale 1 × 1, rotation 4.49772°, opacity 1. Channel asset `art/characters/pip/antenna.svg`.
   - 00:00:07.875–00:00:11.625 · 91 composed keys animating rotate.
 - pip/eye-l (svg, foreground) at (-0.06009, -0.11981), box 0.07303 × 0.04953, scale 1 × 1.0, rotation 0°, opacity 1. Channel asset `art/characters/pip/eye-l.svg`.
@@ -233,6 +253,22 @@ Caught. A glow ring swells from Pip's hand, the sky warms for a beat, and Pip ch
   - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
 - pip/mouth-flat (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-flat.svg`.
   - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/mouth-mbp (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-mbp.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/mouth-e (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-e.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/mouth-u (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-u.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/mouth-fv (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-fv.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/mouth-l (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-l.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/mouth-etc (svg, foreground) at (0.0, -0.07114), box 0.09152 × 0.04043, scale 1 × 1, rotation 0°, opacity 1. Channel asset `art/characters/pip/mouth-etc.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating visible.
+- pip/arm-l (svg, foreground) at (-0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 17.59131°, opacity 1. Channel asset `art/characters/pip/arm-l.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating rotate.
+- pip/arm-r (svg, foreground) at (0.12623, -0.0936), box 0.11324 × 0.12571, scale 1 × 1, rotation 130.83321°, opacity 1. Channel asset `art/characters/pip/arm-r.svg`.
+  - 00:00:07.875–00:00:11.625 · 91 composed keys animating rotate.
 - badge (rect, foreground) at (0.5, 0.075), box 0.5 × 0.04, scale 1 × 1, rotation 0°, opacity 0.85. Fill #3B3F8F.
 - badge-text (text, foreground) at (0.5, 0.075), box 0.42 × 0.022, scale 1 × 1, rotation 0°, opacity 1. Fill #FFD45C. Screen text: POCKET STARS / 01
 - 00:00:08.167–00:00:10.333 · Narrator: Got it. Tidy sky, *happy* Pip. [Kokoro (af_heart)].
