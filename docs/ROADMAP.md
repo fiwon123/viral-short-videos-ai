@@ -44,12 +44,30 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 4.5: anchor3d | Done | 2D layers pinned to projected 3D objects. The 3D frame renders first so the camera is current. |
 | Phase 2.4: animatable paint | Done | Keyable `tint_color` and `wipe` draw-on (`wipe_from`) in both renderers. Keyed `fill`/`stroke_width`/`stroke_color` on shapes and text expand in `studio/paint.py` into `paint_frames` sprites plus `frame` keys (≤120 looks, sampled at min(24, fps)). `keys.compose` takes a `rate` and no longer puts grid samples within 0.9 sample of an authored key. Also fixed `gradient_image` clipping angles past 90°. |
 | Bug fix: Python rotated clockwise | Done | Since `ab19891`, `transform.rotate` turned positive degrees clockwise while the browser (and the old PIL path) turned counter-clockwise. Python now matches. Path `orient` flipped with it. The parity fixture has an asymmetric `needle`, and `RotationConventionTests` pins the direction. |
-| Still pending | Pending | Nothing from the plan. IK reach check landed in the motion report (`reach_notes`). Showcase example `examples/pocket-stars` landed (Phase 6). |
+| Channel growth workflow | Done | Skill interviews new channels one question at a time, ranks trends (`discover --rank views/velocity/outlier --shorts --snapshots`, growth between runs), and keeps channel memory: direction history, ledger with results and lessons, idea bank with seasonal calendar, series bible (`make channel-memory`, `references/episode-planning.md`). |
+| Still pending | Pending | Nothing from the original plan. See "Professional gaps" below for the next work. |
 
-Tests: `make test` passes, 83 tests including the new caption, word-timing and sound-design tests.
+## Professional gaps (next work, from the 2026-11-15 audit)
+
+| Gap | Area | Why it matters | Idea |
+| --- | --- | --- | --- |
+| Shape morphing / path tweening | 2D | Morphing mouths, liquid, blob transitions and smears need point-level interpolation | Keyable `points` on polygons and matched SVG path morph in both painters |
+| Mesh deformation (bend/bone skinning) | 2D | Rigid parts read as cut-out; bendy arms, squash on a body, cloth need deformation | A bend deformer on a part (curve the sprite along a 2-bone chain) in both renderers |
+| Character art range | 2D | `make character` makes one cute bean family; other genres need humans, animals, props | More generator archetypes, or a documented import path for layered artwork (PSD/SVG to rig) |
+| Lip sync | 2D | Visemes exist but mouth sets are generic | Map Whisper phonemes to the 6+ mouth shapes per character |
+| Lighting on 2D layers | 2.5D | Flat layers ignore scene light | Normal/rim light pass driven by a light direction per shot |
+| Depth from a photo | 2.5D | "Photo parallax" is a popular format | Split an image into depth layers from a depth map |
+| 3D character animation | 3D | Only GLB clip playback; no authored bones, no 3D IK, no retargeting | Bone keys and 3D IK on GLB skeletons; docs for free CC0 rigs (Quaternius, Kenney) and Mixamo |
+| 3D physics | 3D | Falls, collisions and debris are hand-keyed | Bake rigid-body motion into object keys with a small solver |
+| Render quality and speed | 3D | Real-time WebGL look; no path tracing; ~2 min per 15 s at 540p | Accept for stylised channels; add a quality preset (SSAO, soft shadows) and parallel shot rendering |
+| Music | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
+| Voices | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
+
+Tests: `make test` passes, 85 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Channel growth workflow (interview, trend ranking with velocity/outlier/snapshots, channel memory files) and the professional gap audit.
 - 2026-11-15: `examples/pocket-stars` showcase landed. The timed script now summarises composed key tracks, and `turn_x`/`turn_y` allow ±3600°.
 - 2026-11-15: Motion report flags unreachable IK targets.
 - 2026-11-15: Phase 2.6 IK landed. Fixed the Python/browser rotation direction mismatch.

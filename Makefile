@@ -6,6 +6,7 @@ SHELL := /bin/sh
 .DEFAULT_GOAL := help
 
 -include .env
+export YOUTUBE_API_KEY
 
 PYTHON ?= audio-models/venv/bin/python
 
@@ -25,7 +26,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets sfx sfx-import spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory discover assets sfx sfx-import spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -43,6 +44,8 @@ help:
 	@echo "  make sfx-import DIR=...     import recorded SFX packs into the library [DRY=1]"
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
+	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
+	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make motion MOTION=pop      emit a manifest-ready motion recipe"
@@ -86,6 +89,16 @@ status:
 init:
 	@$(PYTHON) -m studio.project init $(if $(FORCE),--force,)
 	@echo "Edit .env if the detected values are not the ones you want."
+
+discover:
+	@test -n "$(QUERY)" || { echo "Set QUERY='search terms' [REGION=US] [RANK=velocity|views|outlier] [DAYS=7] [SLUG=<channel>]"; exit 1; }
+	@$(PYTHON) video.py discover --query "$(QUERY)" --region $(or $(REGION),US) --shorts \
+		--rank $(or $(RANK),velocity) --days $(or $(DAYS),7) --limit $(or $(LIMIT),10) \
+		$(if $(SLUG),--snapshots workspace/$(SLUG)/research/snapshots,)
+
+channel-memory:
+	@test -n "$(SLUG)" || { echo "Set SLUG=<channel slug> (workspace/<slug>/)"; exit 1; }
+	@$(PYTHON) -m studio.memory $(SLUG) $(if $(EPISODE),--episode $(EPISODE),)
 
 assets:
 	@test -n "$(CHANNEL)" || { echo "No channel resolved. Run make status, or set CHANNEL=channels/<slug>/channel.json"; exit 1; }

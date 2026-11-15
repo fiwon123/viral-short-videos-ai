@@ -28,10 +28,12 @@ Open this repository in an AI assistant that can read and edit local files and r
   
 ```text
 Read AGENTS.md and .agents/skills/viral-video-studio/SKILL.md.
-Help me build an animated Shorts channel for [audience] on [YouTube or TikTok].
-Propose three original series formats. For each, give me a recurring hook,
-a sample episode, and an estimate of the work per video. Let me pick one.
-Then build its brand kit and render a preview of the first episode.
+Help me start an animated Shorts channel. Ask me one question at a time about
+audience, tone, topic, format, animation style, platform, length and voice.
+Then show me the Shorts growing fastest in that space this week, ranked by
+views with views per hour and breakout ratio, and propose three original
+directions. Let me pick one, then build its brand kit, set up the channel
+memory, and render a preview of the first episode.
 ```
 
 </details>
@@ -59,6 +61,8 @@ After I approve the plan, prepare previews and publishing copy.
 ```
 
 </details>
+
+The assistant keeps each channel's memory in `workspace/<slug>/`: the current direction and its history, an episode ledger with results and lessons, an idea bank with a seasonal calendar, and a series bible for continuity (`make channel-memory SLUG=<slug>` creates any that are missing). With a `YOUTUBE_API_KEY`, `python video.py discover --shorts --rank velocity --snapshots workspace/<slug>/research/snapshots` ranks recent videos by speed and measures real growth when re-run. Without a key it uses browser research.
 
 **✅ Review the direction, story, and preview.** The assistant prepares the assets, runs the checks, and renders locally. For a chat-only AI, share the [studio skill](.agents/skills/viral-video-studio/SKILL.md) and have it return prompts, manifests, and commands you can run locally. [More prompts in the Wiki](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook)
 

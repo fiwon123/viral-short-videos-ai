@@ -807,6 +807,79 @@ class PaintTests(unittest.TestCase):
         self.assertGreater(image.getpixel((0, 1))[2], 200)
 
 
+class DiscoverTests(unittest.TestCase):
+    def fake(self, views):
+        from datetime import datetime, timezone
+        published = {"a": "2026-11-14T12:00:00Z", "b": "2026-11-10T12:00:00Z", "c": "2026-11-14T00:00:00Z"}
+        lengths = {"a": "PT45S", "b": "PT58S", "c": "PT9M"}
+        channel = {"a": "UC1", "b": "UC2", "c": "UC3"}
+
+        def request(endpoint, key, **params):
+            if endpoint == "search":
+                return [{"id": {"videoId": vid}} for vid in "abc"]
+            if endpoint == "videoCategories":
+                return [{"id": "1", "snippet": {"title": "Film & Animation"}}]
+            if endpoint == "videos":
+                return [{"id": vid, "snippet": {"title": vid, "channelTitle": channel[vid], "channelId": channel[vid],
+                                                "publishedAt": published[vid], "categoryId": "1",
+                                                "liveBroadcastContent": "none"},
+                         "contentDetails": {"duration": lengths[vid]},
+                         "statistics": {"viewCount": str(views[vid])}} for vid in params["id"].split(",")]
+            if endpoint == "channels":
+                return [{"id": "UC1", "statistics": {"subscriberCount": "1000"}},
+                        {"id": "UC2", "statistics": {"subscriberCount": "2000000"}}]
+            return []
+        return request, datetime(2026, 11, 15, 12, 0, tzinfo=timezone.utc)
+
+    def test_velocity_outlier_shorts_and_snapshot_growth(self):
+        import os
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"YOUTUBE_API_KEY": "test"}):
+            self.check_discover()
+
+    def check_discover(self):
+        import os
+        from tempfile import TemporaryDirectory
+        from datetime import timedelta
+        from studio.research import discover
+        request, now = self.fake({"a": 240000, "b": 900000, "c": 5000000})
+        by_views = discover(["q"], "US", None, 5, request, now, shorts=True)
+        self.assertEqual([c["channel"] for c in by_views["channels"]], ["UC2", "UC1"])  # 9-minute video dropped.
+        by_speed = discover(["q"], "US", None, 5, request, now, shorts=True, rank="velocity")
+        self.assertEqual(by_speed["channels"][0]["channel"], "UC1")  # 240k in 24h beats 900k in 5 days.
+        self.assertEqual(by_speed["channels"][0]["videos"][0]["views_per_hour"], 10000.0)
+        by_outlier = discover(["q"], "US", None, 5, request, now, shorts=True, rank="outlier")
+        self.assertEqual(by_outlier["channels"][0]["videos"][0]["views_per_subscriber"], 240.0)
+        with TemporaryDirectory() as folder:
+            discover(["q"], "US", None, 5, request, now, shorts=True, snapshots=folder)
+            later_request, _ = self.fake({"a": 300000, "b": 910000, "c": 5000000})
+            later = discover(["q"], "US", None, 5, later_request, now + timedelta(hours=6), shorts=True,
+                             rank="velocity", snapshots=folder)
+            video = later["channels"][0]["videos"][0]
+            self.assertEqual(video["views_gained"], 60000)
+            self.assertEqual(video["views_per_hour_since_last"], 10000.0)
+            self.assertEqual(len(os.listdir(folder)), 2)
+
+
+class ChannelMemoryTests(unittest.TestCase):
+    def test_creates_missing_files_and_keeps_existing(self):
+        from datetime import date
+        from tempfile import TemporaryDirectory
+        from studio.memory import create
+        with TemporaryDirectory() as root:
+            created = create("demo", "ep01", root, date(2026, 1, 2))
+            names = sorted(Path(path).relative_to(Path(root) / "demo").as_posix() for path in created)
+            self.assertEqual(names, ["MEMORY.md", "channel/AGENTS.md", "channel/episode-ledger.md",
+                                     "channel/ideas.md", "channel/series.md", "episodes/ep01/NOTES.md"])
+            memory = (Path(root) / "demo" / "MEMORY.md").read_text()
+            self.assertIn("Updated: 2026-01-02", memory)
+            self.assertIn("## Direction history", memory)
+            self.assertTrue((Path(root) / "demo/channel/AGENTS.md").read_text().startswith("# Channel rules"))
+            (Path(root) / "demo" / "MEMORY.md").write_text("kept")
+            self.assertEqual(create("demo", None, root), [])
+            self.assertEqual((Path(root) / "demo" / "MEMORY.md").read_text(), "kept")
+
+
 class RotationConventionTests(unittest.TestCase):
     def test_positive_rotate_turns_counter_clockwise_like_the_browser(self):
         # browser/painter.mjs layerMatrix uses rotate(-degrees) with the canvas [cos, sin, -sin, cos] form.

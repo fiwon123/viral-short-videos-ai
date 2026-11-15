@@ -11,7 +11,7 @@ Use one workspace per channel: `workspace/<slug>/channel/channel.json`, `workspa
 Keep working memory in files so a new session or an interrupted one can pick up where the last stopped. Update them as you go, not only at the end.
 
 - **Studio and repository work** (renderer, schema, tools, presets, skill): read and update [docs/ROADMAP.md](docs/ROADMAP.md). It is tracked, so it must stay generic: no channel names, episodes or brand details.
-- **A channel**: before planning or making anything for `workspace/<slug>/`, read `workspace/<slug>/MEMORY.md` (current state, decisions, next step), then `workspace/<slug>/channel/AGENTS.md` (channel rules) and `workspace/<slug>/channel/episode-ledger.md` (made, in progress, planned) when they exist. Create missing ones from the templates in [docs/memory-templates.md](docs/memory-templates.md).
+- **A channel**: before planning or making anything for `workspace/<slug>/`, read `workspace/<slug>/MEMORY.md` (current direction, direction history, decisions, next step), then `workspace/<slug>/channel/AGENTS.md` (channel rules), `channel/episode-ledger.md` (made, in progress, planned, results and lessons), `channel/ideas.md` (idea bank and seasonal calendar) and `channel/series.md` (series bible) when they exist. Create missing ones from the templates in [docs/memory-templates.md](docs/memory-templates.md). After each episode, update the ledger, series bible, idea bank and memory as described in the skill's episode planning guide.
 - **An episode**: keep `workspace/<slug>/episodes/<episode>/NOTES.md` with its status, open issues, and the exact next command to run.
 
 Everything specific to a channel or video lives under the ignored `workspace/`, never in tracked files.

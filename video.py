@@ -133,11 +133,17 @@ def options():
     reference.add_argument("--threshold", type=float, default=0.34, help="scene change threshold from 0 to 1")
     reference.add_argument("--focus-shorts", action="store_true",
                            help="sample the first and last two seconds more closely")
-    discover = commands.add_parser("discover", help="sample top recent YouTube videos using YOUTUBE_API_KEY")
+    discover = commands.add_parser("discover", help="rank recent YouTube videos by views, speed or breakout using YOUTUBE_API_KEY")
     discover.add_argument("--query", action="append", required=True, help="repeat for distinct search terms")
     discover.add_argument("--region", required=True, help="two-letter country code")
     discover.add_argument("--language", help="YouTube relevance language hint")
     discover.add_argument("--limit", type=int, default=8)
+    discover.add_argument("--days", type=int, default=7, help="look-back window in days (1-28)")
+    discover.add_argument("--shorts", action="store_true", help="only videos up to three minutes")
+    discover.add_argument("--rank", choices=("views", "velocity", "outlier"), default="views",
+                          help="views, views per hour since publish, or views per subscriber")
+    discover.add_argument("--snapshots", type=Path,
+                          help="folder of earlier results; adds growth since the last run and saves this one")
     return parser.parse_args()
 
 
@@ -174,7 +180,11 @@ def execute(args):
 
         if not re.fullmatch(r"[A-Za-z]{2}", args.region) or not 5 <= args.limit <= 25 or len(args.query) > 8:
             raise ValueError("Use a two-letter region, a limit from 5 to 25, and up to eight queries")
-        return discover(args.query, args.region.upper(), args.language, args.limit), 0
+        if not 1 <= args.days <= 28:
+            raise ValueError("Use --days from 1 to 28")
+        return discover(args.query, args.region.upper(), args.language, args.limit, days=args.days,
+                        shorts=args.shorts, rank=args.rank,
+                        snapshots=str(args.snapshots) if args.snapshots else None), 0
     if args.command == "analyze":
         from studio.reference import reference
 
