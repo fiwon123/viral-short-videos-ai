@@ -58,6 +58,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Lighting on 2D layers | Done | `studio/light2d.py` and `lightTile` in `painter.mjs`: episode/shot `light` (angle, colour, intensity, shadow, rim, softness, depth, elevation), layer `lit` inherited by children. Dome normals from a wide alpha blur plus rim from a narrow one, in layer space via world rotation and flips, cached per tile and 5° bucket. Parity fixture shot A lights the ball. |
 | Depth from a photo | Done | `studio/depthphoto.py`, `make depth-photo`: depth from a supplied map, a local Depth Anything ONNX model, or a rough fallback. Crops to the frame, cuts equal-area feathered bands, push-pull fills hidden areas, writes image layers with `z` (inserted into a shot with `SHOT=`). |
 | Layering and contact audit | Done | Starter poses were mirrored since the rotation fix (arms crossed the face, brows set absolute dropped to the feet): angles flipped, x/y written as rest + offset, `think` aimed per rig. Arms draw last. `turn_x`/`turn_y` children follow (`turn_child`/`turnChild`, `turn_depth`). Keyed `z` re-sorts per frame. Physics: scene objects are static colliders (GLB bounds from accessors), rotated extents on floors, SAT box contacts, resting tolerance. `anchor3d` occlusion raycast. Lint `contact_warnings` for 3D interpenetration and hovering. |
+| Contact check on real channels | Done | Tested on a 3D channel built from expression-swapped GLBs: keyed scale and visibility now apply to the lint and to physics colliders, fixed large scenery is skipped, model pairs need a deeper overlap (outer boxes are coarse), shot `checks.ignore_3d` excludes decals, bodies inside a set model are not ejected, and colliders are placed once per frame. `three.physics.colliders` is in the schema. |
 | Still pending | Pending | Nothing from the original plan or the 2026-11-15 audit. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -80,6 +81,7 @@ Tests: `make test` passes, 108 tests including the new caption, word-timing and 
 
 ## Log
 
+- 2026-11-15: Contact check and colliders tuned on a real 3D channel (113 warnings to 10 real ones on an existing episode).
 - 2026-11-15: Layering and contact audit across 2D, 2.5D and 3D (see the status row).
 - 2026-11-15: 2D scene lighting and photo depth layers landed; the audit's gap list is done.
 - 2026-11-15: Automatic lip sync landed.

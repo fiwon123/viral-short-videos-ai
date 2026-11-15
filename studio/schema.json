@@ -1145,6 +1145,9 @@
             "ground": {"type": ["number", "null"]},
             "start": {"type": "number", "minimum": 0, "maximum": 720},
             "walls": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}},
+            "colliders": {"description": "Other scene objects that bodies hit: auto (every solid object), false, or a list of ids.",
+                          "anyOf": [{"const": "auto"}, {"const": false},
+                                    {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true}]},
             "bodies": {
               "type": "object", "minProperties": 1,
               "additionalProperties": {
@@ -1224,6 +1227,8 @@
         "avoid_2d": {"type": "array", "items": {"$ref": "#/$defs/id_pair"}},
         "keep_in_frame": {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true},
         "avoid_3d": {"type": "array", "items": {"$ref": "#/$defs/id_pair"}},
+        "ignore_3d": {"description": "3D objects the automatic contact check skips (decals such as mouth discs).",
+                      "type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true},
         "contacts": {
           "type": "array", "items": {
             "type": "object", "required": ["objects", "at"], "additionalProperties": false,

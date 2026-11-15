@@ -993,6 +993,8 @@ class PhysicsContactTests(unittest.TestCase):
             lowest = key["position"][1] - _extent([0.3, 0.3, 0.3], key["rotation"])[1]
             self.assertGreaterEqual(lowest, -0.005)  # A tumbling corner never goes through the floor.
         self.assertAlmostEqual(keys["doll"][-1]["position"][1], 0.0, places=3)  # Feet on the ground.
+        three = {"scene": "s", "physics": {"bodies": {"ball": {"rolls": True}}, "colliders": ["hero"]}}
+        validate({"id": "A", "duration": 1, "layers": [], "three": three}, "shot")
         alone = simulate(objects, {"bodies": {"ball": {"velocity": [-4, 0, 0]}}, "colliders": False}, 1.0)
         self.assertLess(min(key["position"][0] for key in alone["ball"]), hero_right)
 

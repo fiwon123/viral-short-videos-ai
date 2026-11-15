@@ -4,6 +4,7 @@ Validation rejects broken input; lint flags input that renders but probably
 isn't what the author meant, so an AI author can fix it before a render.
 """
 
+import json
 import math
 
 MAX_PARTICLES = 300
@@ -12,26 +13,22 @@ SAMPLES_PER_SECOND = 24
 
 def _solid_states(objects, keys_by_id, t):
     """World box (or sphere) of every visible solid object at shot fraction ``t``."""
-    from .physics3d import SOLID, _extent, _local_box, _rotation, _sample
+    from .physics3d import SOLID, _extent, _local_box, _rotation, _sample, _scale_at, _visible_at
     states = {}
     for obj in objects:
         if obj.get("kind") not in SOLID:
             continue
         keys = keys_by_id.get(obj["id"], [])
-        visible = obj.get("visible", True)
-        for key in keys:
-            if float(key["at"]) <= t + 1e-9 and "visible" in key:
-                visible = key["visible"]
-        if visible is False:
+        if not _visible_at(obj, keys, t):
             continue
         position = _sample(keys, "position", t, obj["position"])
         rotation = _sample(keys, "rotation", t, obj.get("rotation", [0, 0, 0]))
-        centre, half = _local_box(obj)
+        centre, half = _local_box(obj, _scale_at(obj, keys, t))
         rows = _rotation(rotation)
         middle = [position[i] + sum(rows[i][j] * centre[j] for j in range(3)) for i in range(3)]
         sphere = obj["kind"] == "sphere"
         states[obj["id"]] = {"centre": middle, "half": half if sphere else _extent(half, rotation), "sphere": sphere,
-                             "rows": rows, "local": half}
+                             "rows": rows, "local": half, "glb": obj["kind"] == "glb"}
     return states
 
 
@@ -65,6 +62,15 @@ def contact_warnings(shot, objects):
     """3D objects that pass into each other, sink into or hover just above what is under them."""
     three = shot.get("three") or {}
     keys_by_id = three.get("objects", {})
+    ignored = set((shot.get("checks") or {}).get("ignore_3d", []))
+    objects = [obj for obj in objects if obj["id"] not in ignored]
+
+    def moves(obj_id):
+        keys = keys_by_id.get(obj_id, [])
+        values = {json.dumps([key.get("position"), key.get("rotation"), key.get("scale")]) for key in keys
+                  if any(prop in key for prop in ("position", "rotation", "scale"))}
+        return len(values) > 1
+    moving = {obj["id"]: moves(obj["id"]) for obj in objects}
     duration = float(shot.get("duration", 1))
     count = max(2, round(duration * SAMPLES_PER_SECOND))
     warnings, reported = [], set()
@@ -75,10 +81,15 @@ def contact_warnings(shot, objects):
         for i, first in enumerate(names):
             for second in names[i + 1:]:
                 a, b = states[first], states[second]
+                pair = (first, second)
+                if not moving[first] and not moving[second] and max(a["half"][0], a["half"][2], b["half"][0],
+                                                                    b["half"][2]) > 1.5:
+                    continue  # Fixed scenery (floors, set models) overlaps by design.
                 depth, contains = _penetration(a, b)
                 size = 2 * min(min(a["half"]), min(b["half"]))
-                pair = (first, second)
-                if depth > max(0.02, 0.06 * size) and not contains and pair not in reported:
+                # A box around a model with ears and arms is coarse, so models need a deeper overlap.
+                limit = max(0.02, (0.35 if a["glb"] or b["glb"] else 0.06) * size)
+                if depth > limit and not contains and pair not in reported:
                     reported.add(pair)
                     warnings.append(f"{shot['id']}: 3D {first} and {second} pass into each other at "
                                     f"{t * duration:.2f}s ({depth:.2f} deep). Move them apart, make one a physics "

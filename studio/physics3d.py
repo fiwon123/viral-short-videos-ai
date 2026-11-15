@@ -41,9 +41,10 @@ def _size(obj):
     return [abs(float(v)) * base for v in scale]
 
 
-def _local_box(obj):
+def _local_box(obj, scale=None):
     """Centre offset and half extents of an object in its own (scaled) space."""
-    scale = [abs(float(v)) for v in obj.get("scale", [1, 1, 1])]
+    scale = scale if scale is not None else obj.get("scale", [1, 1, 1])
+    scale = [abs(float(v)) for v in (scale if isinstance(scale, (list, tuple)) else [scale] * 3)]
     bounds = obj.get("_bounds") if obj.get("kind") == "glb" else None
     if bounds:
         low, high = bounds
@@ -81,6 +82,22 @@ def _sample(keys, prop, t, default):
     return points[-1][1]
 
 
+def _visible_at(obj, keys, t):
+    visible = obj.get("visible", True)
+    for key in keys:
+        if float(key["at"]) <= t + 1e-9 and "visible" in key:
+            visible = key["visible"]
+    return visible is not False
+
+
+def _scale_at(obj, keys, t):
+    default = obj.get("scale", [1, 1, 1])
+    default = default if isinstance(default, (list, tuple)) else [default] * 3
+    points = [dict(key, scale=key["scale"] if isinstance(key["scale"], (list, tuple)) else [key["scale"]] * 3)
+              for key in keys if "scale" in key]
+    return _sample(points, "scale", t, default)
+
+
 def _colliders(objects, spec, bodies, object_keys):
     """Fixed axis-aligned boxes (and spheres) for the scene's other solid objects."""
     choice = spec.get("colliders", "auto")
@@ -92,15 +109,23 @@ def _colliders(objects, spec, bodies, object_keys):
     for obj in objects:
         if obj["id"] in taken or obj.get("kind") not in SOLID or (chosen is not None and obj["id"] not in chosen):
             continue
-        centre, half = _local_box(obj)
         keys = (object_keys or {}).get(obj["id"], [])
-        rotation = list(map(float, next((key["rotation"] for key in keys if "rotation" in key), obj.get("rotation", [0, 0, 0]))))
-        rows = _rotation(rotation)
-        offset = [sum(rows[i][j] * centre[j] for j in range(3)) for i in range(3)]
-        result.append({"id": obj["id"], "sphere": obj["kind"] == "sphere", "keys": keys,
-                       "position": list(map(float, obj["position"])), "offset": offset,
-                       "half": _extent(half, rotation)})
+        result.append({"id": obj["id"], "obj": obj, "sphere": obj["kind"] == "sphere", "keys": keys,
+                       "position": list(map(float, obj["position"]))})
     return result
+
+
+def _collider_at(collider, t):
+    """World centre and half extents of a fixed collider at shot fraction ``t`` (None when hidden)."""
+    obj, keys = collider["obj"], collider["keys"]
+    if not _visible_at(obj, keys, t):
+        return None
+    centre, half = _local_box(obj, _scale_at(obj, keys, t))
+    rotation = list(map(float, _sample(keys, "rotation", t, obj.get("rotation", [0, 0, 0]))))
+    rows = _rotation(rotation)
+    position = _sample(keys, "position", t, collider["position"])
+    middle = [position[i] + sum(rows[i][j] * centre[j] for j in range(3)) for i in range(3)]
+    return middle, (half if collider["sphere"] else _extent(half, rotation))
 
 
 def oriented(centre, rotation, half, offset=(0.0, 0.0, 0.0)):
@@ -225,11 +250,12 @@ def simulate(objects, spec, duration, start_keys=None, object_keys=None):
             body["r"] = [value + (round(value / quarter) * quarter - value) * min(1.0, 12 * dt)
                          for value in body["r"]]
 
-    def collide_static(body, collider, t, dt):
-        position = _sample(collider["keys"], "position", t, collider["position"])
-        centre = [position[i] + collider["offset"][i] for i in range(3)]
-        half = collider["half"]
+    def collide_static(body, collider, placed, dt):
+        centre, half = placed
         p = body["p"]
+        if all(abs(p[i] - centre[i]) + body["radius"] <= half[i] for i in range(3)) and not collider["sphere"] \
+                and min(half) > 2 * body["radius"]:
+            return  # The body is inside a room or set model, not hitting it.
         if collider["sphere"]:
             delta = [p[i] - centre[i] for i in range(3)]
             distance = math.sqrt(sum(d * d for d in delta)) or 1e-6
@@ -287,8 +313,11 @@ def simulate(objects, spec, duration, start_keys=None, object_keys=None):
 
     record(0)
     for frame in range(1, frames + 1):
+        now = frame / RATE
+        # Fixed colliders move at most once per frame; place them once, not every substep.
+        placed = [(collider, _collider_at(collider, now / max(duration, 1e-6)))
+                  for collider in statics] if now >= start else []
         for _ in range(SUBSTEPS):
-            now = frame / RATE
             if now < start:
                 continue
             for body in bodies:
@@ -301,8 +330,9 @@ def simulate(objects, spec, duration, start_keys=None, object_keys=None):
                 # A resting body keeps contact through the tiny gaps settling opens, so it flattens promptly.
                 if ground is not None and body["p"][1] - below(body) < ground + (CONTACT if body["v"][1] <= 0 else 0):
                     land(body, ground, dt)
-                for collider in statics:
-                    collide_static(body, collider, now / max(duration, 1e-6), dt)
+                for collider, where in placed:
+                    if where is not None:
+                        collide_static(body, collider, where, dt)
                 if walls:
                     for axis, low, high in ((0, walls[0], walls[1]), (2, walls[2], walls[3])):
                         if body["p"][axis] - body["radius"] < low:
