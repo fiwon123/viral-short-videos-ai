@@ -83,6 +83,7 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 
 - `tint_color` (hex) is keyable and blends with `tint_opacity`: a blush, a danger flash, a sunset shift. Set `tint_opacity` to 1 on the layer and key the colour.
 - `wipe` (0–1) reveals a layer from `wipe_from` (`left`, `right`, `top`, `bottom`, `center`), as with a title writing on, a line drawing itself or a progress bar. Key it from 0 to 1 with an `out` ease.
+- `turn_x` / `turn_y` (degrees) turn a layer in perspective about its `pivot`: card flips (`turn_y` 0→180, the back shows mirrored), a floor or tabletop plane (`turn_x` 50–70 with `pivot: [0.5, 1]`), a door swing (pivot on an edge). Past 90° the layer is seen from behind. Children and groups don't inherit the turn, so turn leaf layers.
 
 ## Depth (2.5D)
 

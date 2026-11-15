@@ -119,6 +119,40 @@ function wipeClip(target, layer, pose) {
   target.clip();
 }
 
+// Perspective turn about the pivot. Mirrors studio/design.py turn_point/turn_tile.
+const TURN_FOCAL = 2.5;
+const TURN_GRID = 10;
+
+function turnPoint(dx, dy, turnX, turnY, focalLength) {
+  const ty = turnY * Math.PI / 180, tx = turnX * Math.PI / 180;
+  const x1 = dx * Math.cos(ty), z1 = -dx * Math.sin(ty);
+  const y2 = dy * Math.cos(tx) - z1 * Math.sin(tx), z2 = dy * Math.sin(tx) + z1 * Math.cos(tx);
+  const s = focalLength / Math.max(focalLength * 0.05, focalLength + z2);
+  return [x1 * s, y2 * s];
+}
+
+// Affine map taking source triangle (s0,s1,s2) onto destination (d0,d1,d2).
+function triangleMatrix(s0, s1, s2, d0, d1, d2) {
+  const [ax, ay] = [s1[0] - s0[0], s1[1] - s0[1]];
+  const [bx, by] = [s2[0] - s0[0], s2[1] - s0[1]];
+  const det = ax * by - bx * ay;
+  if (Math.abs(det) < 1e-9) return null;
+  const [cx, cy] = [d1[0] - d0[0], d1[1] - d0[1]];
+  const [ex, ey] = [d2[0] - d0[0], d2[1] - d0[1]];
+  const a = (cx * by - ex * ay) / det, c = (ex * ax - cx * bx) / det;
+  const b = (cy * by - ey * ay) / det, d = (ey * ax - cy * bx) / det;
+  return [a, b, c, d, d0[0] - a * s0[0] - c * s0[1], d0[1] - b * s0[0] - d * s0[1]];
+}
+
+function expandTriangle(points, amount) {
+  const mx = (points[0][0] + points[1][0] + points[2][0]) / 3;
+  const my = (points[0][1] + points[1][1] + points[2][1]) / 3;
+  return points.map(([x, y]) => {
+    const length = Math.hypot(x - mx, y - my) || 1;
+    return [x + (x - mx) / length * amount, y + (y - my) / length * amount];
+  });
+}
+
 // Mirrors studio/transform.py focal/depth_scale/depth_fade and design.depth_blur.
 function focal(camera) {
   const fov = Math.max(10, Math.min(110, camera?.fov ?? 50));
@@ -298,6 +332,78 @@ export async function createPainter(canvas, data, urlFor) {
     return canvas;
   }
 
+  const turnCanvases = new Map();
+  const turnSources = new Map();
+
+  // Wipe, then perspective-turn a tile into a padded canvas. Returns the new box and pivot.
+  function turnedTile(layer, tile, pose) {
+    const w = layer.width, h = layer.height;
+    const sw = tile.naturalWidth || tile.width, sh = tile.naturalHeight || tile.height;
+    const rx = sw / w, ry = sh / h;
+    const focalLength = TURN_FOCAL * Math.max(w, h);
+    const pad = Math.round(0.3 * Math.max(w, h));
+    const cx = (layer.pivot?.[0] ?? 0.5) * w, cy = (layer.pivot?.[1] ?? 0.5) * h;
+    const box = [w + 2 * pad, h + 2 * pad];
+    const pivot = [(pad + cx) / box[0], (pad + cy) / box[1]];
+    let source = tile;
+    if ((pose.wipe ?? 1) < 1) {
+      let wiped = turnSources.get(layer.id);
+      if (!wiped) {
+        wiped = document.createElement("canvas");
+        turnSources.set(layer.id, wiped);
+      }
+      wiped.width = sw;
+      wiped.height = sh;
+      const wctx = wiped.getContext("2d");
+      wctx.setTransform(rx, 0, 0, ry, 0, 0);
+      wipeClip(wctx, layer, pose);
+      wctx.drawImage(tile, 0, 0, w, h);
+      source = wiped;
+    }
+    let canvas = turnCanvases.get(layer.id);
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      turnCanvases.set(layer.id, canvas);
+    }
+    canvas.width = Math.max(1, Math.round(box[0] * rx));
+    canvas.height = Math.max(1, Math.round(box[1] * ry));
+    const out = canvas.getContext("2d");
+    out.imageSmoothingQuality = "high";
+    const turnX = pose.turn_x ?? 0, turnY = pose.turn_y ?? 0;
+    const project = (u, v) => {
+      const [px, py] = turnPoint(u * w - cx, v * h - cy, turnX, turnY, focalLength);
+      return [(pad + cx + px) * rx, (pad + cy + py) * ry];
+    };
+    const grid = [];
+    for (let j = 0; j <= TURN_GRID; j += 1) {
+      grid.push([]);
+      for (let i = 0; i <= TURN_GRID; i += 1) grid[j].push(project(i / TURN_GRID, j / TURN_GRID));
+    }
+    const src = (i, j) => [i / TURN_GRID * sw, j / TURN_GRID * sh];
+    const seam = 1.5;
+    for (let j = 0; j < TURN_GRID; j += 1) {
+      for (let i = 0; i < TURN_GRID; i += 1) {
+        for (const tri of [[[i, j], [i + 1, j], [i + 1, j + 1]], [[i, j], [i + 1, j + 1], [i, j + 1]]]) {
+          const dest = tri.map(([a, b]) => grid[b][a]);
+          const matrix = triangleMatrix(...tri.map(([a, b]) => src(a, b)), ...dest);
+          if (!matrix) continue;
+          const clip = expandTriangle(dest, seam);
+          out.save();
+          out.beginPath();
+          out.moveTo(...clip[0]);
+          out.lineTo(...clip[1]);
+          out.lineTo(...clip[2]);
+          out.closePath();
+          out.clip();
+          out.setTransform(...matrix);
+          out.drawImage(source, 0, 0);
+          out.restore();
+        }
+      }
+    }
+    return {tile: canvas, width: box[0], height: box[1], pivot};
+  }
+
   function lumaMask(progress, softness, invert, seed) {
     const scale = 4;
     const mw = Math.max(4, Math.ceil(width / scale));
@@ -463,13 +569,19 @@ export async function createPainter(canvas, data, urlFor) {
         const floor = layer.talk_only ? 0.4 : 0.18;
         mouth = floor + (1 - floor) * level;
       }
-      const matrix = layerMatrix(pose, width, height, layer.pivot,
+      const turned = (pose.turn_x || pose.turn_y) && layer.kind !== "group"
+        ? turnedTile(layer, drawTile, pose) : null;
+      const art = turned?.tile ?? drawTile;
+      const boxW = turned?.width ?? layer.width, boxH = turned?.height ?? layer.height;
+      const pivot = turned?.pivot ?? layer.pivot;
+      const clipPose = turned ? {...pose, wipe: 1} : pose;
+      const matrix = layerMatrix(pose, width, height, pivot,
         {parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
-         camera, parallax: layer.parallax, mouth, box: [layer.width, layer.height]});
+         camera, parallax: layer.parallax, mouth, box: [boxW, boxH]});
       matrices.set(layer.id, matrix);
       alphas.set(layer.id, alpha);
-      origins.set(layer.id, [(layer.pivot?.[0] ?? 0.5) * layer.width,
-        (layer.pivot?.[1] ?? 0.5) * layer.height * mouth]);
+      origins.set(layer.id, [(pivot?.[0] ?? 0.5) * boxW,
+        (pivot?.[1] ?? 0.5) * boxH * mouth]);
       if (layer.kind === "group" || alpha <= 0) continue;
       const masks = maskSpecsFor(layer, byId);
       if (!masks.length) {
@@ -481,13 +593,13 @@ export async function createPainter(canvas, data, urlFor) {
           for (let index = 0; index < samples; index += 1) {
             const factor = (index - (samples - 1) / 2) / Math.max(1, samples - 1);
             const moved = poseAt(layer.poses, Math.max(0, Math.min(1, progress + window * factor)));
-            const samplePose = {...pose};
+            const samplePose = {...clipPose};
             for (const key of ["x", "y", "scale", "scale_x", "scale_y", "rotate", "skew_x", "skew_y"]) {
               if (moved[key] !== undefined) samplePose[key] = moved[key];
             }
-            const sampleMatrix = layerMatrix(samplePose, width, height, layer.pivot,
+            const sampleMatrix = layerMatrix(samplePose, width, height, pivot,
               {parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
-               camera, parallax: layer.parallax, mouth, box: [layer.width, layer.height]});
+               camera, parallax: layer.parallax, mouth, box: [boxW, boxH]});
             target.save();
             target.setTransform(...sampleMatrix);
             wipeClip(target, layer, samplePose);
@@ -495,14 +607,14 @@ export async function createPainter(canvas, data, urlFor) {
             target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
             target.filter = blur
               ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
-            target.drawImage(drawTile, 0, 0, layer.width, layer.height);
+            target.drawImage(art, 0, 0, boxW, boxH);
             target.restore();
           }
           continue;
         }
         target.save();
         target.setTransform(...matrix);
-        wipeClip(target, layer, pose);
+        wipeClip(target, layer, clipPose);
         target.globalAlpha = alpha;
         target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
         target.filter = blur ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
@@ -514,19 +626,19 @@ export async function createPainter(canvas, data, urlFor) {
           target.shadowOffsetX = (shadow.offset_x ?? 0) * width;
           target.shadowOffsetY = (shadow.offset_y ?? 0) * height;
           target.globalAlpha = (shadow.opacity ?? 0.55);
-          target.drawImage(drawTile, 0, 0, layer.width, layer.height);
+          target.drawImage(art, 0, 0, boxW, boxH);
           target.shadowColor = "transparent";
           target.shadowBlur = 0;
           target.shadowOffsetX = 0;
           target.shadowOffsetY = 0;
         }
         target.globalAlpha = alpha;
-        target.drawImage(drawTile, 0, 0, layer.width, layer.height);
+        target.drawImage(art, 0, 0, boxW, boxH);
         if (glow) {
           target.globalCompositeOperation = "screen";
           target.globalAlpha = alpha * (glow.opacity ?? 0.6);
           target.filter = `blur(${Math.max(1, Math.min(width, height) * (glow.size ?? 0.18) * 0.16)}px)`;
-          target.drawImage(drawTile, 0, 0, layer.width, layer.height);
+          target.drawImage(art, 0, 0, boxW, boxH);
         }
         target.restore();
         continue;
@@ -537,11 +649,11 @@ export async function createPainter(canvas, data, urlFor) {
       layerMaskCtx.clearRect(0, 0, width, height);
       layerMaskCtx.save();
       layerMaskCtx.setTransform(...matrix);
-      wipeClip(layerMaskCtx, layer, pose);
+      wipeClip(layerMaskCtx, layer, clipPose);
       layerMaskCtx.globalAlpha = alpha;
       layerMaskCtx.filter = blur
         ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
-      layerMaskCtx.drawImage(drawTile, 0, 0, layer.width, layer.height);
+      layerMaskCtx.drawImage(art, 0, 0, boxW, boxH);
       layerMaskCtx.restore();
       layerMaskCtx.filter = "none";
       for (const spec of masks) {

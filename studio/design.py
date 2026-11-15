@@ -354,6 +354,8 @@ def poses(layer):
         "visible": layer.get("visible", True),
         "z": layer.get("z", 0),
         "wipe": layer.get("wipe", 1),
+        "turn_x": layer.get("turn_x", 0),
+        "turn_y": layer.get("turn_y", 0),
     }
     colour = layer.get("tint_color") or next((key["tint_color"] for key in layer.get("keyframes", [])
                                                if "tint_color" in key), None)
@@ -412,6 +414,47 @@ def pose_at(points, progress):
                 result[name] = _mix(value, end[name], ease(t, "smooth" if property_mode == "auto" else property_mode))
         return result
     return points[-1][1]
+
+
+TURN_FOCAL = 2.5  # Perspective distance for turn_x/turn_y, in multiples of the layer's longest side.
+
+
+def turn_point(dx, dy, turn_x, turn_y, focal):
+    """Project a point offset from the pivot after turning about Y then X. Mirrors painter.mjs."""
+    ty, tx = math.radians(turn_y), math.radians(turn_x)
+    x1, z1 = dx * math.cos(ty), -dx * math.sin(ty)
+    y2, z2 = dy * math.cos(tx) - z1 * math.sin(tx), dy * math.sin(tx) + z1 * math.cos(tx)
+    scale = focal / max(focal * 0.05, focal + z2)
+    return x1 * scale, y2 * scale
+
+
+def _perspective_coeffs(output, source):
+    rows, values = [], []
+    for (x, y), (u, v) in zip(output, source):
+        rows.append([x, y, 1, 0, 0, 0, -u * x, -u * y])
+        rows.append([0, 0, 0, x, y, 1, -v * x, -v * y])
+        values.extend([u, v])
+    return np.linalg.solve(np.array(rows, dtype=np.float64), np.array(values, dtype=np.float64)).tolist()
+
+
+def turn_tile(tile, turn_x, turn_y, pivot):
+    """Perspective-turn a tile about its pivot; returns the padded tile and its new pivot."""
+    w, h = tile.size
+    focal = TURN_FOCAL * max(w, h)
+    pad = round(0.3 * max(w, h))
+    cx, cy = float(pivot[0]) * w, float(pivot[1]) * h
+    corners = [(0, 0), (w, 0), (w, h), (0, h)]
+    projected = []
+    for x, y in corners:
+        px, py = turn_point(x - cx, y - cy, turn_x, turn_y, focal)
+        projected.append((pad + cx + px, pad + cy + py))
+    size = (w + 2 * pad, h + 2 * pad)
+    try:
+        coeffs = _perspective_coeffs(projected, corners)
+    except np.linalg.LinAlgError:  # Edge-on: nothing visible.
+        return Image.new("RGBA", size, (0, 0, 0, 0)), [(pad + cx) / size[0], (pad + cy) / size[1]]
+    turned = tile.transform(size, Image.Transform.PERSPECTIVE, coeffs, Image.Resampling.BICUBIC)
+    return turned, [(pad + cx) / size[0], (pad + cy) / size[1]]
 
 
 def wipe_region(width, height, amount, start="left"):
@@ -825,13 +868,16 @@ class Composition:
                 tile = wipe_tile(tile, float(state["wipe"]), layer["spec"].get("wipe_from", "left"))
             if state.get("blur"):
                 tile = tile.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * float(state["blur"]) * 0.02)))
-            matrix = layer_matrix(state, width, height, layer["pivot"], parent=parent_matrix,
+            pivot = layer["pivot"]
+            if (state.get("turn_x") or state.get("turn_y")) and layer["kind"] != "group":
+                tile, pivot = turn_tile(tile, float(state.get("turn_x", 0)), float(state.get("turn_y", 0)), pivot)
+            matrix = layer_matrix(state, width, height, pivot, parent=parent_matrix,
                                   parent_origin=origins.get(layer["parent"]),
                                   camera=camera, parallax=layer["parallax"],
                                   box=(tile.width, tile.height))
             matrices[layer["id"]], alphas[layer["id"]] = matrix, alpha
-            origins[layer["id"]] = (float(layer["pivot"][0]) * tile.width,
-                                    float(layer["pivot"][1]) * tile.height)
+            origins[layer["id"]] = (float(pivot[0]) * tile.width,
+                                    float(pivot[1]) * tile.height)
             if layer["kind"] == "group" or alpha <= 0:
                 continue
             placed, left, top = _transformed(tile, matrix)
@@ -877,7 +923,7 @@ class Composition:
                     sample_state = {**state, **{key: value for key, value in pose_at(
                         layer["points"], max(0.0, min(1.0, progress + window * factor))).items()
                         if key in ("x", "y", "scale", "scale_x", "scale_y", "rotate", "skew_x", "skew_y")}}
-                    sample_matrix = layer_matrix(sample_state, width, height, layer["pivot"], parent=parent_matrix,
+                    sample_matrix = layer_matrix(sample_state, width, height, pivot, parent=parent_matrix,
                                                  parent_origin=origins.get(layer["parent"]), camera=camera,
                                                  parallax=layer["parallax"], box=(tile.width, tile.height))
                     sample, sample_left, sample_top = _transformed(tile, sample_matrix)

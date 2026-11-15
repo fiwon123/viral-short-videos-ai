@@ -602,6 +602,36 @@ class PaintKeyTests(unittest.TestCase):
         self.assertEqual(right.getpixel((90, 10))[3], 255)
         self.assertEqual(right.getpixel((10, 10))[3], 0)
 
+    def test_turn_point_projects_card_flip(self):
+        from studio.design import turn_point
+        self.assertEqual(turn_point(10, 5, 0, 0, 100), (10, 5))
+        x, y = turn_point(10, 0, 0, 90, 100)
+        self.assertAlmostEqual(x, 0, places=6)
+        x, y = turn_point(10, 0, 0, 180, 100)
+        self.assertAlmostEqual(x, -10, places=6)
+        # Positive turn_y swings the left edge away: it shrinks, the right edge grows.
+        far, _ = turn_point(-10, 0, 0, 30, 100)
+        near, _ = turn_point(10, 0, 0, 30, 100)
+        self.assertGreater(abs(near), abs(far))
+
+    def test_turn_tile_keeps_pivot_and_narrows(self):
+        from PIL import Image
+        from studio.design import turn_tile
+        tile = Image.new("RGBA", (100, 50), (255, 255, 255, 255))
+        flat, pivot = turn_tile(tile, 0, 0, [0.5, 0.5])
+        self.assertEqual(flat.size, (160, 110))
+        self.assertEqual(pivot, [0.5, 0.5])
+        self.assertEqual(flat.getpixel((80, 55))[3], 255)
+        turned, _ = turn_tile(tile, 0, 60, [0.5, 0.5])
+        box = turned.getchannel("A").point(lambda a: 255 if a > 128 else 0).getbbox()
+        self.assertLess(box[2] - box[0], 70)
+        self.assertGreater(box[2] - box[0], 40)
+
+    def test_turn_is_keyable(self):
+        layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5,
+                 "keyframes": [{"at": 1, "turn_y": 180}]}
+        self.assertAlmostEqual(pose_at(poses(layer), 0.5)["turn_y"], 90)
+
     def test_compose_keeps_tint_color_hex(self):
         from studio.keys import compose
         layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5, "tint_color": "#000000",
