@@ -402,6 +402,8 @@
         "rotate": {"type": "number", "minimum": -3600, "maximum": 3600},
         "opacity": {"$ref": "#/$defs/unit"},
         "visible": {"type": "boolean"},
+        "wipe": {"description": "Draw-on reveal: 0 hidden, 1 fully shown (see wipe_from).", "$ref": "#/$defs/unit"},
+        "tint_color": {"description": "Keyable tint colour (hex) applied with tint_opacity.", "$ref": "#/$defs/color"},
         "z": {"description": "Depth into the scene in screen heights; 0 is the picture plane, positive is farther.",
               "type": "number", "minimum": -0.9, "maximum": 50}
       }
@@ -416,7 +418,7 @@
         "ease_props": {
           "description": "Per-property easing overrides for this keyframe.",
           "type": "object",
-          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z"]},
+          "propertyNames": {"enum": ["x", "y", "scale", "scale_x", "scale_y", "skew_x", "skew_y", "frame", "blur", "tint_opacity", "rotate", "opacity", "z", "wipe", "tint_color"]},
           "additionalProperties": {"$ref": "#/$defs/ease"}
         }
       }
@@ -473,6 +475,7 @@
         "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop"]},
         "mouth_shape": {"$ref": "#/$defs/text"},
         "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
+        "wipe_from": {"enum": ["left", "right", "top", "bottom", "center"]},
         "anchor3d": {
           "description": "Pin this top-level 2D layer to a 3D object's screen position (browser renderers).",
           "type": "object", "required": ["object"], "additionalProperties": false,

@@ -9,7 +9,7 @@ from .design import pose_at, poses
 
 RATE = 24  # Samples per second for composed keys.
 PROPS = ("x", "y", "scale", "scale_x", "scale_y", "rotate", "opacity", "skew_x", "skew_y",
-         "blur", "tint_opacity", "frame", "visible", "z")
+         "blur", "tint_opacity", "frame", "visible", "z", "wipe", "tint_color")
 
 
 def compose(layer, duration, modifiers):
@@ -43,18 +43,22 @@ def compose(layer, duration, modifiers):
     animated = set(changed)
     first = keys[0][1]
     for _, pose in keys:
-        animated |= {prop for prop in PROPS if pose[prop] != first[prop]}
+        animated |= {prop for prop in PROPS if prop in pose and pose[prop] != first[prop]}
     result = []
     for progress, pose in keys:
         key = {"at": round(progress, 5)}
         for prop in PROPS:
-            if prop in animated:
+            if prop in animated and prop in pose:
                 value = pose[prop]
+                if prop == "tint_color":
+                    value = "#" + "".join(f"{max(0, min(255, round(v))):02X}" for v in value)
                 key[prop] = round(value, 5) if isinstance(value, float) else value
         result.append(key)
     # Start values become the layer's base pose so the first key matches.
     for prop in animated:
         value = first[prop]
+        if prop == "tint_color":
+            value = "#" + "".join(f"{max(0, min(255, round(v))):02X}" for v in value)
         layer[prop] = round(value, 5) if isinstance(value, float) else value
     layer["keyframes"] = [key for key in result if key["at"] > 0] or result[-1:]
     for key in layer["keyframes"]:

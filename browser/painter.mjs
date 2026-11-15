@@ -71,6 +71,22 @@ function layerMatrix(pose, width, height, pivot, {parent = null, parentOrigin = 
   return local;
 }
 
+// Draw-on reveal in the layer's local box. Mirrors studio/design.py wipe_region.
+function wipeClip(target, layer, pose) {
+  const amount = Math.max(0, Math.min(1, pose.wipe ?? 1));
+  if (amount >= 1) return;
+  const w = layer.width, h = layer.height;
+  const from = layer.wipe_from ?? "left";
+  let box = [0, 0, w * amount, h];
+  if (from === "right") box = [w * (1 - amount), 0, w * amount, h];
+  else if (from === "top") box = [0, 0, w, h * amount];
+  else if (from === "bottom") box = [0, h * (1 - amount), w, h * amount];
+  else if (from === "center") box = [w * (1 - amount) / 2, 0, w * amount, h];
+  target.beginPath();
+  target.rect(...box);
+  target.clip();
+}
+
 // Mirrors studio/transform.py focal/depth_scale/depth_fade and design.depth_blur.
 function focal(camera) {
   const fov = Math.max(10, Math.min(110, camera?.fov ?? 50));
@@ -390,9 +406,10 @@ export async function createPainter(canvas, data, urlFor) {
       depths.set(layer.id, rootZ);
       const blur = (pose.blur ?? layer.blur ?? 0) + depthBlur(rootZ, camera, camera?.focus);
       const tintOpacity = pose.tint_opacity ?? 0;
-      const drawTile = layer.tint && tintOpacity > 0
-        ? tintTile(layer, tile, paintColor(layer.tint, "accent"), tintOpacity)
-        : tile;
+      const tintColor = pose.tint_color
+        ? `rgb(${pose.tint_color.map((value) => Math.round(value)).join(",")})`
+        : (layer.tint ? paintColor(layer.tint, "accent") : null);
+      const drawTile = tintColor && tintOpacity > 0 ? tintTile(layer, tile, tintColor, tintOpacity) : tile;
       if (layer.viseme_for) {
         const shape = visemes[layer.viseme_for];
         if (shape && layer.viseme && layer.viseme !== shape) continue;
@@ -439,6 +456,7 @@ export async function createPainter(canvas, data, urlFor) {
                camera, parallax: layer.parallax, mouth, box: [layer.width, layer.height]});
             target.save();
             target.setTransform(...sampleMatrix);
+            wipeClip(target, layer, samplePose);
             target.globalAlpha = alpha / samples;
             target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
             target.filter = blur
@@ -450,6 +468,7 @@ export async function createPainter(canvas, data, urlFor) {
         }
         target.save();
         target.setTransform(...matrix);
+        wipeClip(target, layer, pose);
         target.globalAlpha = alpha;
         target.globalCompositeOperation = BLEND[layer.blend] ?? "source-over";
         target.filter = blur ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";
@@ -484,6 +503,7 @@ export async function createPainter(canvas, data, urlFor) {
       layerMaskCtx.clearRect(0, 0, width, height);
       layerMaskCtx.save();
       layerMaskCtx.setTransform(...matrix);
+      wipeClip(layerMaskCtx, layer, pose);
       layerMaskCtx.globalAlpha = alpha;
       layerMaskCtx.filter = blur
         ? `blur(${Math.max(0.4, Math.min(width, height) * blur * 0.02)}px)` : "none";

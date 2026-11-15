@@ -583,5 +583,32 @@ class CameraRigTests(unittest.TestCase):
         self.assertEqual(keys[-1]["position"], [4, 1, 3])
 
 
+class PaintKeyTests(unittest.TestCase):
+    def test_tint_color_interpolates(self):
+        layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5, "tint_color": "#000000",
+                 "keyframes": [{"at": 1, "tint_color": "#FF8000"}]}
+        middle = pose_at(poses(layer), 0.5)["tint_color"]
+        self.assertAlmostEqual(middle[0], 127.5)
+        self.assertAlmostEqual(middle[1], 64)
+
+    def test_wipe_tile_reveals_from_edge(self):
+        from PIL import Image
+        from studio.design import wipe_tile
+        tile = Image.new("RGBA", (100, 20), (255, 255, 255, 255))
+        half = wipe_tile(tile, 0.5, "left")
+        self.assertEqual(half.getpixel((10, 10))[3], 255)
+        self.assertEqual(half.getpixel((90, 10))[3], 0)
+        right = wipe_tile(tile, 0.25, "right")
+        self.assertEqual(right.getpixel((90, 10))[3], 255)
+        self.assertEqual(right.getpixel((10, 10))[3], 0)
+
+    def test_compose_keeps_tint_color_hex(self):
+        from studio.keys import compose
+        layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5, "tint_color": "#000000",
+                 "keyframes": [{"at": 1, "tint_color": "#FFFFFF"}]}
+        compose(layer, 1.0, [lambda t: {"x": ("add", 0.1)}])
+        self.assertTrue(all(key["tint_color"].startswith("#") for key in layer["keyframes"]))
+
+
 if __name__ == "__main__":
     unittest.main()

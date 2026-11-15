@@ -324,6 +324,19 @@ TALK_LEVEL = 0.08  # Mouth level above which a speaker counts as talking.
 MOTION_SHUTTER = 0.08  # Seconds a layer's motion_blur of 1 smears across.
 
 
+def _rgb_list(value):
+    if isinstance(value, list):
+        return value
+    value = value.lstrip("#")
+    return [int(value[i:i + 2], 16) for i in (0, 2, 4)]
+
+
+def _mix(start, end, k):
+    if isinstance(start, list):
+        return [a + (b - a) * k for a, b in zip(start, end)]
+    return start + (end - start) * k
+
+
 def poses(layer):
     scale = layer.get("scale", 1)
     state = {
@@ -340,9 +353,16 @@ def poses(layer):
         "opacity": layer.get("opacity", 1),
         "visible": layer.get("visible", True),
         "z": layer.get("z", 0),
+        "wipe": layer.get("wipe", 1),
     }
+    colour = layer.get("tint_color") or next((key["tint_color"] for key in layer.get("keyframes", [])
+                                               if "tint_color" in key), None)
+    if colour:
+        state["tint_color"] = _rgb_list(layer.get("tint_color", colour))
     points = [(0, state, "linear", {})]
     for key in layer.get("keyframes", []):
+        if "tint_color" in key:
+            key = {**key, "tint_color": _rgb_list(key["tint_color"])}
         state = {name: key.get(name, value) for name, value in state.items()}
         if "scale" in key:
             if "scale_x" not in key:
@@ -384,14 +404,37 @@ def pose_at(points, progress):
                 result[name] = end[name] if progress >= b else value
                 continue
             property_mode = ease_props.get(name, mode)
-            if property_mode == "auto":
+            if property_mode == "auto" and not isinstance(value, list):
                 p0 = points[index - 2][1].get(name, value) if index >= 2 else value
                 p3 = points[index + 1][1].get(name, end[name]) if index + 1 < len(points) else end[name]
                 result[name] = catmull_rom(p0, value, end[name], p3, t)
             else:
-                result[name] = value + (end[name] - value) * ease(t, property_mode)
+                result[name] = _mix(value, end[name], ease(t, "smooth" if property_mode == "auto" else property_mode))
         return result
     return points[-1][1]
+
+
+def wipe_region(width, height, amount, start="left"):
+    """Visible box of a tile revealed ``amount`` (0..1) from one edge or the centre."""
+    amount = max(0.0, min(1.0, amount))
+    if start == "right":
+        return (width * (1 - amount), 0, width, height)
+    if start == "top":
+        return (0, 0, width, height * amount)
+    if start == "bottom":
+        return (0, height * (1 - amount), width, height)
+    if start == "center":
+        return (width * (1 - amount) / 2, 0, width * (1 + amount) / 2, height)
+    return (0, 0, width * amount, height)
+
+
+def wipe_tile(tile, amount, start="left"):
+    """Draw-on reveal: keep only the revealed part of a tile. Mirrors painter.mjs."""
+    left, top, right, bottom = (round(v) for v in wipe_region(tile.width, tile.height, amount, start))
+    revealed = Image.new("RGBA", tile.size, (0, 0, 0, 0))
+    if right > left and bottom > top:
+        revealed.paste(tile.crop((left, top, right, bottom)), (left, top))
+    return revealed
 
 
 def depth_order(layers):
@@ -774,6 +817,8 @@ class Composition:
                 if mouth < 0.999:
                     tile = tile.resize((tile.width, max(1, round(tile.height * mouth))),
                                        Image.Resampling.BILINEAR)
+            if float(state.get("wipe", 1)) < 1:
+                tile = wipe_tile(tile, float(state["wipe"]), layer["spec"].get("wipe_from", "left"))
             if state.get("blur"):
                 tile = tile.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * float(state["blur"]) * 0.02)))
             matrix = layer_matrix(state, width, height, layer["pivot"], parent=parent_matrix,
@@ -792,15 +837,18 @@ class Composition:
             placed = self._apply_masks(placed, left, top, self.masks.get(layer["id"], []),
                                        progress, camera, mask_cache)
             tint_opacity = max(0.0, min(1.0, float(state.get("tint_opacity", 0) or 0)))
-            if layer.get("tint") and tint_opacity > 0:
+            if (layer.get("tint") or state.get("tint_color")) and tint_opacity > 0:
+                colour = (tuple(round(v) for v in state["tint_color"]) if state.get("tint_color")
+                          else resolve_color(layer["tint"], self.palette))
                 tinted = ImageChops.multiply(
                     placed.convert("RGB"),
-                    Image.new("RGB", placed.size, resolve_color(layer["tint"], self.palette)),
+                    Image.new("RGB", placed.size, colour),
                 ).convert("RGBA")
                 tinted.putalpha(placed.getchannel("A"))
                 placed = Image.blend(placed, tinted, tint_opacity)
             motion = float(layer.get("motion_blur", 0) or 0)
-            if motion > 0 and (self.masks.get(layer["id"]) or (layer.get("tint") and tint_opacity > 0)):
+            if motion > 0 and (self.masks.get(layer["id"]) or ((layer.get("tint") or state.get("tint_color"))
+                                                               and tint_opacity > 0)):
                 # Masked or tinted layers keep the cheaper smear of the finished patch.
                 future = pose_at(layer["points"], min(1.0, progress + motion * MOTION_SHUTTER
                                                       / max(0.1, float(self.shot.get("duration", 1)))))

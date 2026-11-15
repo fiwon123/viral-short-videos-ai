@@ -132,6 +132,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                           "mouth": layer.get("mouth_for"),
                           "quiet": layer.get("quiet_for"), "talk_only": bool(layer.get("talk_only")),
                           "anchor3d": layer.get("anchor3d"),
+                          "wipe_from": layer.get("wipe_from", "left"),
                           "plane": layer.get("plane", "foreground"),
                           "parent": layer.get("parent"), "variant_group": layer.get("variant_group"),
                           "pivot": layer.get("pivot", [0.5, 0.5]),

@@ -71,6 +71,11 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 4. Move the whole body with `motion`, `path` and keys on the `use` layer. `alive` adds breathing, blinks, glances, sway, ear and antenna follow-through, and the talking mouth on top.
 5. Hit one pose change per beat. Hold readable poses for at least 0.4 s, and change pose on the word that motivates it.
 
+## Colour and draw-on
+
+- `tint_color` (hex) is keyable and blends with `tint_opacity`: a blush, a danger flash, a sunset shift. Set `tint_opacity` to 1 on the layer and key the colour.
+- `wipe` (0–1) reveals a layer from `wipe_from` (`left`, `right`, `top`, `bottom`, `center`), as with a title writing on, a line drawing itself or a progress bar. Key it from 0 to 1 with an `out` ease.
+
 ## Depth (2.5D)
 
 Give top-level layers a `z` (0 is the picture plane, positive is farther, slightly negative is in front). Lay everything out as it should look. `z` changes nothing at rest; it only sets how each layer reacts when the camera moves:
