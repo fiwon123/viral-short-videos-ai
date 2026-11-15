@@ -96,7 +96,7 @@ def place(timeline, episode, config):
         best, score = preferred, None
         for position, offset in order:
             band = _band(position, offset, merged["font_size"])
-            if band[1] < 0.06 or band[3] > 0.9:
+            if (position, offset) != preferred and (band[1] < 0.06 or band[3] > 0.9):
                 continue
             hit = sum(_overlap(band, face) for face in faces)
             if score is None or hit < score - 1e-9:

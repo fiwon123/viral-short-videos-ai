@@ -47,6 +47,8 @@ def settings(config):
     merged = {**DEFAULTS, **preset, **{k: v for k, v in config.items() if k != "style"}}
     if "uppercase" not in config and "uppercase" in preset:
         merged["uppercase"] = preset["uppercase"]
+    if "offset" not in config and "offset" not in preset and merged["position"] != "center":
+        merged["offset"] = 0.0  # The default lift is tuned for centred captions only.
     if isinstance(merged["shadow"], bool):
         merged["shadow"] = DEFAULTS["shadow"] if merged["shadow"] else 0.0
     if merged["active"] == "none":
