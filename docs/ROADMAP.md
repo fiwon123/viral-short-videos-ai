@@ -1,0 +1,164 @@
+# Studio roadmap
+
+This is the tracked memory for studio work: the renderer, schema, tools, presets and skill. Read it before resuming studio work, and update the status as items land. Keep it generic, with no channel names, episodes or brand details. Those go under `workspace/<slug>/`.
+
+## Status (update as you go)
+
+| Item | State | Notes |
+| --- | --- | --- |
+| Track A1: measured word timing | Done | `studio/wordtiming.py`. Uses energy/pause alignment, or Whisper if `faster-whisper` is installed (`STUDIO_WORD_TIMING`). Hooked in `audio.measured_words`. |
+| Track A2: kinetic captions | Done | `studio/captions.py` and `browser/captions.mjs` (they mirror each other). The `style: kinetic` presets include hormozi-pop, with `*word*` emphasis. `captions.hold` defaults to 0.45 s. |
+| Track A2: caption face/hitbox avoidance | Pending | For now, use `position`/`offset`. |
+| Track A3: caption QA in `make check` | Pending | |
+| Track B1: recorded SFX import | Done | `studio/samples.py` and `make sfx-import DIR=... [DRY=1]`. |
+| Track B2: layered cue EQ/compression | Pending | |
+| Track B3: SFX auto-spotting | Done | `studio/spotting.py` and `make spot [APPLY=1]`. Cues carry `"spotted": true`. |
+| Track B4: mix polish | Partial | SFX bus `glue()` and music `sfx_duck` are in. The density check is pending. |
+| Phase 1.1: shared expansion pipeline | Done | `studio/pipeline.py:prepare_episode` is used by `video.py` and `editor.py`. |
+| Phase 1.2–1.4 | Pending | SVG easing parity, motion-blur parity, validation warnings. |
+| Track C, Phases 2–6 | Pending | Next up: Track C (rig-ready characters, auto life, style passes, finishing post). |
+
+Tests: `make test` passes, 30 tests including the new caption, word-timing and sound-design tests.
+
+## Log
+
+- 2026-11-15: Tracks A and B landed (captions, word timing, SFX import, spotting, bus glue) along with the shared pipeline. Set up the memory files. Next: Track C.
+
+---
+
+## Context
+The studio turns `episode.json` into video through two renderers. `python` (`studio/design.py`) handles flat 2D raster. `hyperframes`/`remotion` are browser renderers (`browser/painter.mjs`, `browser/three.mjs`). Almost every feature is expanded into plain `at` keyframes before rendering.
+
+The AI author is limited in four ways today:
+- **Missing primitives.** There are no motion paths, no wiggle/noise on layers, no secondary motion, colour can't be animated, there is no z-depth for 2D layers, there are no 3D camera rigs, and 3D has only basic lights.
+- **Parity bugs.** SVG layers lose `ease_props`, and `auto` easing on SVG falls back to smoothstep. Motion blur means different things in each renderer.
+- **Duplicated expansion pipeline.** It is copied in `video.py:310-324`, `video.py:355-371` and `editor.py:19`, and the copies run steps in different orders.
+- **Thin feedback loop.** Stills don't show motion, parity has no pass/fail threshold, and physics and motion recipes produce JSON the author must merge by hand.
+
+The goal is more expressive primitives that expand into the existing keyframe model, plus tools that let an AI *see* and *check* motion.
+
+Design rule: each new feature is a load-time expander, like `particles.py`, `trails.py` and `reveal.py`. It emits ordinary keys, so both renderers get it for free and parity holds. Browser-only work is limited to genuinely 3D features.
+
+---
+
+## Priority tracks (from user feedback: weak subtitles, amateur SFX, simple art)
+These run first. The phases below follow them.
+
+### Track A: Pro subtitles
+Root cause: `studio/audio.py:148 caption_words` guesses word timing from character counts. Real timing comes in only through a manual `align` import (`studio/alignment.py`). Styling is a static PIL sprite (`design.py:1034 draw_caption`) with 3 styles and 4 whole-cue animations.
+
+1. **Real word timing, automatically.** After Kokoro TTS, run local forced alignment with `faster-whisper` word timestamps (CPU int8, in the existing `audio-models/venv`). Write the result to `speech[].words` through `alignment.apply`. The estimator stays as a fallback. `make audio` does this by default.
+2. **Viral caption engine.** Words are drawn live per frame in `painter.mjs` and `design.py`, not as one sprite.
+   - **Chunking:** 1–3 words per page, broken at phrase and punctuation boundaries, never orphaning a word.
+   - **Per-word animation:** pop-in scale overshoot, bounce, slide-up, typewriter, wave. The active word gets a scale bump, colour swap or highlight pill.
+   - **Emphasis:** `emphasis` keywords (or `*word*` in the speech text) get accent colour, bigger size, shake and an optional emoji or icon sprite.
+   - **Look:** thick outline, soft drop shadow, gradient fill, and per-channel caption presets in `presets/captions/` (hormozi-pop, clean-karaoke, documentary-lower, kinetic-big).
+   - **Placement:** safe-area aware (`studio/safearea.py`), and captions move automatically to avoid faces or hitboxes, reusing `visual.py` overlap checks.
+3. **Caption QA in `make check`:** words per second, minimum on-screen time, and a check that the caption stays inside the platform UI safe zone.
+
+### Track B: Professional SFX
+Root cause: every sound is synthesized from oscillators and noise (`studio/sfx.py` with 40 recipes, `studio/soundlab.py`). There is no sample layer and no mix polish beyond ducking and reverb.
+
+1. **Sample library support.** Add a `sounds/` index (local, ignored) built by `make sfx-index DIR=...`. It scans any CC0/licensed pack the user drops in (e.g. Kenney, Sonniss GDC bundles) and tags files by category from filenames and folders, plus loudness and duration.
+   - Cues can use `{sound: "impact/wood", variant: auto}`. The resolver picks a sample, varies pitch ±1–3 semitones and gain, and avoids repeating a sample.
+   - Synthesis stays as the fallback when no library is installed.
+2. **Layered design.** A cue becomes transient + body + tail (sample or synth per layer), with per-layer EQ (high-pass mud cut), a short compressor/limiter and a stereo width option. This lives in `audio.py:apply_cue_shape`.
+3. **Auto-spotting from animation.** `studio/spotting.py` scans expanded keyframes for these events and proposes cue markers:
+   - fast moves become whooshes, scaled by speed and panned by screen x
+   - sharp velocity stops and `impact`/`drop` recipes become impacts
+   - appear/pop becomes a pop
+   - `text reveal` becomes ticks
+   - camera crash-zoom becomes a riser or boom
+   An author can accept the proposals or let render apply them in `auto` mode.
+4. **Mix polish.** Sidechain music under SFX as well as voice, a bus with a gentle glue compressor, -14 LUFS short-form master (extend `master_audio`), and a "too dense" check that flags more than N cues per second.
+
+### Track C: Richer art + character animation
+Root cause: characters are hand-written flat SVGs with about 9 paths (a typical channel character). Each is rasterized as one sprite, so it can't act. There is no shading, texture or finishing pass.
+
+1. **Rig-ready character spec.** Add `make character SPEC=...`, which generates a part-separated SVG set from one JSON:
+   - parts: body, head, eyes (open/half/closed/look-L/R), brows, mouth set (6 visemes plus smile/frown/O), arms, hands and legs, each with a pivot
+   - a matching `rig_library` def with `poses` (idle, talk, surprise, point, walk-cycle keys)
+   This plugs straight into existing `use`, `parent`, `pivot` and `viseme_for` and Phase 2.6 pose keys.
+2. **Auto life on characters.** Rigs get default `blink` (randomized seeded intervals), `breathe` (from the motion lib), eye saccades and `talk` (mouth from aligned visemes or amplitude). These add base liveliness without authoring.
+3. **Art-style richness.** SVG style passes in `studio/effectlab.py`:
+   - cel shading (an inner shadow shape derived by offset/clip)
+   - rim light
+   - halftone or grain texture fills
+   - line weight variation
+   - "line boil" (subtle per-2-frame path jitter for a hand-drawn feel)
+   Backgrounds get layered depth templates (sky / far / mid / near / foreground) that use Phase 3 `z`.
+4. **Finishing post stack.** Shot/episode `post` adds film grain, paper texture, vignette, chromatic aberration on impacts, light leaks, colour grade LUT and bloom on 2D. It is applied in both painters and the parity-tested fixture.
+5. **Art-quality checks.** Contrast against the background (subject readable), a minimum number of moving elements per second, and "dead frame" detection (no motion for more than 0.5 s).
+
+---
+
+## Phase 1: Foundations (fix before adding)
+1. **One expansion pipeline.** Add `studio/expand.py: expand_episode(episode, channel)` that runs these steps in a fixed order: defs/rigs → new expanders → particles → trails → reveal → markers. Replace the three copies in `video.py` and `editor.py` with calls to it.
+2. **SVG easing parity.** In `browser/painter.mjs:153-165`, stop handing poses to GSAP. Use `pose.mjs` interpolation for SVG layers too, which brings in `ease_props` and Catmull-Rom `auto`.
+3. **Motion blur parity.** Make the browser shot-level blur use real sub-frames: render N sub-samples to an offscreen canvas and average them, matching `render.py:169`. Extend per-layer blur (`design.py:730`) to cover rotation and scale by sampling full poses, then mirror that in `painter.mjs`. Remove the dead `self.motion_blur` assignment at `design.py:513`.
+4. **Validation warnings** in `core.validate_episode`:
+   - keyframes closer than one frame apart at the shot's duration
+   - particle cap truncation
+   - `parallax` set on a `plane` that ignores it
+   - `fov` given in 2D camera keys (either implement it, see Phase 3, or warn)
+
+## Phase 2: Richer 2D motion (all expanders, renderer-agnostic)
+1. **Motion paths** (`studio/paths.py`). A layer gets `path: {points | svg_d, from, to, ease, orient: true, offset}`. It is sampled into x/y (and rotate when `orient` is set), at about 1 key per frame or with adaptive density.
+2. **Wiggle / noise** (`studio/noise.py`). A layer gets `wiggle: [{prop, amp, freq, seed, octaves}]`. Seeded value noise is added on top of the existing keys, for idle life, jitter and handheld feel on any property. The noise can reuse `camera.py`'s handheld noise.
+3. **Secondary motion / follow-through.** A layer gets `follow: {target, lag, spring:{stiffness, damping}}`. It simulates a damped spring chasing the target layer's pose, using the integrator in `studio/physics.py`, and gives hair, tails, antennas and cloth-like overlap.
+4. **Animatable paint.** Add `fill`, `tint` (colour), `stroke_width`, `glow` radius and `draw` (stroke draw-on 0..1 for polygon/svg/path strokes) to the keyframe props. These need colour interpolation in OKLab in `easing.py` and in `pose.mjs`. The two painters need these keys wired in `design.py` and `painter.mjs`.
+5. **Physics + motion recipes become manifest-native.** A layer gets `motion: [{recipe:"drop", at:[0.1,0.4], ...}]`, expanded with the existing `studio/motion.py` and `studio/physics.py` (`to_layer_keys`). This replaces copy-paste JSON. Add `make physics RECIPE=...` for previews and fix the stale `shot.move` docstring.
+6. **Pose library for rigs.** A def gets `poses: {name: {child: pose}}`. A `use` layer gets `pose_keys: [{at, pose, ease}]`, which expand into child keys. This gives character acting without bones. Two-bone IK (`ik: {root, mid, end, target}`) is an optional stretch goal.
+
+## Phase 3: True 2.5D
+1. **`z` depth for 2D layers** (`transform.py`). A layer gets `z` (keyable), and the 2D camera gets `z` / `fov`, which honours the currently ignored `fov`. The projected scale is `f/(f+z−cam_z)`, parallax falls out of the projection automatically, and paint order is sorted by z (stable for ties). Optionally add `depth_blur: {focus_z, range}` for depth of field driven from z. The existing `parallax` field stays as a manual override.
+2. **Perspective tilt.** Add `tilt_x` / `tilt_y` keys, rendered as a projective warp (canvas `setTransform` cannot do projective transforms, so this needs a quad mesh draw in the browser and `PIL.Image.transform(PERSPECTIVE)` in Python). This gives card flips, floor planes and "paper cutout in space" shots.
+3. **Camera presets that use z.** Add `dolly-zoom`, `fly-through` and `rack-focus` to `camera.py`.
+
+## Phase 4: 3D upgrades (`browser/three.mjs` + schema)
+1. **3D camera rigs.** Add `camera.rig: {kind: orbit|dolly|crane|flyby|follow, target, radius, from, to, ease}`, expanded into position/target keys in a new `studio/rig3d.py`. The 2D presets have no 3D equivalent today.
+2. **Lights and atmosphere.** Add point, spot and area lights (keyable intensity and colour), `fog` (linear/exp), and `environment: {preset | hdr}` through RoomEnvironment/PMREM for nice PBR without asset hunting.
+3. **Text3D.** Add an extruded text object kind (TextGeometry, with a bundled font), so titles can live in the scene.
+4. **Material tricks.** Add keyable `emissive`/`opacity`, a `toon` material option, and an outline pass. Morph targets come from GLB `morphTargetInfluences` keys.
+5. **3D↔2D anchoring.** A 2D layer gets `anchor3d: {object, offset}`, so the renderer projects every frame through `lens.screen()`. This replaces placing layers by hand.
+
+## Phase 5: Let the AI *see* motion (feedback loop)
+1. **Onion-skin / trail stills.** Add `make still ... ONION=5`, which overlays ghosted poses at previous and next sample times, plus motion-path polylines per layer, in `still.py` and `browser/still.mjs`.
+2. **Motion report.** Add `make motion-report SHOT=...`, which writes a PNG of per-layer velocity and acceleration curves and flags:
+   - dead holds longer than N seconds with no motion anywhere on screen
+   - linear-only moves with no ease
+   - simultaneous starts (no overlap or stagger)
+   - snaps faster than 1 frame
+   These are concrete animation-principle lints an AI can act on.
+3. **Parity gate.** `make parity` fails when `mean_difference` exceeds a threshold. Add fixtures for SVG easing, z-depth, paths and paint keys. Optionally derive the `support` matrix from which fixtures pass.
+4. **Tests.** Extend `tests/test_studio.py` with one test per new expander (deterministic key output), and add a node smoke test for `pose.mjs` colour and ease parity against Python output.
+
+## Phase 6: AI-author documentation
+- Add `.agents/skills/viral-video-studio/references/animation-cookbook.md`. It maps the 12 animation principles to studio fields (anticipation → `motion: anticipate`, follow-through → `follow`, arcs → `path`, secondary → `wiggle`, and so on), and holds idiom recipes for 2D, 2.5D and 3D shots, each with a minimal JSON snippet.
+- Link the cookbook from SKILL.md, and add "run motion-report + onion still before render" to the workflow.
+- Add one showcase example under `examples/` that uses z-depth, paths, follow and a 3D camera rig.
+
+---
+
+## Critical files
+`studio/expand.py`, `video.py`, `editor.py`, `studio/design.py`, `studio/transform.py`, `studio/easing.py`, `studio/camera.py`, `studio/physics.py`, `studio/motion.py`, `studio/core.py`, `studio/schema.json`, `studio/still.py`, `studio/parity.py`, `studio/support.py`, `browser/painter.mjs`, `browser/pose.mjs`, `browser/three.mjs`, `browser/still.mjs`, `Makefile`, `tests/test_studio.py`, SKILL.md and references.
+New files: `studio/paths.py`, `studio/noise.py`, `studio/rig3d.py`, `studio/motion_report.py`.
+
+## Verification
+- `make test` passes, including the new expander unit tests.
+- `make validate` and `make check` on the existing `examples/` show no regressions.
+- `make parity` passes the threshold on the extended fixtures, so Python and hyperframes match for paths, wiggle, follow, paint keys, z-depth and SVG easing.
+- `make still ... ONION=5` and `make still --sheet` on the new showcase example show visual confirmation of arcs, depth sorting and overlap.
+- `make render` the showcase on hyperframes, plus a 3D shot using a camera rig, fog and text3D. Inspect the MP4.
+- `make motion-report` flags a deliberately bad fixture (all-linear, simultaneous starts) and is clean on the showcase.
+
+Extra checks for the priority tracks:
+- `make audio` on an existing episode writes aligned words. Spot-check that caption timings sit within about 60 ms of the spoken audio.
+- `make still --sheet` shows the per-word caption pop, emphasis and safe-area placement.
+- Index a small CC0 pack, render an episode, then compare the before/after mix and LUFS.
+- `make character` produces a rig. A test shot shows blink, breathe, talk and pose changes in an onion still and the render.
+
+## Execution order
+Track A (captions) → Track B (SFX) → Phase 1 foundations → Track C (art/characters) → Phases 2, 5, 3, 4. Each item is its own commit series with tests.
+
+New dependency: `faster-whisper` (local, CPU). The SFX sample packs come from the user, stay in an ignored folder, and nothing is downloaded automatically.
