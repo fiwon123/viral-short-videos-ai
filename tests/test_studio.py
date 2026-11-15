@@ -644,5 +644,34 @@ class BoilTests(unittest.TestCase):
         self.assertIn('fill="#FFF"', first[0])
 
 
+class CaptionAuditTests(unittest.TestCase):
+    def test_audit_flags_speed_flicker_and_ui_zone(self):
+        from studio.captions import audit
+        words = [{"text": w, "start": i, "end": i + 1} for i, w in enumerate("one two three four five six".split())]
+        timeline = {"fps": 24, "captions": [{"start": 0, "end": 12, "words": words, "text": "x"}]}
+        kinds = {note["kind"] for note in audit(timeline, {"style": "kinetic", "position": "bottom", "offset": 0.1})}
+        self.assertEqual(kinds, {"fast", "short", "flicker", "ui-zone"})
+
+
+class CueShapeTests(unittest.TestCase):
+    def test_punch_and_highpass(self):
+        import numpy as np
+        from studio.audio import shape_tone
+        rate = 48000
+        t = np.arange(rate // 4) / rate
+        clip = (0.3 * np.sin(2 * np.pi * 60 * t) + 0.3 * np.sin(2 * np.pi * 3000 * t)).astype(np.float32)
+        filtered = shape_tone(clip, {"highpass": 800})
+        low = np.abs(np.fft.rfft(filtered))[15]
+        self.assertLess(low, np.abs(np.fft.rfft(clip))[15] * 0.3)
+        punched = shape_tone(clip, {"punch": 1.0})
+        self.assertLessEqual(float(np.max(np.abs(punched))), float(np.max(np.abs(clip))) + 1e-6)
+
+    def test_sfx_density_note(self):
+        from studio.captions import sfx_density
+        cues = [{"start": i * 3} for i in range(8)]
+        timeline = {"fps": 24, "scenes": [{"shots": [{"sfx": cues}]}]}
+        self.assertEqual(sfx_density(timeline)[0]["kind"], "sfx-dense")
+
+
 if __name__ == "__main__":
     unittest.main()

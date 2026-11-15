@@ -124,6 +124,11 @@ def propose(shot, fps, sounds):
         cue = {"at": round(event["at"], 3), **source, "gain": gain,
                "pan": round(_clamp((event["x"] - 0.5) * 1.4, -0.8, 0.8), 2),
                "pitch_variance": 0.06, "spotted": True}
+        # Whooshes sit above the voice band's mud; impacts get attack for small speakers.
+        if event["kind"] in {"whoosh", "swish"}:
+            cue["highpass"] = 180
+        elif event["kind"] == "impact":
+            cue["punch"] = 0.4
         cues.append(cue)
     return cues
 

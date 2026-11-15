@@ -469,6 +469,13 @@ def execute(args):
             work = Path(temp)
             timeline, _ = prepare_audio(episode, args.episode.parent, work / "mix.wav", work, audio_library, channel=channel)
             report = audit_visual(episode, library, timeline, include_cameras=True)
+        from studio.captions import audit as audit_captions
+
+        caption_config = {**(channel.get("captions") or {}), **(episode.get("captions") or {})}
+        report["caption_notes"] = audit_captions(timeline, caption_config)
+        from studio.captions import sfx_density
+
+        report["sound_notes"] = sfx_density(timeline)
         return report, int(bool(report["issues"]))
     from studio.render import render
 

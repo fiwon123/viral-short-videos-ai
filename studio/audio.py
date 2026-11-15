@@ -246,7 +246,36 @@ def reverb(clip, amount=0.0, size=0.3, seed=7):
     return (wet * amount).astype(np.float32)
 
 
+def shape_tone(clip, spec):
+    """Per-cue EQ, transient punch and saturation: the small moves that make SFX sit in a mix."""
+    from .sfx import highpass, lowpass
+
+    if not any(key in spec for key in ("highpass", "lowpass", "punch", "saturate")):
+        return clip
+    clip = np.asarray(clip, dtype=np.float32).copy()
+    peak = float(np.max(np.abs(clip))) or 1.0
+    if spec.get("highpass"):
+        clip = highpass(clip, float(spec["highpass"]), order=2).astype(np.float32)
+    if spec.get("lowpass"):
+        clip = lowpass(clip, float(spec["lowpass"]), order=2).astype(np.float32)
+    if punch := float(spec.get("punch", 0) or 0):
+        # Lift the first ~20 ms (the attack) and ease back so hits read on phone speakers.
+        attack = min(len(clip), int(SAMPLE_RATE * 0.02))
+        release = min(len(clip) - attack, int(SAMPLE_RATE * 0.06))
+        envelope = np.ones(len(clip), dtype=np.float32)
+        envelope[:attack] = 1 + punch * 0.9
+        if release > 0:
+            envelope[attack:attack + release] = np.linspace(1 + punch * 0.9, 1, release, dtype=np.float32)
+        clip *= envelope
+    if saturate := float(spec.get("saturate", 0) or 0):
+        drive = 1 + saturate * 4
+        clip = np.tanh(clip * drive) / np.tanh(drive)
+    new_peak = float(np.max(np.abs(clip))) or 1.0
+    return clip * min(1.0, peak / new_peak) if spec.get("punch") or spec.get("saturate") else clip
+
+
 def apply_cue_shape(clip, spec):
+    clip = shape_tone(clip, spec)
     duration = spec.get("duration")
     if duration:
         target = max(1, round(float(duration) * SAMPLE_RATE))

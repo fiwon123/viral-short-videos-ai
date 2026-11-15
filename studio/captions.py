@@ -277,3 +277,52 @@ def draw_kinetic(image, cue, channel, font_path, config, frame, fps):
         y = round(spot["cy"] + state["dy"] - sprite.height / 2)
         layer.alpha_composite(sprite, (max(0, x), max(0, y)), (max(0, -x), max(0, -y)))
     image.paste(layer, (0, 0), layer)
+
+
+def audit(timeline, config):
+    """Caption readability notes: speed, flicker and the platform UI zone."""
+    fps = float(timeline.get("fps", 24))
+    style = (config or {}).get("style", "box")
+    merged = settings(config) if style == "kinetic" else dict(config or {})
+    notes = []
+    for cue in timeline.get("captions", []):
+        seconds = max(1e-6, (cue["end"] - cue["start"]) / fps)
+        words = len(cue.get("words") or cue.get("text", "").split())
+        at = round(cue["start"] / fps, 2)
+        if words / seconds > 4.2:
+            notes.append({"kind": "fast", "at": at, "note": f"{words} words in {seconds:.2f}s "
+                          f"({words / seconds:.1f}/s); split the line or give it more time."})
+        if seconds < 0.6:
+            notes.append({"kind": "short", "at": at, "note": f"Caption shows for only {seconds:.2f}s."})
+        if style == "kinetic":
+            for page in pages(cue, merged):
+                length = (page["end"] - page["start"]) / fps
+                if length < 0.2 and len(page["words"]) > 1:
+                    notes.append({"kind": "flicker", "at": round(page["start"] / fps, 2),
+                                  "note": f"Page '{' '.join(w['text'] for w in page['words'])}' shows for "
+                                          f"{length:.2f}s; lower words_per_page or slow the line."})
+        placement = {**merged, **(cue.get("placement") or {})}
+        base = {"top": 0.13, "center": 0.5, "bottom": 0.76}.get(placement.get("position", "bottom"), 0.76)
+        if style != "kinetic":
+            base = {"top": 0.09, "center": 0.46, "bottom": 0.8}.get(placement.get("position", "bottom"), 0.8)
+        centre = base + float(placement.get("offset", 0) or 0)
+        if centre > 0.8 or centre < 0.08:
+            notes.append({"kind": "ui-zone", "at": at, "note": f"Caption centre at {centre:.2f} of the height sits "
+                          f"under platform UI; keep it between 0.08 and 0.80."})
+    return notes
+
+
+def sfx_density(timeline, limit=5):
+    """Notes for one-second windows crowded with more than ``limit`` sound cues."""
+    fps = float(timeline.get("fps", 24))
+    starts = sorted(cue["start"] for scene in timeline.get("scenes", []) for shot in scene.get("shots", [])
+                    for cue in shot.get("sfx", []))
+    notes, index = [], 0
+    for position, start in enumerate(starts):
+        while starts[index] < start - fps:
+            index += 1
+        if position - index + 1 > limit and (not notes or start / fps - notes[-1]["at"] > 1):
+            notes.append({"kind": "sfx-dense", "at": round(start / fps, 2),
+                          "note": f"{position - index + 1} sound cues within one second; keep the hits that "
+                                  f"sell the action and drop the rest."})
+    return notes
