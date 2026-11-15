@@ -913,12 +913,12 @@ class Composition:
         for layer in self.layers:
             state = states[layer["id"]]
             group = layer.get("variant_group")
-            if group and chosen.get(group) != layer["id"]:
+            # A speaking viseme mouth overrides keyed visibility and its variant group.
+            shape = (visemes or {}).get(layer["viseme_for"]) if layer.get("viseme_for") and layer.get("viseme") else None
+            if shape is not None:
+                state["visible"] = layer["viseme"] == shape
+            elif group and chosen.get(group) != layer["id"]:
                 state["visible"] = False
-            if layer.get("viseme_for"):
-                shape = (visemes or {}).get(layer["viseme_for"])
-                if shape and layer.get("viseme") and layer["viseme"] != shape:
-                    state["visible"] = False
             if layer["parent"] and not states[layer["parent"]]["visible"]:
                 state["visible"] = False
         matrices, alphas, origins, mask_cache, depths, bends = {}, {}, {}, {}, {}, {}

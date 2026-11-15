@@ -11,6 +11,7 @@ import wave
 import numpy as np
 
 from .core import MAX_SECONDS, SAMPLE_RATE, asset, ffmpeg, require, run
+from .lipsync import speaker_shapes
 from .voices import CommandTakes, KokoroTakes
 
 
@@ -231,6 +232,29 @@ def measured_words(line, caption_text, clip, base):
     if result:
         result[0]["method"] = method
     return result
+
+
+def line_visemes(line, clip, fps, base, available, language):
+    """Viseme keys (seconds into the take) for one line, resolved to the speaker's mouth set."""
+    from .lipsync import resolve, visemes
+    from .wordtiming import measure
+
+    shapes = available.get(line["speaker"])
+    if line.get("visemes"):
+        return [{"at": item["at"], "shape": resolve(item["shape"], shapes) if shapes else item["shape"]}
+                for item in line["visemes"]]
+    if not shapes or line.get("lipsync") is False:
+        return []
+    spoken = line.get("spoken_text", line["text"]).replace("*", "")
+    words = line.get("words")
+    if not words or len(words) != len(spoken.split()):
+        try:
+            words, _ = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes")
+        except Exception:  # Timing is polish; fall back to the take's loudness.
+            words = None
+    levels = mouth_levels(clip, SAMPLE_RATE // fps)
+    keys = visemes(spoken, words, levels, fps, language)
+    return [{"at": item["at"], "shape": resolve(item["shape"], shapes)} for item in keys]
 
 
 def flatten_cue(spec):
@@ -626,12 +650,14 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
             room = room * float(tone.get("gain", 0.04))
     timeline = {"fps": fps, "duration_frames": 0, "scenes": [], "captions": [], "audio": config}
     if music:
-        timeline["music"] = {"kind": "file" if "file" in music else "preset",
-                             "source": music.get("file", music.get("preset")), "gain": music.get("gain", 0.10)}
+        kind = "library" if "library_file" in music else "file" if "file" in music else "preset"
+        source = music.get("library_track") or music.get("file", music.get("preset"))
+        timeline["music"] = {"kind": kind, "source": source, "gain": music.get("gain", 0.10)}
     library = audio_library[0] if audio_library else {}
     if audio_library:
         timeline["audio_library"] = {"file": audio_library[1].name, "version": library["version"]}
     profiles = library.get("voices", {})
+    mouth_sets = speaker_shapes(episode)
     takes = KokoroTakes(base)
     sound_bank = SoundBank(library.get("sounds", {}), audio_library[1].parent if audio_library else base, base.resolve().name)
     plans = []
@@ -685,9 +711,9 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
                                 "end": max(0, absolute_start) + round(word["end"] * fps)}
                                for word in words] if words else
                               caption_words(text, max(0, absolute_start), cursor + end, fps)),
-                    "visemes": ([{"at": max(0, absolute_start) + round(item["at"] * fps),
-                                  "shape": item["shape"]} for item in line.get("visemes", [])]
-                                if line.get("visemes") else []),
+                    "visemes": [{"at": max(0, absolute_start) + round(item["at"] * fps), "shape": item["shape"]}
+                                for item in line_visemes(line, clip, fps, base, mouth_sets,
+                                                         (profiles.get(line["speaker"]) or {}).get("language", "en-us"))],
                 })
                 levels[shot["id"]].append((start, end, line["speaker"], mouth_levels(clip, SAMPLE_RATE // fps)))
                 dialogue.append((absolute_start * step, clip, line,

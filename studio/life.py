@@ -10,8 +10,10 @@ motion animators layer under acting:
 ``alive: true`` turns everything on. Each part is found by its ``role`` tag
 (see ``studio/character.py``): body/head breathe and sway, tails wag and curl (``bend``), ears and antennae
 follow through a beat later, arms drift, eyes blink at natural intervals,
-pupils make quick glances, and the mouth swaps from the rest shape to an open
-shape that flaps with the speaker's voice. Motion is added on top of whatever
+pupils make quick glances, and the mouth talks with the speaker's voice. A rig
+with a viseme mouth set (``mbp``/``e``/``u``/``fv``/``l``/``etc``, as ``make character``
+writes) lip-syncs to the line (``studio/lipsync.py``); other rigs swap the rest
+shape for an open one that flaps with loudness. ``"lipsync": false`` forces the flap. Motion is added on top of whatever
 keys the author wrote, so acting keys still drive the big moves.
 """
 
@@ -22,7 +24,7 @@ import random
 from .keys import compose
 
 ASPECT = 9 / 16
-DEFAULTS = {"breathe": 1.0, "blink": 1.0, "look": 1.0, "sway": 1.0, "talk": None, "energy": 1.0}
+DEFAULTS = {"breathe": 1.0, "blink": 1.0, "look": 1.0, "sway": 1.0, "talk": None, "energy": 1.0, "lipsync": "auto"}
 
 
 def _settings(value):
@@ -145,7 +147,16 @@ def animate(shot, layer, settings):
         for item in roles["pupil"]:
             add(item, lambda t: {"x": ("add", glance(t)[0]), "y": ("add", glance(t)[1] * 0.6)})
     speaker = settings.get("talk")
-    if speaker:
+    mouths = roles.get("mouth", [])
+    shapes = {item.get("mouth_shape", "rest") for item in mouths}
+    lipsync = settings.get("lipsync", "auto")
+    if lipsync == "auto":
+        lipsync = len(shapes & {"mbp", "e", "u", "fv", "l", "etc", "ai"}) >= 2
+    if speaker and lipsync:
+        for item in mouths:
+            shape = item.get("mouth_shape", "rest")
+            item.update({"viseme_for": speaker, "viseme": shape})  # lipsync.resolve maps ai to open, etc.
+    elif speaker:
         for item in roles.get("mouth", []):
             shape = item.get("mouth_shape", "rest")
             if shape == "rest":

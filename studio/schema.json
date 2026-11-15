@@ -623,6 +623,8 @@
               "look": {"anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 3}]},
               "sway": {"anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 3}]},
               "talk": {"$ref": "#/$defs/text"},
+              "lipsync": {"description": "Viseme lip sync (default when the rig has a viseme mouth set) or loudness flap (false).",
+                          "type": "boolean"},
               "energy": {"type": "number", "minimum": 0, "maximum": 3},
               "seed": {"type": "integer", "minimum": 0}
             }
@@ -769,7 +771,8 @@
         "gain": {"$ref": "#/$defs/unit"},
         "lead": {"type": "number", "minimum": -10, "maximum": 10},
         "words": {"type": "array", "items": {"$ref": "#/$defs/word"}},
-        "visemes": {"type": "array", "items": {"$ref": "#/$defs/viseme"}}
+        "visemes": {"type": "array", "items": {"$ref": "#/$defs/viseme"}},
+        "lipsync": {"description": "false keeps this line out of automatic lip sync.", "type": "boolean"}
       }
     },
     "sfx_layer": {

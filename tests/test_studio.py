@@ -401,10 +401,16 @@ class CharacterTests(unittest.TestCase):
         self.assertLess(min(eye_scale), 0.2)
         body_scale = [key["scale_y"] for key in layers["hero/body"]["keyframes"]]
         self.assertGreater(max(body_scale) - min(body_scale), 0.02)
-        self.assertEqual(layers["hero/mouth-rest"]["quiet_for"], "Hero")
-        self.assertTrue(layers["hero/mouth-open"]["talk_only"])
+        self.assertEqual(layers["hero/mouth-rest"]["viseme_for"], "Hero")  # Viseme set: lip sync.
+        self.assertEqual(layers["hero/mouth-mbp"]["viseme"], "mbp")
         ats = [key["at"] for key in layers["hero/body"]["keyframes"]]
         self.assertEqual(ats, sorted(ats))
+        episode = {"defs": {"t": rig}, "scenes": [{"shots": [{"id": "A", "duration": 6.0, "layers": [
+            {"id": "hero", "kind": "use", "ref": "t", "x": 0.5, "y": 0.8,
+             "alive": {"talk": "Hero", "lipsync": False}}]}]}]}
+        layers = {layer["id"]: layer for layer in expand_life(expand_defs(episode))["scenes"][0]["shots"][0]["layers"]}
+        self.assertEqual(layers["hero/mouth-rest"]["quiet_for"], "Hero")
+        self.assertTrue(layers["hero/mouth-open"]["talk_only"])
 
 
 class LintTests(unittest.TestCase):
@@ -1066,6 +1072,48 @@ class MusicLibraryTests(unittest.TestCase):
             validate({"mood": "calm", "energy": "low", "bpm": [70, 90]}, "music")
             with self.assertRaises(Exception):
                 validate({"preset": "pulse", "file": "a.wav"}, "music")
+
+
+class LipSyncTests(unittest.TestCase):
+    def test_words_become_held_visemes_with_closures_and_rests(self):
+        from studio.lipsync import visemes
+        words = [{"start": 0.0, "end": 0.4}, {"start": 0.45, "end": 0.9}, {"start": 1.5, "end": 1.9}]
+        keys = visemes("Bob made pies", words, None, 30)
+        shapes = [key["shape"] for key in keys]
+        self.assertIn("mbp", shapes)
+        self.assertEqual(shapes[-1], "rest")
+        rest_at = [key["at"] for key in keys if key["shape"] == "rest"]
+        self.assertTrue(any(0.85 <= at <= 0.95 for at in rest_at))  # Pause between "made" and "pies".
+        frames = [round(key["at"] * 30) for key in keys]
+        self.assertTrue(all(b - a >= 2 for a, b in zip(frames, frames[1:])))  # No one-frame flicker.
+        self.assertEqual(frames, sorted(frames))
+
+    def test_silence_closes_the_mouth_and_spelling_fallback_works(self):
+        from studio.lipsync import spelling_shapes, visemes
+        levels = [0.5] * 10 + [0.0] * 8 + [0.5] * 10
+        keys = visemes("aaaa", [{"start": 0, "end": 28 / 30}], levels, 30)
+        self.assertIn("rest", [key["shape"] for key in keys[:-1]])
+        self.assertEqual(spelling_shapes("phone"), ["fv", "o", "etc"])
+
+    def test_resolve_maps_to_the_characters_mouths(self):
+        from studio.lipsync import resolve
+        basic = {"rest", "open", "o"}
+        self.assertEqual(resolve("mbp", basic), "rest")
+        self.assertEqual(resolve("ai", basic), "open")
+        self.assertEqual(resolve("u", basic), "o")
+        self.assertEqual(resolve("D", {"ai", "rest"}), "ai")  # Rhubarb letters.
+
+    def test_active_viseme_overrides_variant_visibility(self):
+        from studio.design import Composition, resolve_font
+        channel = {"palette": {"background": "#000000", "foreground": "#FFFFFF", "accent": "#FF0000",
+                               "secondary": "#0000FF"}}
+        layers = [{"id": name, "kind": "rect", "x": 0.5, "y": 0.5, "width": 0.5, "height": 0.5, "fill": fill,
+                   "variant_group": "m", "viseme_for": "Hero", "viseme": name, "visible": name == "rest"}
+                  for name, fill in (("rest", "accent"), ("o", "secondary"))]
+        design = Composition({"id": "A", "duration": 1, "layers": layers}, (40, 40), channel,
+                             resolve_font(channel, Path(".")), Path("."))
+        self.assertEqual(design.frame(0.5, {}, post=False, visemes={}).getpixel((20, 20))[:3], (255, 0, 0))
+        self.assertEqual(design.frame(0.5, {}, post=False, visemes={"Hero": "o"}).getpixel((20, 20))[:3], (0, 0, 255))
 
 
 class ViralCheckTests(unittest.TestCase):

@@ -627,7 +627,11 @@ export async function createPainter(canvas, data, urlFor) {
     for (const layer of layers) {
       if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
       const pose = states.get(layer.id);
-      if (!(pose.visible ?? true)) continue;
+      // A speaking viseme mouth overrides keyed visibility and its variant group.
+      const lipShape = layer.viseme_for && layer.viseme ? visemes[layer.viseme_for] : undefined;
+      if (lipShape !== undefined) {
+        if (layer.viseme !== lipShape) continue;
+      } else if (!(pose.visible ?? true)) continue;
       const tile = layer.frames?.length
         ? (layer.boil_fps
           ? layer.frames[Math.floor((offset / data.fps) * layer.boil_fps) % layer.frames.length]
@@ -641,11 +645,7 @@ export async function createPainter(canvas, data, urlFor) {
         ? `rgb(${pose.tint_color.map((value) => Math.round(value)).join(",")})`
         : (layer.tint ? paintColor(layer.tint, "accent") : null);
       const drawTile = tintColor && tintOpacity > 0 ? tintTile(layer, tile, tintColor, tintOpacity) : tile;
-      if (layer.viseme_for) {
-        const shape = visemes[layer.viseme_for];
-        if (shape && layer.viseme && layer.viseme !== shape) continue;
-      }
-      if (layer.variant_group && chosen.get(layer.variant_group) !== layer.id) continue;
+      if (lipShape === undefined && layer.variant_group && chosen.get(layer.variant_group) !== layer.id) continue;
       if (layer.parent && !(states.get(layer.parent)?.visible ?? true)) continue;
       const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
       const parentAlpha = layer.parent ? (alphas.get(layer.parent) ?? 1) : 1;

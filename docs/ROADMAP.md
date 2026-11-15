@@ -54,6 +54,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | 3D quality preset | Done | Scene `quality: high` switches to PCFSoftShadowMap with 2048 maps. Shot or scene high adds GTAO ambient occlusion, OutputPass and SMAA to the composer chain (bokeh and bloom keep working). |
 | Music library | Done | `studio/music.py`, `make music-import DIR=... [DRY=1]`, `make music-list`. Hash-deduplicated import with mood tags from names, measured tempo/loudness/energy, `channel.music_library`. Episode or style `music: {mood, energy, bpm}` resolves to a deterministic track after the style merge. Voice and SFX ducking unchanged. |
 | Voice acting and engines | Done | `command` cast engine runs any local TTS (Piper, XTTS, F5, Chatterbox), cached per line. Per-line `pitch`, `pace` (native Kokoro speed) and `intensity` on every engine (`audio.act`). |
+| Lip sync | Done | `studio/lipsync.py`: eSpeak NG IPA (spelling fallback) to 9 visemes, spread over measured words, closed on silences, 2-frame hold with closure priority, 1-frame lead. Auto for any speaker with `viseme_for` layers, resolved to the mouths a character has (fallback chain, Rhubarb letters). Active viseme overrides keyed/variant visibility in both renderers. Generator adds `mbp`/`e`/`u`/`fv`/`l`/`etc` mouths; `alive.talk` lip-syncs when a rig has them. |
 | Still pending | Pending | Nothing from the original plan. See "Professional gaps" below for the next work. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -63,7 +64,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~Shape morphing / path tweening~~ Done: polygon `points` keys (`paint.py`), SVG `morph_to`/`morph` (`morph.py`) | 2D | Morphing mouths, liquid, blob transitions and smears need point-level interpolation | Keyable `points` on polygons and matched SVG path morph in both painters |
 | ~~Mesh deformation (bend/bone skinning)~~ Done: keyable `bend` arc deformer, children ride the curve | 2D | Rigid parts read as cut-out; bendy arms, squash on a body, cloth need deformation | A bend deformer on a part (curve the sprite along a 2-bone chain) in both renderers |
 | ~~Character art range~~ Done: archetypes human/cat/dog/bird/robot + hair, nose, tail, outfit, skin | 2D | `make character` makes one cute bean family; other genres need humans, animals, props | More generator archetypes, or a documented import path for layered artwork (PSD/SVG to rig) |
-| Lip sync | 2D | Visemes exist but mouth sets are generic | Map Whisper phonemes to the 6+ mouth shapes per character |
+| ~~Lip sync~~ Done: `studio/lipsync.py`, automatic for `viseme_for` mouths | 2D | Visemes exist but mouth sets are generic | Map Whisper phonemes to the 6+ mouth shapes per character |
 | Lighting on 2D layers | 2.5D | Flat layers ignore scene light | Normal/rim light pass driven by a light direction per shot |
 | Depth from a photo | 2.5D | "Photo parallax" is a popular format | Split an image into depth layers from a depth map |
 | ~~3D character animation~~ Done: `bones` keys, `three.ik` (CCD), `make character3d` rigged GLB | 3D | Only GLB clip playback; no authored bones, no 3D IK, no retargeting | Bone keys and 3D IK on GLB skeletons; docs for free CC0 rigs (Quaternius, Kenney) and Mixamo |
@@ -72,10 +73,11 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~Music~~ Done: `make music-import`, `music: {mood, energy, bpm}` | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | ~~Voices~~ Done: `command` engine, per-line `pitch`/`pace`/`intensity`, free options documented in the audio reference | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 100 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 104 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Automatic lip sync landed.
 - 2026-11-15: Music library and voice acting (command TTS engine, pitch/pace/intensity) landed.
 - 2026-11-15: 3D high-quality render preset landed.
 - 2026-11-15: 3D bone posing, 3D IK and the rigged GLB character generator landed.

@@ -332,7 +332,8 @@ def eye_parts(spec, face_name, face):
     return parts
 
 
-MOUTHS = ("rest", "open", "wide", "o", "smile", "frown", "flat")
+# Expression mouths, then the lip-sync visemes (studio/lipsync.py: open stands in for "ai").
+MOUTHS = ("rest", "open", "wide", "o", "smile", "frown", "flat", "mbp", "e", "u", "fv", "l", "etc")
 
 
 def mouth_parts(spec, face_name, face):
@@ -359,6 +360,29 @@ def mouth_parts(spec, face_name, face):
         "frown": f'<path d="M{l + mw * 0.2:.1f} {mid + mh * 0.1:.1f} Q{pad + mw / 2:.1f} {top - mh * 0.1:.1f} {r - mw * 0.2:.1f} {mid + mh * 0.1:.1f}" fill="none" {stroke}/>',
         "flat": f'<path d="M{l + mw * 0.25:.1f} {mid:.1f} L{r - mw * 0.25:.1f} {mid:.1f}" fill="none" {stroke}/>',
     }
+    teeth = pal.get("teeth", "#FFFFFF")
+
+    def toothy(depth, width, tongue_up=False):
+        x0, x1 = l + mw * (1 - width) / 2, r - mw * (1 - width) / 2
+        bottom = top + mh * depth
+        clip = f'M{x0:.1f} {top:.1f} Q{pad + mw / 2:.1f} {top + mh * depth * 1.4:.1f} {x1:.1f} {top:.1f} Z'
+        tongue = (f'<ellipse cx="{pad + mw / 2:.1f}" cy="{top + mh * depth * 0.28:.1f}" rx="{mw * 0.12 * width:.1f}" '
+                  f'ry="{mh * depth * 0.2:.1f}" fill="{pal["tongue"]}"/>' if tongue_up else
+                  f'<rect x="{x0 + mw * 0.08:.1f}" y="{top:.1f}" width="{x1 - x0 - mw * 0.16:.1f}" '
+                  f'height="{max(1.0, (bottom - top) * 0.32):.1f}" rx="{lw * 0.3:.1f}" fill="{teeth}"/>')
+        return (f'<path d="{clip}" fill="{pal["mouth"]}"/>{tongue}'
+                f'<path d="{clip}" fill="none" {stroke}/>')
+    shapes.update({
+        "mbp": f'<path d="M{l + mw * 0.24:.1f} {mid:.1f} Q{pad + mw / 2:.1f} {mid + mh * 0.06:.1f} {r - mw * 0.24:.1f} {mid:.1f}" '
+               f'fill="none" stroke="{pal["line"]}" stroke-width="{lw * 1.35:.1f}" stroke-linecap="round"/>',
+        "e": toothy(0.42, 1.0),
+        "u": f'<ellipse cx="{pad + mw / 2:.1f}" cy="{mid:.1f}" rx="{mw * 0.11:.1f}" ry="{mh * 0.15:.1f}" fill="{pal["mouth"]}" {stroke}/>',
+        "fv": f'<rect x="{l + mw * 0.3:.1f}" y="{mid - mh * 0.12:.1f}" width="{mw * 0.4:.1f}" height="{mh * 0.12:.1f}" '
+              f'rx="{lw * 0.3:.1f}" fill="{teeth}" {stroke}/>'
+              f'<path d="M{l + mw * 0.22:.1f} {mid:.1f} Q{pad + mw / 2:.1f} {mid + mh * 0.12:.1f} {r - mw * 0.22:.1f} {mid:.1f}" fill="none" {stroke}/>',
+        "l": toothy(0.5, 0.85, tongue_up=True),
+        "etc": toothy(0.28, 0.85),
+    })
     parts = []
     for name in MOUTHS:
         part = Part(f"mouth-{name}", w, h, [0.5, 0.3], "mouth", face_name, (ox, oy))
