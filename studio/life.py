@@ -8,7 +8,7 @@ motion animators layer under acting:
      "alive": {"talk": "Pip", "energy": 1}}
 
 ``alive: true`` turns everything on. Each part is found by its ``role`` tag
-(see ``studio/character.py``): body/head breathe and sway, ears and antennae
+(see ``studio/character.py``): body/head breathe and sway, tails wag and curl (``bend``), ears and antennae
 follow through a beat later, arms drift, eyes blink at natural intervals,
 pupils make quick glances, and the mouth swaps from the rest shape to an open
 shape that flaps with the speaker's voice. Motion is added on top of whatever
@@ -120,6 +120,10 @@ def animate(shot, layer, settings):
             add(item, lambda t: {"rotate": ("add", 1.6 * s * sway(t))})
         for item in roles.get("ear", []) + roles.get("antenna", []):
             add(item, lambda t: {"rotate": ("add", 4.5 * s * sway(t - 0.28))})  # Follow-through lag.
+        wag = _wave(rng.uniform(0.8, 1.1), phase + 0.5)
+        for item in roles.get("tail", []):
+            # Tails swing at the base and curl along their length (bend), lagging the body.
+            add(item, lambda t: {"rotate": ("add", 7 * s * wag(t)), "bend": ("add", 16 * s * wag(t - 0.15))})
     if members[0] is not layer and (roles.get("ear") or roles.get("antenna")):
         # Ears and antennae swing against the character's own moves (jumps, hops, paths).
         from .moves import follow

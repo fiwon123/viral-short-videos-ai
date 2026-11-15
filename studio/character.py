@@ -186,20 +186,80 @@ def _translate_path(d, dx, dy):
 
 # ---------------------------------------------------------------- parts
 
+# Starting points; the spec's own values always win. "blob" is the classic bean.
+ARCHETYPES = {
+    "blob": {},
+    "human": {"body": {"shape": "tall", "width": 0.44, "height": 0.5},
+              "head": {"shape": "circle", "size": 0.5, "overlap": 0.06},
+              "palette": {"body": "#4C7BD9", "skin": "#F2C7A5", "limb": "#4C7BD9", "hair": "#3B2A20",
+                          "accent": "#2E3A59"},
+              "arms": {"length": 0.36, "width": 0.08}, "legs": {"length": 0.26, "width": 0.1},
+              "eyes": {"size": 0.12, "spacing": 0.24, "y": 0.5}, "mouth": {"width": 0.15, "y": 0.74},
+              "hair": "bob", "nose": "button", "belly": False},
+    "cat": {"ears": "pointy", "nose": "cat", "tail": "cat", "palette": {"body": "#F4A259"}},
+    "dog": {"ears": "floppy", "nose": "snout", "tail": "wag", "palette": {"body": "#C98B5B"},
+            "mouth": {"width": 0.15, "y": 0.66}},
+    "bird": {"nose": "beak", "tail": "feather", "arms": {"length": 0.2, "width": 0.11},
+             "legs": {"length": 0.12, "width": 0.045}, "palette": {"body": "#6CC3F0", "accent": "#F6A623"}},
+    "robot": {"body": {"shape": "box", "width": 0.6, "height": 0.62}, "antenna": True,
+              "eyes": {"style": "oval"}, "cheeks": False, "belly": False, "outfit": "panel",
+              "palette": {"body": "#9FB4C7", "limb": "#7E93A6", "accent": "#FF6B6B"}},
+}
+
+
+def _deep(target, source):
+    for key, value in source.items():
+        if isinstance(value, dict) and isinstance(target.get(key), dict):
+            _deep(target[key], value)
+        else:
+            target[key] = json.loads(json.dumps(value))
+    return target
+
+
 def _merge(spec):
     merged = json.loads(json.dumps(DEFAULT))
-    for key, value in spec.items():
-        if isinstance(value, dict) and isinstance(merged.get(key), dict):
-            merged[key].update(value)
-        else:
-            merged[key] = value
+    archetype = spec.get("archetype", "blob")
+    if archetype not in ARCHETYPES:
+        raise ValueError(f"Unknown archetype {archetype}. Available: {', '.join(sorted(ARCHETYPES))}")
+    _deep(merged, ARCHETYPES[archetype])
+    _deep(merged, spec)
     palette = merged["palette"]
     palette.setdefault("limb", palette.get("body"))
     palette.setdefault("belly", light(palette["body"], 0.45))
+    palette.setdefault("hair", "#3B2A20")
+    palette.setdefault("outfit", shade(palette["body"], 0.35))
     return merged
 
 
-def body_part(spec, name, shape_spec, top_y, role):
+def outfit_paint(spec, pad, w, h):
+    """Clothing painted inside the body outline (clipped by the caller)."""
+    style, colour, line = spec.get("outfit"), spec["palette"]["outfit"], spec["palette"]["line"]
+    lw = spec["line_width"]
+    if style == "shirt":
+        return (f'<rect x="{pad - w:.1f}" y="{pad + h * 0.62:.1f}" width="{w * 3:.1f}" height="{h:.1f}" fill="{colour}"/>'
+                f'<path d="M{pad - w:.1f} {pad + h * 0.62:.1f} H{pad + w * 2:.1f}" stroke="{line}" stroke-width="{lw * 0.6:.1f}"/>')
+    if style == "overalls":
+        strap = w * 0.1
+        return (f'<rect x="{pad + w * 0.22:.1f}" y="{pad + h * 0.52:.1f}" width="{w * 0.56:.1f}" height="{h:.1f}" '
+                f'rx="{w * 0.06:.1f}" fill="{colour}" stroke="{line}" stroke-width="{lw * 0.6:.1f}"/>'
+                + "".join(f'<rect x="{pad + w * x:.1f}" y="{pad:.1f}" width="{strap:.1f}" height="{h * 0.55:.1f}" '
+                          f'fill="{colour}" stroke="{line}" stroke-width="{lw * 0.5:.1f}"/>' for x in (0.27, 0.63)))
+    if style == "scarf":
+        return (f'<rect x="{pad - w:.1f}" y="{pad + h * 0.04:.1f}" width="{w * 3:.1f}" height="{h * 0.13:.1f}" '
+                f'fill="{colour}" stroke="{line}" stroke-width="{lw * 0.6:.1f}"/>'
+                f'<rect x="{pad + w * 0.58:.1f}" y="{pad + h * 0.12:.1f}" width="{w * 0.12:.1f}" height="{h * 0.3:.1f}" '
+                f'rx="{w * 0.03:.1f}" fill="{colour}" stroke="{line}" stroke-width="{lw * 0.6:.1f}"/>')
+    if style == "panel":
+        accent = spec["palette"]["accent"]
+        return (f'<rect x="{pad + w * 0.28:.1f}" y="{pad + h * 0.5:.1f}" width="{w * 0.44:.1f}" height="{h * 0.3:.1f}" '
+                f'rx="{w * 0.05:.1f}" fill="{shade(spec["palette"]["body"], 0.2)}" stroke="{line}" stroke-width="{lw * 0.6:.1f}"/>'
+                + "".join(f'<circle cx="{pad + w * x:.1f}" cy="{pad + h * 0.65:.1f}" r="{w * 0.04:.1f}" fill="{c}" '
+                          f'stroke="{line}" stroke-width="{lw * 0.4:.1f}"/>'
+                          for x, c in ((0.38, accent), (0.5, "#FFE066"), (0.62, "#6EE7B7"))))
+    return ""
+
+
+def body_part(spec, name, shape_spec, top_y, role, colour=None):
     pad = spec["line_width"] * 2
     w = shape_spec["width"] * UNIT
     h = shape_spec["height"] * UNIT
@@ -207,11 +267,13 @@ def body_part(spec, name, shape_spec, top_y, role):
     shape = shape_spec.get("shape", "bean")
     points = superellipse(pad + w / 2, pad + h / 2, w, h, SHAPES.get(shape, 2.5), _warp(shape))
     d = smooth_path(points)
-    finish = shaded_shape(part, d, (pad, pad, w, h), spec["palette"]["body"], spec, name)
+    finish = shaded_shape(part, d, (pad, pad, w, h), colour or spec["palette"]["body"], spec, name)
     extra = ""
     if spec.get("belly") and role == "body":
         extra += (f'<ellipse cx="{pad + w / 2:.1f}" cy="{pad + h * 0.78:.1f}" rx="{w * 0.3:.1f}" ry="{h * 0.2:.1f}" '
                   f'fill="{spec["palette"]["belly"]}" opacity="0.85"/>')
+    if role == "body":
+        extra += outfit_paint(spec, pad, w, h)
     finish(extra)
     part.extra = {"pad": pad, "w": w, "h": h}
     return part
@@ -327,7 +389,7 @@ def limb(spec, name, role, parent, offset, length, width, foot=False):
         part.body.append(f'<ellipse cx="{fx:.1f}" cy="{pad + length + end * 0.35:.1f}" rx="{end:.1f}" ry="{end * 0.55:.1f}" '
                          f'fill="{pal.get("accent", color)}" stroke="{pal["line"]}" stroke-width="{lw:.1f}"/>')
     else:
-        part.body.append(f'<circle cx="{cx:.1f}" cy="{pad + length:.1f}" r="{end * 0.62:.1f}" fill="{color}" '
+        part.body.append(f'<circle cx="{cx:.1f}" cy="{pad + length:.1f}" r="{end * 0.62:.1f}" fill="{pal.get("skin", color)}" '
                          f'stroke="{pal["line"]}" stroke-width="{lw:.1f}"/>'
                          f'<circle cx="{cx - end * 0.2:.1f}" cy="{pad + length - end * 0.2:.1f}" r="{end * 0.16:.1f}" '
                          f'fill="#FFFFFF" opacity="0.35"/>')
@@ -340,9 +402,21 @@ def ear_parts(spec, face_name, face):
     if kind and kind != "none":
         pal, lw = spec["palette"], spec["line_width"]
         size = face.extra["w"] * (0.28 if kind != "bunny" else 0.22)
-        height = size * {"round": 1.0, "pointy": 1.4, "bunny": 3.0}.get(kind, 1.0)
+        height = size * {"round": 1.0, "pointy": 1.4, "bunny": 3.0, "floppy": 1.7}.get(kind, 1.0)
         pad = lw * 1.5
         for side, label in ((-1, "l"), (1, "r")):
+            if kind == "floppy":
+                # Hangs from the top of the head, pivot at the top so it swings.
+                part = Part(f"ear-{label}", size + pad * 2, height + pad * 2, [0.5, 0.08], "ear", face_name)
+                d = smooth_path(superellipse(pad + size / 2, pad + height / 2, size, height, 2.2,
+                                             lambda t: 0.75 + 0.35 * t))
+                finish = shaded_shape(part, d, (pad, pad, size, height), shade(pal["body"], 0.25), spec, part.name)
+                finish()
+                part.offset = (side * face.extra["w"] * 0.47,
+                               face.extra["pad"] + face.extra["h"] * 0.1 - face.extra["pivot_y"])
+                part.extra = {"tilt": side * 12}
+                parts.append(part)
+                continue
             part = Part(f"ear-{label}", size + pad * 2, height + pad * 2, [0.5, 0.92], "ear", face_name)
             cx, base = pad + size / 2, pad + height
             if kind == "round":
@@ -372,6 +446,174 @@ def ear_parts(spec, face_name, face):
     return parts
 
 
+def hair_parts(spec, face_name, face):
+    """(behind, in front) hair parts for ``hair``: tuft, spiky, bob, bun, curly."""
+    style = spec.get("hair")
+    if not style or style == "none":
+        return [], []
+    pal, lw = spec["palette"], spec["line_width"]
+    w, h, pad0 = face.extra["w"], face.extra["h"], face.extra["pad"]
+    top = pad0 - face.extra["pivot_y"]  # Head top relative to the face pivot.
+    colour = pal["hair"]
+    pad = lw * 2
+    behind, front = [], []
+    if style == "tuft":
+        tw, th = w * 0.36, h * 0.26
+        part = Part("hair", tw + pad * 2, th + pad * 2, [0.5, 0.92], "hair", face_name, (0, top + h * 0.05))
+        base, cx = pad + th, pad + tw / 2
+        strands = "".join(
+            f'<path d="M{cx + dx * tw * 0.25:.1f} {base:.1f} Q{cx + dx * tw * 0.5:.1f} {pad + th * 0.4:.1f} '
+            f'{cx + dx * tw * 0.42 + tw * 0.1:.1f} {pad + th * 0.05 * (1 + abs(dx)):.1f}" fill="none" stroke="{colour}" '
+            f'stroke-width="{lw * 1.6:.1f}" stroke-linecap="round"/>' for dx in (-1, 0, 1))
+        part.body.append(strands)
+        front.append(part)
+    elif style in ("spiky", "curly"):
+        # A cap that follows the skull, with spikes or curls in its outline and a fringe along the forehead.
+        cw, ch = w * 1.06, h * 0.62
+        part = Part("hair", cw + pad * 2, ch + pad * 2, [0.5, 0.5], "hair", face_name, (0, top + ch * 0.36))
+        cx, cy = pad + cw / 2, pad + ch * 0.62
+        outline = []
+        steps = 48
+        for index in range(steps + 1):
+            a = math.pi + math.pi * index / steps
+            if style == "spiky":
+                tri = 1 - abs(((a * 7 / math.pi) % 2) - 1)
+                bump = 1 + 0.2 * tri ** 2
+            else:
+                bump = 1 + 0.07 * abs(math.sin(a * 9))
+            outline.append((cx + cw / 2 * math.cos(a) * bump, cy + ch * 0.62 * math.sin(a) * bump))
+        waves = 7
+        for index in range(waves * 4, -1, -1):
+            x = pad + cw * index / (waves * 4)
+            phase = index / (waves * 4) * waves * math.tau
+            depth = (0.5 + 0.5 * math.cos(phase)) if style == "curly" else abs(math.sin(phase / 2)) ** 0.5
+            side = abs(2 * index / (waves * 4) - 1)
+            # High fringe in the middle, longer at the temples so the hair frames the face.
+            outline.append((x, cy - ch * 0.3 + ch * 0.42 * side ** 3 + ch * 0.08 * depth))
+        d = ("M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in outline) + " Z") if style == "spiky" \
+            else smooth_path(outline)
+        shaded_shape(part, d, (pad, pad, cw, ch), colour, spec, part.name)()
+        front.append(part)
+    elif style in ("bob", "bun"):
+        cw, ch = w * 1.08, h * 0.62
+        part = Part("hair", cw + pad * 2, ch + pad * 2, [0.5, 0.5], "hair", face_name, (0, top + ch * 0.42))
+        cx = pad + cw / 2
+        bangs = 5
+        d = (f"M{pad:.1f} {pad + ch * 0.85:.1f} Q{pad - cw * 0.02:.1f} {pad:.1f} {cx:.1f} {pad:.1f} "
+             f"Q{pad + cw * 1.02:.1f} {pad:.1f} {pad + cw:.1f} {pad + ch * 0.85:.1f} ")
+        for index in range(bangs, 0, -1):
+            x_mid = pad + cw * (index - 0.5) / bangs
+            x_end = pad + cw * (index - 1) / bangs
+            d += f"Q{x_mid:.1f} {pad + ch * (0.62 if index % 2 else 0.5):.1f} {x_end:.1f} {pad + ch * 0.55:.1f} "
+        d += "Z"
+        shaded_shape(part, d, (pad, pad, cw, ch), colour, spec, part.name)()
+        front.append(part)
+        if style == "bob":
+            bw, bh = w * 1.16, h * 0.95
+            back = Part("hair-back", bw + pad * 2, bh + pad * 2, [0.5, 0.5], "hair", face_name,
+                        (0, top + bh * 0.5))
+            d = smooth_path(superellipse(pad + bw / 2, pad + bh / 2, bw, bh, 2.6))
+            shaded_shape(back, d, (pad, pad, bw, bh), shade(colour, 0.15), spec, back.name)()
+            behind.append(back)
+        if style == "bun":
+            r = w * 0.2
+            bun = Part("hair-bun", r * 2 + pad * 2, r * 2 + pad * 2, [0.5, 0.9], "hair", face_name,
+                       (0, top + h * 0.06))
+            d = smooth_path(superellipse(pad + r, pad + r, r * 2, r * 2, 2.0))
+            shaded_shape(bun, d, (pad, pad, r * 2, r * 2), colour, spec, bun.name)()
+            behind.append(bun)
+    return behind, front
+
+
+def nose_part(spec, face_name, face):
+    style = spec.get("nose")
+    if not style or style == "none":
+        return []
+    pal, lw = spec["palette"], spec["line_width"]
+    w, h = face.extra["w"], face.extra["h"]
+    eyes_y, mouth_y = spec["eyes"]["y"], spec["mouth"]["y"]
+    y = face.extra["pad"] + h * (eyes_y + (mouth_y - eyes_y) * 0.55) - face.extra["pivot_y"]
+    pad = lw * 1.5
+    line = pal["line"]
+    skin = pal.get("skin", pal["body"])
+    if style == "dot":
+        r = w * 0.03
+        part = Part("nose", r * 2 + pad * 2, r * 2 + pad * 2, [0.5, 0.5], "nose", face_name, (0, y))
+        part.body.append(f'<circle cx="{pad + r:.1f}" cy="{pad + r:.1f}" r="{r:.1f}" fill="{line}"/>')
+    elif style == "button":
+        nw, nh = w * 0.12, w * 0.09
+        part = Part("nose", nw + pad * 2, nh + pad * 2, [0.5, 0.5], "nose", face_name, (0, y))
+        part.body.append(f'<ellipse cx="{pad + nw / 2:.1f}" cy="{pad + nh / 2:.1f}" rx="{nw / 2:.1f}" ry="{nh / 2:.1f}" '
+                         f'fill="{shade(skin, 0.18)}" stroke="{line}" stroke-width="{lw * 0.5:.1f}"/>')
+    elif style == "snout":
+        nw, nh = w * 0.36, h * 0.24
+        part = Part("nose", nw + pad * 2, nh + pad * 2, [0.5, 0.35], "nose", face_name, (0, y))
+        part.body.append(f'<ellipse cx="{pad + nw / 2:.1f}" cy="{pad + nh / 2:.1f}" rx="{nw / 2:.1f}" ry="{nh / 2:.1f}" '
+                         f'fill="{light(pal["body"], 0.35)}" stroke="{line}" stroke-width="{lw * 0.6:.1f}"/>'
+                         f'<ellipse cx="{pad + nw / 2:.1f}" cy="{pad + nh * 0.28:.1f}" rx="{nw * 0.16:.1f}" ry="{nh * 0.14:.1f}" '
+                         f'fill="{line}"/>')
+    elif style == "beak":
+        nw, nh = w * 0.22, h * 0.17
+        part = Part("nose", nw + pad * 2, nh + pad * 2, [0.5, 0.3], "nose", face_name, (0, y))
+        part.body.append(f'<path d="M{pad:.1f} {pad:.1f} L{pad + nw:.1f} {pad:.1f} L{pad + nw / 2:.1f} {pad + nh:.1f} Z" '
+                         f'fill="{pal["accent"]}" stroke="{line}" stroke-width="{lw * 0.7:.1f}" stroke-linejoin="round"/>'
+                         f'<path d="M{pad + nw * 0.15:.1f} {pad + nh * 0.3:.1f} L{pad + nw * 0.85:.1f} {pad + nh * 0.3:.1f}" '
+                         f'stroke="{line}" stroke-width="{lw * 0.4:.1f}"/>')
+    elif style == "cat":
+        nw, nh, span = w * 0.1, w * 0.07, w * 0.75
+        part = Part("nose", span + pad * 2, nh * 3 + pad * 2, [0.5, 0.3], "nose", face_name, (0, y))
+        cx = pad + span / 2
+        whiskers = "".join(
+            f'<path d="M{cx + side * nw * 0.9:.1f} {pad + nh * (1.2 + row * 0.5):.1f} L{cx + side * span / 2:.1f} '
+            f'{pad + nh * (0.7 + row * 1.0):.1f}" stroke="{line}" stroke-width="{lw * 0.35:.1f}" stroke-linecap="round" '
+            f'opacity="0.7"/>' for side in (-1, 1) for row in (0, 1))
+        part.body.append(whiskers + f'<path d="M{cx - nw / 2:.1f} {pad:.1f} L{cx + nw / 2:.1f} {pad:.1f} '
+                         f'L{cx:.1f} {pad + nh:.1f} Z" fill="{pal["cheek"]}" stroke="{line}" '
+                         f'stroke-width="{lw * 0.5:.1f}" stroke-linejoin="round"/>')
+    else:
+        raise ValueError(f"Unknown nose {style}. Use dot, button, snout, beak or cat.")
+    return [part]
+
+
+def tail_part(spec, body):
+    """A tail hanging from its pivot, rotated to stick out; it has a ``tip`` so ``bend`` and ik work."""
+    style = spec.get("tail")
+    if not style or style == "none":
+        return []
+    pal, lw = spec["palette"], spec["line_width"]
+    bw, bh = body.extra["w"], body.extra["h"]
+    sizes = {"cat": (0.09, 0.62), "wag": (0.14, 0.32), "fluffy": (0.34, 0.6), "feather": (0.3, 0.34),
+             "dino": (0.26, 0.45)}
+    if style not in sizes:
+        raise ValueError(f"Unknown tail {style}. Use {', '.join(sizes)}.")
+    tw, tl = sizes[style][0] * bw, sizes[style][1] * bh
+    pad = lw * 2
+    # Parented to the rig root (like legs) so it draws behind the body; children always draw over parents.
+    part = Part("tail", tw + pad * 2, tl + pad * 2, [0.5, (pad + tw * 0.2) / (tl + pad * 2)], "tail", None,
+                (body.offset[0] + bw * 0.32, body.offset[1] - bh * 0.22))
+    cx = pad + tw / 2
+    colour = pal["body"] if style != "feather" else pal["accent"]
+    if style == "cat":
+        part.body.append(f'<path d="M{cx:.1f} {pad + tw * 0.2:.1f} L{cx:.1f} {pad + tl - tw / 2:.1f}" stroke="{pal["line"]}" '
+                         f'stroke-width="{tw + lw * 2:.1f}" stroke-linecap="round"/>'
+                         f'<path d="M{cx:.1f} {pad + tw * 0.2:.1f} L{cx:.1f} {pad + tl - tw / 2:.1f}" stroke="{colour}" '
+                         f'stroke-width="{tw:.1f}" stroke-linecap="round"/>')
+    else:
+        if style == "feather":
+            d = (f"M{cx:.1f} {pad:.1f} L{pad + tw:.1f} {pad + tl:.1f} Q{cx:.1f} {pad + tl * 0.85:.1f} {pad:.1f} "
+                 f"{pad + tl:.1f} Z")
+        elif style == "dino":
+            d = f"M{pad:.1f} {pad:.1f} L{pad + tw:.1f} {pad:.1f} L{cx:.1f} {pad + tl:.1f} Z"
+        else:
+            d = smooth_path(superellipse(cx, pad + tl / 2, tw, tl, 2.0 if style == "fluffy" else 2.4,
+                                         (lambda t: 0.7 + 0.5 * t) if style == "fluffy" else None))
+        shaded_shape(part, d, (pad, pad, tw, tl), colour, spec, part.name)()
+    part.tip = (0.0, tl - tw * 0.2)
+    part.extra = {"tilt": {"cat": 125, "wag": 140, "fluffy": 150, "feather": 120, "dino": 100}[style],
+                  "bend": 45 if style == "cat" else 0}
+    return [part]
+
+
 def build_parts(spec):
     spec = _merge(spec)
     legs, arms = spec.get("legs"), spec.get("arms")
@@ -397,7 +639,8 @@ def build_parts(spec):
     if spec.get("head"):
         head_spec = {"shape": "circle", "size": 0.45, "overlap": 0.12, **spec["head"]}
         size = head_spec["size"]
-        face = body_part(spec, "head", {"shape": head_spec["shape"], "width": size * 1.05, "height": size}, 0, "head")
+        face = body_part(spec, "head", {"shape": head_spec["shape"], "width": size * 1.05, "height": size}, 0, "head",
+                         colour=spec["palette"].get("skin"))
         face.pivot = [0.5, (face.extra["pad"] + face.extra["h"] * 0.92) / face.height]
         face.extra["pivot_y"] = face.pivot[1] * face.height
         face.parent = "body"
@@ -413,7 +656,18 @@ def build_parts(spec):
             parts.append(arm)
     face_details(spec, face)
     ears = ear_parts(spec, face_name, face)
-    behind = [part for part in ears if part.name != "antenna"]
+    hair_behind, hair_front = hair_parts(spec, face_name, face)
+    floppy = [part for part in ears if part.name.startswith("ear") and part.pivot[1] < 0.5]
+    behind = [part for part in ears if part.name != "antenna" and part not in floppy] + hair_behind
+    # Children always draw over their parent, so hair behind the face hangs from the face's parent instead.
+    for part in hair_behind:
+        part.parent = None if face is body else "body"
+        part.offset = (face.offset[0] + part.offset[0], face.offset[1] + part.offset[1])
+    behind = [part for part in behind if part not in hair_behind]
+    index = parts.index(body)
+    parts[index:index] = tail_part(spec, body) + (hair_behind if face is body else [])
+    if face is not body:
+        behind = hair_behind + behind
     if face is body:
         index = parts.index(body)
         parts[index:index] = behind
@@ -422,7 +676,10 @@ def build_parts(spec):
         parts.append(face)
     parts.extend(part for part in ears if part.name == "antenna")
     parts.extend(eye_parts(spec, face_name, face))
+    parts.extend(nose_part(spec, face_name, face))
     parts.extend(mouth_parts(spec, face_name, face))
+    parts.extend(hair_front)
+    parts.extend(floppy)
     return spec, parts
 
 
@@ -472,6 +729,8 @@ def rig_layers(spec, parts, folder):
             layer["rotate"] = part.extra["rest_rotate"]
         if part.extra.get("tilt"):
             layer["rotate"] = part.extra["tilt"]
+        if part.extra.get("bend"):
+            layer["bend"] = part.extra["bend"]
         layers.append(layer)
     return layers
 
@@ -496,7 +755,10 @@ def preview_svg(parts, spec):
         px, py = pivot_point(part)
         pv = part.pivot or [0.5, 0.5]
         left, top = px - pv[0] * part.width, py - pv[1] * part.height
-        groups.append(f'<g transform="translate({left:.1f} {top:.1f})">{part.svg(standalone=False)}</g>')
+        # Rest angles; SVG rotate is clockwise, the studio's rotate is counter-clockwise. Bend is not previewed.
+        angle = part.extra.get("rest_rotate") or part.extra.get("tilt") or 0
+        turn = f' rotate({-angle:.1f} {pv[0] * part.width:.1f} {pv[1] * part.height:.1f})' if angle else ""
+        groups.append(f'<g transform="translate({left:.1f} {top:.1f}){turn}">{part.svg(standalone=False)}</g>')
     w = UNIT * 1.2
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{-w / 2:.0f} {-UNIT * 1.05:.0f} {w:.0f} {UNIT * 1.15:.0f}" '
             f'width="600" height="{600 * 1.15 / 1.2:.0f}"><rect x="{-w / 2:.0f}" y="{-UNIT * 1.05:.0f}" width="{w:.0f}" '

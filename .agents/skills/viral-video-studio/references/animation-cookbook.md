@@ -65,7 +65,15 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 
 ## Characters
 
-1. Write `art/characters/<id>.json` in the channel and run `make character SPEC=art/characters/<id>.json`. Review `preview.svg` with the user before casting.
+1. Write `art/characters/<id>.json` in the channel and run `make character SPEC=art/characters/<id>.json`. Review `preview.svg` with the user before casting. Start from an `archetype`: `blob` (the classic bean), `human` (separate head, `skin` colour, hair, nose, longer limbs), `cat`, `dog`, `bird`, or `robot`. Any field you set overrides the archetype. Options:
+   - `hair`: `tuft`, `spiky`, `curly`, `bob` (with back hair), `bun`
+   - `nose`: `dot`, `button`, `snout`, `beak`, `cat` (with whiskers)
+   - `ears`: `round`, `pointy`, `bunny`, `floppy`
+   - `tail`: `cat` (curled with `bend`), `wag`, `fluffy`, `feather`, `dino`
+   - `outfit`: `shirt`, `overalls`, `scarf`, `panel`
+   - `palette`: `skin`, `hair`, `outfit`, plus the usual `body`, `limb`, `accent`
+
+   `alive` wags and curls tails. Tails and limbs carry a `tip`, so `ik` and `bend` work on them.
 2. Place the character: `{"id": "pip", "kind": "use", "ref": "pip", "x": 0.3, "y": 0.86, "alive": {"talk": "Pip"}}`. Here `x`/`y` is the feet.
 3. Act with poses, not per-part keys: `"pose_keys": [{"t": 0.6, "pose": "wave", "d": 0.2, "ease": "back"}, {"t": 2.0, "pose": "idle"}]`. The starter poses are `idle`, `wave`, `cheer`, `point-left`, `point-right`, `shrug`, `surprise`, `sad`, `angry` and `think`. Add channel poses under `poses.<rig>` in the rig library, or under `poses` in the episode.
 4. Move the whole body with `motion`, `path` and keys on the `use` layer. `alive` adds breathing, blinks, glances, sway, ear and antenna follow-through, and the talking mouth on top.

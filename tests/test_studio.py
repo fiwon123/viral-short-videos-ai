@@ -915,6 +915,39 @@ class BendTests(unittest.TestCase):
         self.assertGreater(child["x"], 0.05)
 
 
+class CharacterArchetypeTests(unittest.TestCase):
+    def test_archetypes_build_their_signature_parts(self):
+        from studio.character import ARCHETYPES, build_parts
+        expected = {"human": {"head", "hair", "hair-back", "nose"}, "cat": {"tail", "nose", "ear-l"},
+                    "dog": {"tail", "nose", "ear-r"}, "bird": {"nose", "tail"}, "robot": {"antenna"}, "blob": set()}
+        for name in ARCHETYPES:
+            spec, parts = build_parts({"id": name, "archetype": name})
+            names = {part.name for part in parts}
+            self.assertTrue(expected[name] <= names, (name, expected[name] - names))
+            order = [part.name for part in parts]
+            if "tail" in names:  # Behind the body: drawn first and parented to the rig root.
+                self.assertLess(order.index("tail"), order.index("body"))
+                self.assertIsNone(next(p for p in parts if p.name == "tail").parent)
+
+    def test_spec_overrides_archetype_and_unknown_is_rejected(self):
+        from studio.character import build_parts
+        spec, parts = build_parts({"id": "x", "archetype": "cat", "tail": "none", "palette": {"body": "#123456"}})
+        self.assertNotIn("tail", {part.name for part in parts})
+        self.assertEqual(spec["palette"]["body"], "#123456")
+        with self.assertRaises(ValueError):
+            build_parts({"id": "x", "archetype": "dragon"})
+
+    def test_alive_wags_tails(self):
+        from studio.life import expand as expand_life
+        shot = {"id": "A", "duration": 2.0, "layers": [
+            {"id": "c", "kind": "group", "x": 0.5, "y": 0.8, "alive": True},
+            {"id": "c/tail", "kind": "svg", "role": "tail", "parent": "c", "x": 0.05, "y": -0.05, "rotate": 120}]}
+        expand_life({"scenes": [{"shots": [shot]}]})
+        tail = shot["layers"][1]
+        bends = {round(key.get("bend", 0), 2) for key in tail.get("keyframes", [])}
+        self.assertGreater(len(bends), 5)
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

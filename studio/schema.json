@@ -488,7 +488,7 @@
         "mouth_for": {"$ref": "#/$defs/text"},
         "quiet_for": {"description": "Hide this layer while the named speaker is talking (rest mouth).", "$ref": "#/$defs/text"},
         "talk_only": {"description": "With mouth_for: show only while the speaker is talking.", "type": "boolean"},
-        "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop"]},
+        "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop", "hair", "nose", "tail"]},
         "mouth_shape": {"$ref": "#/$defs/text"},
         "rig": {"description": "Set by defs expansion: the rig a group was built from.", "$ref": "#/$defs/text"},
         "paint_frames": {"description": "Set by paint expansion: one look per sprite frame.", "type": "array",
