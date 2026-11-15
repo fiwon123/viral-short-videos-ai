@@ -489,5 +489,35 @@ class PoseTests(unittest.TestCase):
         self.assertFalse(pose_at(rest, 0.9)["visible"])
 
 
+class MotionReportTests(unittest.TestCase):
+    def test_report_flags_dead_hold_linear_and_lockstep(self):
+        from studio.motion_report import report
+        moves = [{"id": f"m{i}", "kind": "rect", "x": 0.2, "y": 0.2 + i * 0.1,
+                  "keyframes": [{"at": 0.1, "x": 0.2}, {"at": 0.3, "x": 0.8}]} for i in range(3)]
+        shot = {"id": "A", "duration": 4.0, "layers": moves}
+        episode = {"fps": 24, "scenes": [{"shots": [shot]}]}
+        data, charts = report(episode, episode)
+        kinds = {note["kind"] for note in data["shots"][0]["notes"]}
+        self.assertEqual(kinds, {"dead-hold", "linear", "lockstep"})
+        self.assertIn("m0", charts["A"])
+
+    def test_onion_skin_composites(self):
+        from tempfile import TemporaryDirectory
+        from PIL import Image, ImageDraw
+        from studio.still import onion_skin
+        with TemporaryDirectory() as temp:
+            frames = {}
+            for offset in (-1, 0, 1):
+                image = Image.new("RGB", (80, 40), "#101020")
+                ImageDraw.Draw(image).rectangle((30 + offset * 20, 10, 40 + offset * 20, 20), fill="#FFFFFF")
+                frames[offset] = Path(temp) / f"{offset}.png"
+                image.save(frames[offset])
+            out = onion_skin(frames, Path(temp) / "onion.png")
+            with Image.open(out) as result:
+                self.assertEqual(result.getpixel((35, 15)), (255, 255, 255))
+                past = result.getpixel((15, 15))
+                self.assertGreater(past[0], past[2])
+
+
 if __name__ == "__main__":
     unittest.main()

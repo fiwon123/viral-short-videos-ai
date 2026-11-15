@@ -25,7 +25,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init assets sfx sfx-import spot character vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init assets sfx sfx-import spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -43,9 +43,10 @@ help:
 	@echo "  make sfx-import DIR=...     import recorded SFX packs into the library [DRY=1]"
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
+	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
 	@echo "  make motion MOTION=pop      emit a manifest-ready motion recipe"
-	@echo "  make still EPISODE=... SHOT=A PROGRESS=0.5 [NOAUDIO=1]  render one review frame"
+	@echo "  make still EPISODE=... SHOT=A PROGRESS=0.5 [NOAUDIO=1] [ONION=3]  render one review frame"
 	@echo "  make presets                list style presets"
 	@echo "  make templates              list shot templates"
 	@echo "  make schema                 write per-manifest schema wrappers"
@@ -128,11 +129,16 @@ motion:
 		$(if $(T0),--t0 $(T0),) \
 		$(if $(AMOUNT),--amount $(AMOUNT),)
 
+motion-report:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
+	@$(PYTHON) -m studio.motion_report $(EPISODE) $(CHANNEL_ARG) $(if $(HOLD),--hold $(HOLD),)
+
 still:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
 	@$(PYTHON) video.py still $(EPISODE) $(CHANNEL_ARG) \
 		$(if $(SHOT),--shot $(SHOT),) \
 		$(if $(PROGRESS),--progress $(PROGRESS),) \
+		$(if $(ONION),--onion $(ONION),) \
 		$(if $(AT),--at $(AT),) \
 		$(if $(SCALE),--scale $(SCALE),) \
 		$(if $(SHEET),--sheet $(SHEET),) \

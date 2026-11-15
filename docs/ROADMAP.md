@@ -31,12 +31,16 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Phase 2.5: manifest-native recipes | Done | `motion: [{recipe, t, d}]`: pop, anticipate, impact, settle, shake, spin, enter, exit, drop, jump, nod, wobble. |
 | Phase 2.6: pose library | Done | `studio/poses.py` `pose_keys`. Poses live in the rig library `poses.<rig>` or episode `poses`. `make character` writes 10 starter poses. IK is not done. |
 | Phase 6: animation cookbook | Done | `.agents/skills/viral-video-studio/references/animation-cookbook.md`, linked from SKILL.md. |
-| Phases 3–5 | Pending | Next up: Phase 3 (z-depth, tilt) or Phase 5 (onion still, motion report). |
+| Phase 5.1: onion-skin stills | Done | `still --onion N --onion-step s` (`make still ONION=3`). Median background, tinted ghosts. Works on every renderer. |
+| Phase 5.2: motion report | Done | `studio/motion_report.py` and `make motion-report`. Flags dead holds, linear moves, lockstep starts, snaps and frozen rigs, and writes a speed chart PNG. |
+| Phase 5.4: browser pose parity test | Pending | |
+| Phases 3–4, 2.4 | Pending | Next up: Phase 3 (z-depth, tilt, camera presets), then Phase 4 (3D rigs and lights), then 2.4 paint. |
 
-Tests: `make test` passes, 39 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 41 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Phase 5 onion stills and motion report landed.
 - 2026-11-15: Phase 2 motion primitives and poses landed. `studio/keys.py` is the shared resampler.
 - 2026-11-15: Phase 1 parity and lint landed.
 - 2026-11-15: Track C core landed (character generator, `alive`, paper/leak post).

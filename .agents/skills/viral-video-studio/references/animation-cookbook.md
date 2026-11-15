@@ -71,6 +71,11 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
 4. Move the whole body with `motion`, `path` and keys on the `use` layer. `alive` adds breathing, blinks, glances, sway, ear and antenna follow-through, and the talking mouth on top.
 5. Hit one pose change per beat. Hold readable poses for at least 0.4 s, and change pose on the word that motivates it.
 
+## See and check the motion
+
+- `make motion-report EPISODE=...` lists dead holds (nothing moves for 1 s or more), long `linear` moves, layers that start in lockstep, one-frame snaps and frozen rigs. It also writes `motion-report.png` with speed curves per shot. Fix every note or say why it is intentional.
+- `make still EPISODE=... SHOT=... AT=1.2 ONION=3` overlays ghost poses, warm before and cool after, to check arcs, spacing and overlap at a key moment.
+
 ## Polish checklist
 
 - Every big move has an ease other than `linear`, plus an anticipation or a settle.

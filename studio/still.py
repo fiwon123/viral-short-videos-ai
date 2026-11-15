@@ -168,3 +168,41 @@ def contact_sheet(paths, target, *, labels=None, tile=(270, 480)):
     target.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(target)
     return target
+
+
+def onion_skin(frames, target):
+    """Overlay ghost poses on the current frame.
+
+    ``frames`` maps an offset (negative = before, 0 = now, positive = after) to
+    a PNG. The static background is the per-pixel median of all frames; each
+    ghost's moving parts are tinted (past warm, future cool, fading with
+    distance) and the current pose is drawn on top, so arcs, spacing and
+    overlap read at a glance.
+    """
+    import numpy as np
+
+    stack = {}
+    for offset, path in frames.items():
+        with Image.open(path) as source:
+            stack[offset] = np.asarray(source.convert("RGB")).astype(np.float32)
+    background = np.median(np.stack(list(stack.values())), axis=0)
+    result = background * 0.78
+    reach = max(abs(k) for k in stack) or 1
+
+    def moving(image):
+        return (np.abs(image - background).sum(axis=2) > 45)[..., None]
+
+    for offset in sorted(stack, key=lambda k: -abs(k)):
+        if offset == 0:
+            continue
+        ghost = stack[offset]
+        tint = np.array([255, 120, 70] if offset < 0 else [70, 170, 255], dtype=np.float32)
+        weight = 0.7 * (1 - (abs(offset) - 1) / (reach + 1))
+        luma = ghost.mean(axis=2, keepdims=True) / 255
+        result = np.where(moving(ghost), result * (1 - weight) + tint * (0.3 + 0.7 * luma) * weight, result)
+    current = stack[0]
+    result = np.where(moving(current), current, result)
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(np.uint8(np.clip(result, 0, 255))).save(target)
+    return target

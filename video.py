@@ -58,6 +58,9 @@ def options():
     still.add_argument("--times", help="comma separated seconds for a contact sheet")
     still.add_argument("--no-captions", action="store_true")
     still.add_argument("--no-audio", action="store_true")
+    still.add_argument("--onion", type=int, default=0,
+                       help="overlay this many ghost frames before (warm) and after (cool) the moment")
+    still.add_argument("--onion-step", type=float, default=0.08, help="seconds between ghost frames")
     presets = commands.add_parser("presets", help="list style presets")
     presets.add_argument("--channel", type=Path)
     presets.add_argument("--json", action="store_true")
@@ -401,6 +404,25 @@ def execute(args):
                 sheet = args.out or (folder / f"{shot_id}-sheet.png")
                 contact_sheet(paths, sheet, labels=labels)
                 return {"sheet": str(Path(sheet).resolve()), "shot": shot_id, "frames": len(times)}, 0
+        if args.onion:
+            from studio.still import onion_skin
+
+            duration = float(target["duration"])
+            moment = args.progress * duration if args.progress is not None else args.at
+            with TemporaryDirectory() as temp:
+                frames = {}
+                for k in range(-args.onion, args.onion + 1):
+                    when = max(0.0, min(duration - 0.01, moment + k * args.onion_step))
+                    path = Path(temp) / f"onion-{k + args.onion}.png"
+                    render_still(episode, channel, args.episode.parent, args.channel.parent, path,
+                                 shot_id=shot_id, at=when, scale=args.scale, renderer=renderer,
+                                 burn=False, audio=not args.no_audio, library=loaded,
+                                 audio_library=audio_library)
+                    frames[k] = path
+                out = args.out or (folder / f"{shot_id}-{moment:g}s-onion.png")
+                onion_skin(frames, out)
+                return {"onion": str(Path(out).resolve()), "shot": shot_id, "at": moment,
+                        "ghosts": args.onion * 2, "step": args.onion_step}, 0
         stamp = f"{args.progress:g}" if args.progress is not None else f"{args.at:g}s"
         out = args.out or (folder / f"{shot_id}-{stamp}.png")
         report = render_still(episode, channel, args.episode.parent, args.channel.parent, out,
