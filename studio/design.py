@@ -320,6 +320,9 @@ def make_brand(channel, base, out):
     banner.crop((x, y, x + sw, y + sh)).save(out / "banner-safe-preview.png")
 
 
+TALK_LEVEL = 0.08  # Mouth level above which a speaker counts as talking.
+
+
 def poses(layer):
     scale = layer.get("scale", 1)
     state = {
@@ -444,6 +447,20 @@ def _merge(*configs):
     return merged
 
 
+_NOISE = {}
+
+
+def _noise_tile(size, seed):
+    """Deterministic grey noise, identical to noiseTile() in browser/painter.mjs."""
+    if (size, seed) not in _NOISE:
+        state, values = seed or 1, np.empty(size * size, dtype=np.uint8)
+        for index in range(size * size):
+            state = (state * 1664525 + 1013904223) & 0xFFFFFFFF
+            values[index] = (state >> 24) & 0xFF
+        _NOISE[(size, seed)] = values.reshape(size, size)
+    return _NOISE[(size, seed)]
+
+
 def apply_post(image, config, *, seed=0, palette=None):
     """Film-style finishing: grade, bloom, vignette, grain, halation."""
     if not config:
@@ -488,6 +505,21 @@ def apply_post(image, config, *, seed=0, palette=None):
         random = np.random.default_rng(seed or 1)
         noise = random.normal(0, 1, (height, width, 1)).astype(np.float32)
         data = data + noise * (0.11 * grain)
+    if paper := float(config.get("paper", 0)):
+        # Same LCG tiles as browser/painter.mjs: soft blotches plus fine fibre, multiplied.
+        blotch = np.asarray(Image.fromarray(_noise_tile(48, 11)).resize((width, height), Image.Resampling.BILINEAR),
+                            dtype=np.float32) / 255
+        fibre = np.tile(_noise_tile(256, 5), (height // 256 + 1, width // 256 + 1))[:height, :width].astype(np.float32) / 255
+        data *= (1 - paper * 0.35 * (1 - blotch))[..., None]
+        data *= (1 - paper * 0.15 * (1 - fibre))[..., None]
+    if leak := float(config.get("leak", 0)):
+        y, x = np.ogrid[:height, :width]
+        reach = math.hypot(width, height) * 0.75
+        falloff = np.clip(1 - np.sqrt((x - width) ** 2 + (y + height * 0.05) ** 2) / reach, 0, 1) ** 1.6
+        pulse = 0.75 + 0.25 * math.sin(seed * 0.05)
+        warm = np.array([1.0, 0.69, 0.44], dtype=np.float32)
+        amount = (falloff * leak * 0.55 * pulse)[..., None]
+        data = 1 - (1 - data) * (1 - warm * amount)
     if vignette := float(config.get("vignette", 0)):
         y, x = np.ogrid[:height, :width]
         cx, cy = width / 2, height / 2
@@ -696,9 +728,16 @@ class Composition:
                 tile = layer["tiles"][frame_index]
             else:
                 tile = layer["tile"]
+            quiet = layer["spec"].get("quiet_for")
+            if quiet and speaking and speaking.get(quiet, 0) > TALK_LEVEL:
+                continue
+            if layer["mouth_for"] and layer["spec"].get("talk_only") and (
+                    not speaking or speaking.get(layer["mouth_for"], 0) <= TALK_LEVEL):
+                continue
             if layer["mouth_for"]:
                 level = speaking.get(layer["mouth_for"], 0) if speaking else 0
-                mouth = 0.18 + 0.82 * level
+                floor = 0.4 if layer["spec"].get("talk_only") else 0.18
+                mouth = floor + (1 - floor) * level
                 if mouth < 0.999:
                     tile = tile.resize((tile.width, max(1, round(tile.height * mouth))),
                                        Image.Resampling.BILINEAR)

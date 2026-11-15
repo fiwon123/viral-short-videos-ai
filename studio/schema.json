@@ -162,6 +162,8 @@
       "type": "object", "additionalProperties": false,
       "properties": {
         "grain": {"$ref": "#/$defs/unit"},
+        "paper": {"description": "Static paper/print texture multiplied over the frame.", "$ref": "#/$defs/unit"},
+        "leak": {"description": "Warm light leak from the top-right corner that breathes slowly.", "$ref": "#/$defs/unit"},
         "vignette": {"$ref": "#/$defs/unit"},
         "bloom": {"$ref": "#/$defs/unit"},
         "blur": {"$ref": "#/$defs/unit"},
@@ -452,6 +454,25 @@
         "text": {"$ref": "#/$defs/text"},
         "file": {"$ref": "#/$defs/path"},
         "mouth_for": {"$ref": "#/$defs/text"},
+        "quiet_for": {"description": "Hide this layer while the named speaker is talking (rest mouth).", "$ref": "#/$defs/text"},
+        "talk_only": {"description": "With mouth_for: show only while the speaker is talking.", "type": "boolean"},
+        "role": {"enum": ["body", "head", "eye", "pupil", "brow", "mouth", "arm", "leg", "ear", "antenna", "shadow", "prop"]},
+        "mouth_shape": {"$ref": "#/$defs/text"},
+        "alive": {
+          "description": "Automatic idle motion for a rig: breathe, blink, glance, sway and talk.",
+          "anyOf": [{"type": "boolean"}, {
+            "type": "object", "additionalProperties": false,
+            "properties": {
+              "breathe": {"anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 3}]},
+              "blink": {"anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 3}]},
+              "look": {"anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 3}]},
+              "sway": {"anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 3}]},
+              "talk": {"$ref": "#/$defs/text"},
+              "energy": {"type": "number", "minimum": 0, "maximum": 3},
+              "seed": {"type": "integer", "minimum": 0}
+            }
+          }]
+        },
         "parent": {"$ref": "#/$defs/text"},
         "variant_group": {"$ref": "#/$defs/text"},
         "pivot": {

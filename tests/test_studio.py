@@ -288,7 +288,7 @@ class CaptionTests(unittest.TestCase):
 
     def test_keyword_emphasis_and_word_reveal(self):
         from studio.captions import pages, settings, word_state
-        config = settings({"emphasis": ["moon"]})
+        config = settings({"emphasis": ["moon"], "reveal": "word"})
         page = pages(self.cue("That was the moon."), config)[-1]
         moon = page["words"][-1]
         self.assertTrue(moon["emphasis"])
@@ -367,6 +367,43 @@ class SoundDesignTests(unittest.TestCase):
         out = glue(track)
         self.assertLess(out[5000, 0], 0.8)
         self.assertAlmostEqual(float(out[23000, 0]), 0.05, places=3)
+
+
+class CharacterTests(unittest.TestCase):
+    def test_character_parts_and_rig(self):
+        from studio.character import build_parts, rig_layers
+        spec, parts = build_parts({"id": "t", "ears": "pointy", "antenna": True, "head": {"shape": "egg"}})
+        names = {part.name for part in parts}
+        self.assertTrue({"body", "head", "eye-l", "pupil-r", "mouth-rest", "mouth-open", "arm-l", "leg-r",
+                         "ear-l", "antenna", "shadow"} <= names)
+        layers = rig_layers(spec, parts, "art/characters/t")
+        by_id = {layer["id"]: layer for layer in layers}
+        self.assertEqual(by_id["pupil-l"]["parent"], "eye-l")
+        self.assertEqual(by_id["eye-l"]["parent"], "head")
+        self.assertFalse(by_id["mouth-open"]["visible"])
+        self.assertLess(by_id["eye-l"]["x"], 0)
+        for part in parts:
+            self.assertTrue(part.svg().startswith("<svg"))
+
+    def test_alive_adds_blink_breath_and_talk(self):
+        from studio.character import build_parts, rig_layers
+        from studio.expand import expand as expand_defs
+        from studio.life import expand as expand_life
+        spec, parts = build_parts({"id": "t"})
+        rig = rig_layers(spec, parts, "art/characters/t")
+        episode = {"defs": {"t": rig}, "scenes": [{"shots": [{"id": "A", "duration": 6.0, "layers": [
+            {"id": "hero", "kind": "use", "ref": "t", "x": 0.5, "y": 0.8, "alive": {"talk": "Hero"}}]}]}]}
+        episode = expand_life(expand_defs(episode))
+        layers = {layer["id"]: layer for layer in episode["scenes"][0]["shots"][0]["layers"]}
+        self.assertNotIn("alive", layers["hero"])
+        eye_scale = [key.get("scale_y", 1) for key in layers["hero/eye-l"]["keyframes"]]
+        self.assertLess(min(eye_scale), 0.2)
+        body_scale = [key["scale_y"] for key in layers["hero/body"]["keyframes"]]
+        self.assertGreater(max(body_scale) - min(body_scale), 0.02)
+        self.assertEqual(layers["hero/mouth-rest"]["quiet_for"], "Hero")
+        self.assertTrue(layers["hero/mouth-open"]["talk_only"])
+        ats = [key["at"] for key in layers["hero/body"]["keyframes"]]
+        self.assertEqual(ats, sorted(ats))
 
 
 if __name__ == "__main__":

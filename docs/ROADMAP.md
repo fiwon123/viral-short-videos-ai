@@ -16,12 +16,18 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Track B4: mix polish | Partial | SFX bus `glue()` and music `sfx_duck` are in. The density check is pending. |
 | Phase 1.1: shared expansion pipeline | Done | `studio/pipeline.py:prepare_episode` is used by `video.py` and `editor.py`. |
 | Phase 1.2–1.4 | Pending | SVG easing parity, motion-blur parity, validation warnings. |
-| Track C, Phases 2–6 | Pending | Next up: Track C (rig-ready characters, auto life, style passes, finishing post). |
+| Track C1: rig-ready character generator | Done | `studio/character.py` and `make character SPEC=...`. Outputs shaded part SVGs, a role-tagged rig and `preview.svg`. |
+| Track C2: auto life | Done | `studio/life.py`, run in `pipeline.prepare_episode`. Layer field `alive` covers breathe, blink, glance, sway and follow-through. Talking uses the `quiet_for`/`talk_only` mouth swap in both renderers. |
+| Track C3: style passes | Partial | The generator has cel shade, rim, gloss and texture. Line boil and passes over arbitrary existing SVGs are pending. |
+| Track C4: finishing post | Partial | `post.paper` and `post.leak` are in both renderers. A LUT is pending. |
+| Track C5: art-quality checks | Pending | Fold into the Phase 5 motion report: dead frames, contrast. |
+| Phases 2–6 | Pending | Next up: Phase 1.2–1.4 parity fixes, then Phase 2 motion primitives. |
 
-Tests: `make test` passes, 30 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 32 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Track C core landed (character generator, `alive`, paper/leak post).
 - 2026-11-15: Tracks A and B landed (captions, word timing, SFX import, spotting, bus glue) along with the shared pipeline. Set up the memory files. Next: Track C.
 
 ---

@@ -1,6 +1,6 @@
 """The one load-time expansion pipeline every command shares.
 
-Order matters: defs and rigs become plain layers, the style fills defaults,
+Order matters: defs and rigs become plain layers, ``alive`` adds idle motion to rigs, the style fills defaults,
 markers emit SFX/shakes/effect layers, trails and particles become keyed
 layers, and text reveals split last so they see the final layers.
 """
@@ -10,6 +10,7 @@ import copy
 
 def prepare_episode(episode, channel, channel_dir, *, style=True):
     from .expand import expand as expand_defs
+    from .life import expand as expand_life
     from .markers import expand as expand_markers
     from .particles import expand as expand_particles
     from .presets import apply_style
@@ -17,7 +18,7 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     from .rigs import load_rigs
     from .trails import expand as expand_trails
 
-    episode = expand_defs(copy.deepcopy(episode), load_rigs(channel, channel_dir))
+    episode = expand_life(expand_defs(copy.deepcopy(episode), load_rigs(channel, channel_dir)))
     if style:
         episode = apply_style(episode, channel, channel_dir)
     episode = expand_markers(episode, channel_dir)

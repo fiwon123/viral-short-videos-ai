@@ -199,6 +199,8 @@ export async function createPainter(canvas, data, urlFor) {
   layerMaskCanvas.height = height;
   const layerMaskCtx = layerMaskCanvas.getContext("2d");
   const grain = noiseTile(192, 29);
+  const paperBlotch = noiseTile(48, 11);
+  const paperFibre = noiseTile(256, 5);
   const tintCanvases = new Map();
 
   function tintTile(layer, tile, color, opacity) {
@@ -364,10 +366,14 @@ export async function createPainter(canvas, data, urlFor) {
       const parentMatrix = layer.parent ? matrices.get(layer.parent) : null;
       const parentAlpha = layer.parent ? (alphas.get(layer.parent) ?? 1) : 1;
       const alpha = (pose.opacity ?? 1) * parentAlpha;
+      const levelFor = (speaker) => (speech?.[2] === speaker ? (speech[3][offset - speech[0]] ?? 0) : 0);
+      if (layer.quiet && levelFor(layer.quiet) > 0.08) continue;
+      if (layer.mouth && layer.talk_only && levelFor(layer.mouth) <= 0.08) continue;
       let mouth = 1;
       if (layer.mouth) {
         const level = speech?.[2] === layer.mouth ? speech[3][offset - speech[0]] : 0;
-        mouth = 0.18 + 0.82 * level;
+        const floor = layer.talk_only ? 0.4 : 0.18;
+        mouth = floor + (1 - floor) * level;
       }
       const matrix = layerMatrix(pose, width, height, layer.pivot,
         {parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
@@ -521,6 +527,37 @@ export async function createPainter(canvas, data, urlFor) {
       ctx2.globalCompositeOperation = "overlay";
       ctx2.globalAlpha = Math.min(0.5, post.grain * 0.45);
       ctx2.fillStyle = pattern;
+      ctx2.fillRect(0, 0, width, height);
+      ctx2.restore();
+    }
+    if (post.paper) {
+      ctx2.save();
+      ctx2.globalCompositeOperation = "multiply";
+      ctx2.imageSmoothingEnabled = true;
+      fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+      fxCtx.clearRect(0, 0, width, height);
+      fxCtx.fillStyle = "#fff";
+      fxCtx.fillRect(0, 0, width, height);
+      fxCtx.globalAlpha = Math.min(1, post.paper * 0.35);
+      fxCtx.drawImage(paperBlotch, 0, 0, width, height);
+      fxCtx.globalAlpha = Math.min(1, post.paper * 0.15);
+      fxCtx.fillStyle = ctx2.createPattern(paperFibre, "repeat");
+      fxCtx.fillRect(0, 0, width, height);
+      fxCtx.globalAlpha = 1;
+      ctx2.drawImage(fx, 0, 0);
+      ctx2.restore();
+    }
+    if (post.leak) {
+      const reach = Math.hypot(width, height) * 0.75;
+      const pulse = 0.75 + 0.25 * Math.sin(frame * 0.05);
+      const gradient = ctx2.createRadialGradient(width, -height * 0.05, 0, width, -height * 0.05, reach);
+      const strength = Math.min(1, post.leak * 0.55 * pulse);
+      for (const stop of [0, 0.25, 0.5, 0.75, 1]) {
+        gradient.addColorStop(stop, `rgba(255,176,112,${(strength * (1 - stop) ** 1.6).toFixed(4)})`);
+      }
+      ctx2.save();
+      ctx2.globalCompositeOperation = "screen";
+      ctx2.fillStyle = gradient;
       ctx2.fillRect(0, 0, width, height);
       ctx2.restore();
     }
