@@ -311,7 +311,7 @@ def _noise(seed, octaves):
 
 def wiggle(spec, duration, index):
     prop = spec["prop"]
-    amp = float(spec.get("amp", {"rotate": 3, "scale": 0.03}.get(prop, 0.006)))
+    amp = float(spec.get("amp", {"rotate": 3, "scale": 0.03, "bend": 8}.get(prop, 0.006)))
     freq = float(spec.get("freq", 1.5))
     noise = _noise(int(spec.get("seed", 11 + index * 17)), int(spec.get("octaves", 2)))
     start, end = spec.get("at") or [0, 1]

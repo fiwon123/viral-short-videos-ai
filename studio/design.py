@@ -358,6 +358,7 @@ def poses(layer):
         "wipe": layer.get("wipe", 1),
         "turn_x": layer.get("turn_x", 0),
         "turn_y": layer.get("turn_y", 0),
+        "bend": layer.get("bend", 0),
     }
     colour = layer.get("tint_color") or next((key["tint_color"] for key in layer.get("keyframes", [])
                                                if "tint_color" in key), None)
@@ -460,6 +461,89 @@ def turn_tile(tile, turn_x, turn_y, pivot):
         return Image.new("RGBA", size, (0, 0, 0, 0)), [(pad + cx) / size[0], (pad + cy) / size[1]]
     turned = tile.transform(size, Image.Transform.PERSPECTIVE, coeffs, Image.Resampling.BICUBIC)
     return turned, [(pad + cx) / size[0], (pad + cy) / size[1]]
+
+
+def bend_point(u, d, curvature, length):
+    """Forward bend of a point ``u`` across and ``d`` along a part's axis (pivot origin, +y down the part).
+
+    The part curves as a circular arc from the pivot; above the pivot it stays rigid and past the end
+    it continues straight along the final tangent. Returns ``(x, y, tangent_degrees)``.
+    Positive bend turns counter-clockwise on screen, like ``rotate``. Mirrors painter.mjs bendPoint.
+    """
+    if d <= 0 or abs(curvature) < 1e-9:
+        return u, d, 0.0
+    along = min(d, length)
+    phi = curvature * along
+    sin, cos = math.sin(phi), math.cos(phi)
+    x = (1 - cos) / curvature + u * cos + (d - along) * sin
+    y = sin / curvature - u * sin + (d - along) * cos
+    return x, y, math.degrees(phi)
+
+
+def bend_tile(tile, degrees, pivot):
+    """Curve a tile along its vertical axis from the pivot; returns the new tile and pivot."""
+    w, h = tile.size
+    px, py = float(pivot[0]) * w, float(pivot[1]) * h
+    length = h - py
+    if length < 2 or abs(degrees) < 0.05:
+        return tile, pivot
+    k = math.radians(degrees) / length
+    corners = [bend_point(x - px, y - py, k, length)[:2]
+               for x in np.linspace(0, w, 9) for y in np.linspace(0, h, 33)]
+    xs, ys = [c[0] for c in corners], [c[1] for c in corners]
+    left, top = math.floor(min(xs)) - 2, math.floor(min(ys)) - 2
+    right, bottom = math.ceil(max(xs)) + 2, math.ceil(max(ys)) + 2
+    out_w, out_h = right - left, bottom - top
+    gx, gy = np.meshgrid(np.arange(out_w, dtype=np.float64) + left + 0.5, np.arange(out_h, dtype=np.float64) + top + 0.5)
+    # Inverse of the arc: the curvature centre sits at (1/k, 0) from the pivot.
+    radius = 1.0 / k
+    vx, vy = gx - radius, gy
+    sign = 1.0 if k > 0 else -1.0
+    reach = np.hypot(vx, vy) * sign
+    phi = np.arctan2(vy * sign, -vx * sign)
+    su = radius - reach
+    sd = phi / k
+    bent = (sd >= 0) & (sd <= length)
+    # Past the end: straight continuation along the final tangent.
+    end_x, end_y, _ = bend_point(0.0, length, k, length)
+    t_x, t_y = math.sin(k * length), math.cos(k * length)
+    n_x, n_y = math.cos(k * length), -math.sin(k * length)
+    rel_x, rel_y = gx - end_x, gy - end_y
+    tail_d = rel_x * t_x + rel_y * t_y
+    tail_u = rel_x * n_x + rel_y * n_y
+    rigid = (~bent) & (gy <= 0) & (gx + px >= 0) & (gx + px <= w) & (gy + py >= 0)
+    tail = (~bent) & (~rigid) & (tail_d > 0)
+    src_u = np.where(bent, su, np.where(tail, tail_u, gx))
+    src_d = np.where(bent, sd, np.where(tail, length + tail_d, gy))
+    valid = bent | tail | rigid
+    sx, sy = src_u + px - 0.5, src_d + py - 0.5
+    source = np.asarray(tile.convert("RGBA"), dtype=np.float32)
+    alpha = source[..., 3:4] / 255.0
+    premultiplied = np.concatenate([source[..., :3] * alpha, source[..., 3:4]], axis=2)
+    x0, y0 = np.floor(sx).astype(int), np.floor(sy).astype(int)
+    fx, fy = (sx - x0)[..., None], (sy - y0)[..., None]
+    result = np.zeros((out_h, out_w, 4), dtype=np.float32)
+    for dx, dy, weight in ((0, 0, (1 - fx) * (1 - fy)), (1, 0, fx * (1 - fy)), (0, 1, (1 - fx) * fy), (1, 1, fx * fy)):
+        xi, yi = x0 + dx, y0 + dy
+        inside = valid & (xi >= 0) & (xi < w) & (yi >= 0) & (yi < h)
+        sample = np.zeros_like(result)
+        sample[inside] = premultiplied[yi[inside], xi[inside]]
+        result += sample * weight
+    rgb = np.where(result[..., 3:4] > 0, result[..., :3] / np.maximum(result[..., 3:4], 1e-6) * 255.0, 0)
+    pixels = np.clip(np.concatenate([rgb, result[..., 3:4]], axis=2), 0, 255).astype(np.uint8)
+    return Image.fromarray(pixels, "RGBA"), [(-left) / out_w, (-top) / out_h]
+
+
+def bend_child(state, bend, parent_size, parent_pivot, width, height):
+    """Move a child's attach point and add the tangent turn when its parent is bent."""
+    w, h = parent_size
+    py = float(parent_pivot[1]) * h
+    length = h - py
+    if length < 2 or not bend:
+        return state
+    k = math.radians(bend) / length
+    x, y, turn = bend_point(float(state["x"]) * width, float(state["y"]) * height, k, length)
+    return {**state, "x": x / width, "y": y / height, "rotate": float(state.get("rotate", 0)) + turn}
 
 
 def wipe_region(width, height, amount, start="left"):
@@ -837,7 +921,7 @@ class Composition:
                     state["visible"] = False
             if layer["parent"] and not states[layer["parent"]]["visible"]:
                 state["visible"] = False
-        matrices, alphas, origins, mask_cache, depths = {}, {}, {}, {}, {}
+        matrices, alphas, origins, mask_cache, depths, bends = {}, {}, {}, {}, {}, {}
         for layer in self.layers:
             state = states[layer["id"]]
             if layer["id"] in hidden_ids or not state["visible"]:
@@ -877,6 +961,11 @@ class Composition:
             if state.get("blur"):
                 tile = tile.filter(ImageFilter.GaussianBlur(max(0.5, min(width, height) * float(state["blur"]) * 0.02)))
             pivot = layer["pivot"]
+            if layer["parent"] in bends:
+                state = bend_child(state, *bends[layer["parent"]], width, height)
+            if state.get("bend") and layer["kind"] != "group":
+                bends[layer["id"]] = (float(state["bend"]), tile.size, pivot)
+                tile, pivot = bend_tile(tile, float(state["bend"]), pivot)
             if (state.get("turn_x") or state.get("turn_y")) and layer["kind"] != "group":
                 tile, pivot = turn_tile(tile, float(state.get("turn_x", 0)), float(state.get("turn_y", 0)), pivot)
             matrix = layer_matrix(state, width, height, pivot, parent=parent_matrix,

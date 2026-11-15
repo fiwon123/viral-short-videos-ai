@@ -891,6 +891,30 @@ class MorphShapeTests(unittest.TestCase):
         self.assertEqual(len(end), len(look(paint_at(track(layer, {}), 0.0))["points"]))
 
 
+class BendTests(unittest.TestCase):
+    def test_bend_point_follows_an_arc(self):
+        import math
+        from studio.design import bend_point
+        length = 100
+        k = math.radians(90) / length
+        x, y, turn = bend_point(0, length, k, length)
+        self.assertAlmostEqual(x, 200 / math.pi, places=4)  # Quarter circle of radius 2L/pi, swinging right.
+        self.assertAlmostEqual(y, 200 / math.pi, places=4)
+        self.assertAlmostEqual(turn, 90)
+        self.assertEqual(bend_point(3, -5, k, length), (3, -5, 0.0))  # Above the pivot stays rigid.
+
+    def test_bent_tile_keeps_coverage_and_children_ride_the_tip(self):
+        from PIL import Image
+        from studio.design import bend_child, bend_tile
+        tile = Image.new("RGBA", (20, 120), (255, 0, 0, 255))
+        bent, pivot = bend_tile(tile, 90, [0.5, 1 / 6])
+        area = sum(1 for value in bent.getchannel("A").getdata() if value > 128)
+        self.assertAlmostEqual(area / (20 * 120), 1.0, delta=0.06)
+        child = bend_child({"x": 0, "y": 100 / 1000, "rotate": 0}, 90, (20, 120), [0.5, 1 / 6], 1000, 1000)
+        self.assertAlmostEqual(child["rotate"], 90)
+        self.assertGreater(child["x"], 0.05)
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check

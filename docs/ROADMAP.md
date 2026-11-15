@@ -47,6 +47,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Channel growth workflow | Done | Skill interviews new channels one question at a time, ranks trends (`discover --rank views/velocity/outlier --shorts --snapshots`, growth between runs), and keeps channel memory: direction history, ledger with results and lessons, idea bank with seasonal calendar, series bible (`make channel-memory`, `references/episode-planning.md`). |
 | Viral check | Done | `studio/viral_check.py`, `make viral-check [VIDEO=]`: hook, pacing, runtime, captions, packaging from the manifest; first frame, first-second change, silent start, loop match and loudness from the MP4. A 0–100 checklist score. |
 | Shape morphing | Done | Keyable polygon `points` (any count, corners kept, aligned to avoid twisting) through the paint expander. SVG `morph_to` with keyable `morph` blends numbers and hex colours between same-structure files, staged as 25 frames. |
+| Bendy limbs | Done | Keyable `bend` (degrees) curves a part as a circular arc from its pivot. Python inverse-maps with NumPy (`design.bend_tile`), the browser draws a forward triangle mesh (`bentTile`), and children ride the curve (`bend_child`/`bendChild`). Parity test diff 0.0004. |
 | Still pending | Pending | Nothing from the original plan. See "Professional gaps" below for the next work. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -54,7 +55,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Gap | Area | Why it matters | Idea |
 | --- | --- | --- | --- |
 | ~~Shape morphing / path tweening~~ Done: polygon `points` keys (`paint.py`), SVG `morph_to`/`morph` (`morph.py`) | 2D | Morphing mouths, liquid, blob transitions and smears need point-level interpolation | Keyable `points` on polygons and matched SVG path morph in both painters |
-| Mesh deformation (bend/bone skinning) | 2D | Rigid parts read as cut-out; bendy arms, squash on a body, cloth need deformation | A bend deformer on a part (curve the sprite along a 2-bone chain) in both renderers |
+| ~~Mesh deformation (bend/bone skinning)~~ Done: keyable `bend` arc deformer, children ride the curve | 2D | Rigid parts read as cut-out; bendy arms, squash on a body, cloth need deformation | A bend deformer on a part (curve the sprite along a 2-bone chain) in both renderers |
 | Character art range | 2D | `make character` makes one cute bean family; other genres need humans, animals, props | More generator archetypes, or a documented import path for layered artwork (PSD/SVG to rig) |
 | Lip sync | 2D | Visemes exist but mouth sets are generic | Map Whisper phonemes to the 6+ mouth shapes per character |
 | Lighting on 2D layers | 2.5D | Flat layers ignore scene light | Normal/rim light pass driven by a light direction per shot |
@@ -65,10 +66,11 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Music | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | Voices | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 89 tests including the new caption, word-timing and sound-design tests.
+Tests: `make test` passes, 91 tests including the new caption, word-timing and sound-design tests.
 
 ## Log
 
+- 2026-11-15: Bendy limbs landed (`bend`).
 - 2026-11-15: Shape morphing landed (polygons and SVG).
 - 2026-11-15: Viral check landed.
 - 2026-11-15: Channel growth workflow (interview, trend ranking with velocity/outlier/snapshots, channel memory files) and the professional gap audit.

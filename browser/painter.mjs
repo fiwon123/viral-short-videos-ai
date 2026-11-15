@@ -153,6 +153,23 @@ function expandTriangle(points, amount) {
   });
 }
 
+// Bend a part along its axis from the pivot. Mirrors studio/design.py bend_point.
+function bendPoint(u, d, k, length) {
+  if (d <= 0 || Math.abs(k) < 1e-9) return [u, d, 0];
+  const along = Math.min(d, length);
+  const phi = k * along;
+  const sin = Math.sin(phi), cos = Math.cos(phi);
+  return [(1 - cos) / k + u * cos + (d - along) * sin, sin / k - u * sin + (d - along) * cos, phi * 180 / Math.PI];
+}
+
+function bendChild(pose, info, width, height) {
+  const length = info.height - (info.pivot?.[1] ?? 0.5) * info.height;
+  if (length < 2 || !info.bend) return pose;
+  const k = info.bend * Math.PI / 180 / length;
+  const [x, y, turn] = bendPoint(pose.x * width, pose.y * height, k, length);
+  return {...pose, x: x / width, y: y / height, rotate: (pose.rotate ?? 0) + turn};
+}
+
 // Mirrors studio/transform.py focal/depth_scale/depth_fade and design.depth_blur.
 function focal(camera) {
   const fov = Math.max(10, Math.min(110, camera?.fov ?? 50));
@@ -330,6 +347,79 @@ export async function createPainter(canvas, data, urlFor) {
     tint.drawImage(tile, 0, 0);
     tint.globalCompositeOperation = "source-over";
     return canvas;
+  }
+
+  const bendCanvases = new Map();
+  const bendSources = new Map();
+
+  // Wipe, then curve a tile along its axis from the pivot (forward triangle mesh).
+  function bentTile(layer, tile, pose) {
+    const w = layer.width, h = layer.height;
+    const sw = tile.naturalWidth || tile.width, sh = tile.naturalHeight || tile.height;
+    const rx = sw / w, ry = sh / h;
+    const px = (layer.pivot?.[0] ?? 0.5) * w, py = (layer.pivot?.[1] ?? 0.5) * h;
+    const length = h - py;
+    if (length < 2 || Math.abs(pose.bend ?? 0) < 0.05) return null;
+    const k = pose.bend * Math.PI / 180 / length;
+    let source = tile;
+    if ((pose.wipe ?? 1) < 1) {
+      let wiped = bendSources.get(layer.id);
+      if (!wiped) {
+        wiped = document.createElement("canvas");
+        bendSources.set(layer.id, wiped);
+      }
+      wiped.width = sw;
+      wiped.height = sh;
+      const wctx = wiped.getContext("2d");
+      wctx.setTransform(rx, 0, 0, ry, 0, 0);
+      wipeClip(wctx, layer, pose);
+      wctx.drawImage(tile, 0, 0, w, h);
+      source = wiped;
+    }
+    const columns = [0, 0.25, 0.5, 0.75, 1].map((f) => f * w);
+    const rows = [0, py, ...Array.from({length: 24}, (_, i) => py + (i + 1) / 24 * length)];
+    const grid = rows.map((v) => columns.map((x) => bendPoint(x - px, v - py, k, length)));
+    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+    for (const row of grid) {
+      for (const [x, y] of row) {
+        left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y);
+      }
+    }
+    left -= 2; top -= 2; right += 2; bottom += 2;
+    let canvas = bendCanvases.get(layer.id);
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      bendCanvases.set(layer.id, canvas);
+    }
+    canvas.width = Math.max(1, Math.round((right - left) * rx));
+    canvas.height = Math.max(1, Math.round((bottom - top) * ry));
+    const out = canvas.getContext("2d");
+    out.imageSmoothingQuality = "high";
+    const dest = (j, i) => [(grid[j][i][0] - left) * rx, (grid[j][i][1] - top) * ry];
+    const src = (j, i) => [columns[i] * rx, rows[j] * ry];
+    for (let j = 0; j < rows.length - 1; j += 1) {
+      if (rows[j + 1] - rows[j] < 1e-6) continue;
+      for (let i = 0; i < columns.length - 1; i += 1) {
+        for (const tri of [[[j, i], [j, i + 1], [j + 1, i + 1]], [[j, i], [j + 1, i + 1], [j + 1, i]]]) {
+          const to = tri.map(([a, b]) => dest(a, b));
+          const matrix = triangleMatrix(...tri.map(([a, b]) => src(a, b)), ...to);
+          if (!matrix) continue;
+          const clip = expandTriangle(to, 1.5);
+          out.save();
+          out.beginPath();
+          out.moveTo(...clip[0]);
+          out.lineTo(...clip[1]);
+          out.lineTo(...clip[2]);
+          out.closePath();
+          out.clip();
+          out.setTransform(...matrix);
+          out.drawImage(source, 0, 0);
+          out.restore();
+        }
+      }
+    }
+    return {tile: canvas, width: right - left, height: bottom - top,
+      pivot: [-left / (right - left), -top / (bottom - top)]};
   }
 
   const turnCanvases = new Map();
@@ -533,6 +623,7 @@ export async function createPainter(canvas, data, urlFor) {
       if (layer.variant_group && (state.visible ?? true)) chosen.set(layer.variant_group, layer.id);
     }
     const depths = new Map();
+    const bends = new Map();
     for (const layer of layers) {
       if (isCover && (hiddenOnCover.has(layer.id) || (layer.parent && hiddenOnCover.has(layer.parent)))) continue;
       const pose = states.get(layer.id);
@@ -569,13 +660,18 @@ export async function createPainter(canvas, data, urlFor) {
         const floor = layer.talk_only ? 0.4 : 0.18;
         mouth = floor + (1 - floor) * level;
       }
+      const placed = layer.parent && bends.has(layer.parent)
+        ? bendChild(pose, bends.get(layer.parent), width, height) : pose;
+      const bent = pose.bend && layer.kind !== "group" ? bentTile(layer, drawTile, pose) : null;
+      if (bent) bends.set(layer.id, {bend: pose.bend, width: layer.width, height: layer.height, pivot: layer.pivot});
+      const shaped = bent ? {...layer, width: bent.width, height: bent.height, pivot: bent.pivot} : layer;
       const turned = (pose.turn_x || pose.turn_y) && layer.kind !== "group"
-        ? turnedTile(layer, drawTile, pose) : null;
-      const art = turned?.tile ?? drawTile;
-      const boxW = turned?.width ?? layer.width, boxH = turned?.height ?? layer.height;
-      const pivot = turned?.pivot ?? layer.pivot;
-      const clipPose = turned ? {...pose, wipe: 1} : pose;
-      const matrix = layerMatrix(pose, width, height, pivot,
+        ? turnedTile(shaped, bent?.tile ?? drawTile, bent ? {...pose, wipe: 1} : pose) : null;
+      const art = turned?.tile ?? bent?.tile ?? drawTile;
+      const boxW = turned?.width ?? shaped.width, boxH = turned?.height ?? shaped.height;
+      const pivot = turned?.pivot ?? shaped.pivot;
+      const clipPose = turned || bent ? {...placed, wipe: 1} : placed;
+      const matrix = layerMatrix(placed, width, height, pivot,
         {parent: parentMatrix, parentOrigin: layer.parent ? origins.get(layer.parent) : null,
          camera, parallax: layer.parallax, mouth, box: [boxW, boxH]});
       matrices.set(layer.id, matrix);
