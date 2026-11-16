@@ -44,9 +44,9 @@ def _post_with_lut(post):
 
 def _kinetic_cue(cue, caption_config, canvas, font, channel, assets, number, fps):
     """Stage per-word sprites and page layout for the browser kinetic captions."""
-    from .captions import layout, pages, settings, word_sprite
+    from .captions import cue_settings, layout, pages, word_sprite
 
-    config = settings({**caption_config, **(cue.get("placement") or {})})
+    config = cue_settings(caption_config, cue)
     palette = channel.get("palette", {})
     staged = []
     for page_index, page in enumerate(pages(cue, config)):

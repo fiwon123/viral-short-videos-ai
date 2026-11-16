@@ -40,11 +40,25 @@ DEFAULTS = {"words_per_page": 3, "word_in": "pop", "active": "color+scale", "rev
 _MARK = re.compile(r"^\*(.+)\*([.,!?;:]*)$")
 
 
+def cue_settings(config, cue):
+    """Settings for one cue: placement from caption avoidance, then the speaker's colours.
+
+    ``speakers`` maps a speaker to a colour (the text colour) or to an object with any of
+    ``foreground``, ``highlight`` and ``emphasis_color``, so each character reads in its own colour.
+    """
+    config = dict(config or {})
+    speakers = config.pop("speakers", None) or {}
+    look = speakers.get(cue.get("speaker"))
+    if isinstance(look, str):
+        look = {"foreground": look}
+    return settings({**config, **(cue.get("placement") or {}), **(look or {})})
+
+
 def settings(config):
     """Merge preset → defaults → explicit caption config."""
     config = dict(config or {})
     preset = PRESETS.get(config.get("preset"), {})
-    merged = {**DEFAULTS, **preset, **{k: v for k, v in config.items() if k != "style"}}
+    merged = {**DEFAULTS, **preset, **{k: v for k, v in config.items() if k not in ("style", "speakers")}}
     if "uppercase" not in config and "uppercase" in preset:
         merged["uppercase"] = preset["uppercase"]
     if "offset" not in config and "offset" not in preset and merged["position"] != "center":
@@ -253,7 +267,7 @@ def word_sprite(text, font_path, size, state, config, palette):
 
 def draw_kinetic(image, cue, channel, font_path, config, frame, fps):
     """Composite the kinetic caption page that is live at ``frame``."""
-    config = settings({**config, **(cue.get("placement") or {})})
+    config = cue_settings(config, cue)
     palette = (channel or {}).get("palette", {})
     page = next((item for item in pages(cue, config) if item["start"] <= frame < item["end"]), None)
     if page is None:

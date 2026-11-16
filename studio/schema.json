@@ -305,7 +305,15 @@
         "padding_x": {"type": "number", "minimum": 0, "maximum": 0.25},
         "padding_y": {"type": "number", "minimum": 0, "maximum": 0.25},
         "background_opacity": {"$ref": "#/$defs/unit"},
-        "animation": {"enum": ["none", "pop", "slide", "fade", "rise"]}
+        "animation": {"enum": ["none", "pop", "slide", "fade", "rise"]},
+        "speakers": {
+          "description": "Kinetic captions: per-speaker text colour, or {foreground, highlight, emphasis_color}.",
+          "type": "object",
+          "additionalProperties": {"anyOf": [{"$ref": "#/$defs/paint"}, {
+            "type": "object", "additionalProperties": false,
+            "properties": {"foreground": {"$ref": "#/$defs/paint"}, "highlight": {"$ref": "#/$defs/paint"},
+                           "emphasis_color": {"$ref": "#/$defs/paint"}}}]}
+        }
       }
     },
     "master_audio": {

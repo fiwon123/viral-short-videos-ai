@@ -1211,6 +1211,19 @@ class DepthPhotoTests(unittest.TestCase):
         self.assertLessEqual(specs[0]["width"], 2)
 
 
+class SpeakerCaptionTests(unittest.TestCase):
+    def test_speaker_colours_override_the_caption_look(self):
+        from studio.captions import cue_settings
+        config = {"style": "kinetic", "preset": "hormozi-pop",
+                  "speakers": {"A": {"foreground": "#FFF3D8", "highlight": "#5FD3C6"}, "B": "#F3D9B8"}}
+        first = cue_settings(config, {"speaker": "A"})
+        self.assertEqual((first["foreground"], first["highlight"]), ("#FFF3D8", "#5FD3C6"))
+        self.assertEqual(cue_settings(config, {"speaker": "B"})["foreground"], "#F3D9B8")
+        self.assertEqual(cue_settings(config, {"speaker": "C"})["foreground"], "#FFFFFF")
+        self.assertNotIn("speakers", first)
+        validate(config, "captions")
+
+
 class ViralCheckTests(unittest.TestCase):
     def test_flags_a_slow_silent_opening(self):
         from studio.viral_check import check
