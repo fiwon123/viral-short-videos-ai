@@ -129,6 +129,8 @@ make motion MOTION=impact   # manifest-ready motion recipes
 make schema    # per-manifest schema wrappers for editor completion
 make batch SEASON=workspace/<channel>/season.json   # validate or render a season
 make editor EPISODE=workspace/<channel>/episodes/<episode>/episode.json
+make published EPISODE=workspace/<channel>/episodes/<episode> [URL=...]   # mark an uploaded episode
+make archive   # dry run: empties renders/_old and episodes/_old, caches, old versions, archives published renders; APPLY=1 to act
 ```
 
 Each channel has its own workspace. A finished episode goes to `workspace/<channel>/renders/<episode>-v1/` with the MP4, thumbnail, publishing guide, QA report, and captions when present.

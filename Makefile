@@ -29,7 +29,7 @@ VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 .PHONY: help status init channel-memory style-lock style-check discover viral-check character3d assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
-        clean clean-cache clean-previews \
+        clean clean-cache clean-previews archive published \
         prune-duplicates prune-casting prune-brand prune-legacy
 
 help:
@@ -83,6 +83,8 @@ help:
 	@echo
 	@echo "  make clean-cache            drop failed render staging, audio takes, __pycache__"
 	@echo "  make clean-previews         drop preview packages in output/ and channel folders"
+	@echo "  make archive [SLUG=...] [APPLY=1] [NOVIDEO=1] [VERBOSE=1]  clean caches, old versions and published renders in every workspace channel (dry run)"
+	@echo "  make published EPISODE=... [URL=...]  mark an uploaded episode so make archive packs its render"
 	@echo
 	@echo "  make prune-<group>          dry run; add APPLY=1 to delete"
 	@echo "    prune-duplicates          duplicate channel manifests"
@@ -278,6 +280,13 @@ clean-cache:
 	@find episodes -maxdepth 2 -name '.audio-takes' -type d -print -exec rm -rf {} + 2>/dev/null || true
 	@find . -maxdepth 3 -name '__pycache__' -type d -prune -print -exec rm -rf {} + 2>/dev/null || true
 	@echo "cache cleaned"
+
+archive:
+	@$(PYTHON) -m studio.cleanup archive $(if $(SLUG),--channel $(SLUG),) $(if $(APPLY),--apply,) $(if $(NOVIDEO),--no-video,) $(if $(VERBOSE),--verbose,)
+
+published:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<slug>/episodes/<episode>"; exit 1; }
+	@$(PYTHON) -m studio.cleanup published $(EPISODE) $(if $(URL),--url $(URL),)
 
 clean-previews:
 	@find output -mindepth 1 -maxdepth 2 -name '*-preview' -type d \
