@@ -71,7 +71,7 @@ Use `wiggle` sparingly on held props, floating things or nervous characters. A c
    - `ears`: `round`, `pointy`, `bunny`, `floppy`
    - `tail`: `cat` (curled with `bend`), `wag`, `fluffy`, `feather`, `dino`
    - `outfit`: `shirt`, `overalls`, `scarf`, `panel`
-   - `palette`: `skin`, `hair`, `outfit`, plus the usual `body`, `limb`, `accent`
+   - `palette`: `skin`, `hair`, `outfit`, `tail` (defaults to the body colour), plus the usual `body`, `limb`, `accent`
 
    `alive` wags and curls tails. Tails and limbs carry a `tip`, so `ik` and `bend` work on them.
 2. Place the character: `{"id": "pip", "kind": "use", "ref": "pip", "x": 0.3, "y": 0.86, "alive": {"talk": "Pip"}}`. Here `x`/`y` is the feet.

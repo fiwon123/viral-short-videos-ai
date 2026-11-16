@@ -1464,3 +1464,88 @@ class BrowserPoseParityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StyleLockTests(unittest.TestCase):
+    """The channel style lock refuses drift and records approved changes."""
+
+    def setUp(self):
+        from studio.stylelock import bump
+        self.bump = bump
+        self.lock = {"version": 1, "enforce": True,
+                     "cast": {"rigs": ["A", "B"], "scale_tolerance": 0.1},
+                     "dialogue": {"allowed": False}, "runtime": {"min": 10, "max": 15},
+                     "format": {"width": 1080, "height": 1920, "fps": 24}, "grades": ["warm-film"],
+                     "music": {"allowed": False}, "forbidden_paths": ["art/generated/"],
+                     "changelog": [{"version": 1, "date": "2026-01-01", "change": "start"}]}
+        validate(self.lock, "style_lock")
+
+    def episode(self, **shot):
+        layers = shot.pop("layers", [{"id": "a", "kind": "use", "ref": "A", "x": 0.3, "y": 0.9, "scale": 1},
+                                     {"id": "b", "kind": "use", "ref": "B", "x": 0.7, "y": 0.9, "scale": 1}])
+        return {"title": "T", "width": 1080, "height": 1920, "fps": 24, "post": {"grade": "warm-film"},
+                "scenes": [{"id": "S", "shots": [{"id": "A1", "duration": 12, "layers": layers, **shot}]}]}
+
+    def rules(self, episode, channel=None):
+        from studio.stylelock import check
+        return sorted({item["rule"] for item in check(episode, self.lock, channel)})
+
+    def test_clean_episode_passes(self):
+        self.assertEqual(self.rules(self.episode()), [])
+
+    def test_each_rule_catches_drift(self):
+        cases = {
+            "cast": self.episode(layers=[{"id": "c", "kind": "use", "ref": "C", "x": 0.5, "y": 0.9}]),
+            "dialogue": self.episode(speech=[{"speaker": "N", "text": "Hi."}]),
+            "runtime": self.episode(duration=30),
+            "scale": self.episode(layers=[{"id": "a", "kind": "use", "ref": "A", "x": 0.3, "y": 0.9, "scale": 1.3},
+                                          {"id": "b", "kind": "use", "ref": "B", "x": 0.7, "y": 0.9, "scale": 0.9}]),
+            "forbidden_paths": self.episode(layers=[{"id": "p", "kind": "svg", "file": "art/generated/x.svg", "x": 0, "y": 0}]),
+        }
+        for rule, episode in cases.items():
+            with self.subTest(rule=rule):
+                self.assertIn(rule, self.rules(episode))
+        graded = self.episode()
+        graded["post"]["grade"] = "teal-orange"
+        self.assertIn("grades", self.rules(graded))
+        scored = self.episode()
+        scored["music"] = {"preset": "pulse"}
+        self.assertIn("music", self.rules(scored))
+        wide = self.episode()
+        wide["fps"] = 30
+        self.assertIn("format", self.rules(wide))
+
+    def test_exception_and_enforcement(self):
+        import tempfile
+        from studio.stylelock import enforce, review
+        episode = self.episode(duration=30)
+        blocking, _ = review(episode, self.lock)
+        self.assertEqual([item["rule"] for item in blocking], ["runtime"])
+        episode["style_exceptions"] = [{"rule": "runtime", "reason": "Approved special."}]
+        blocking, allowed = review(episode, self.lock)
+        self.assertEqual((blocking, [item["rule"] for item in allowed]), ([], ["runtime"]))
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, "style-lock.json").write_text(json.dumps(self.lock), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                enforce(self.episode(duration=30), {}, Path(folder))
+            self.assertEqual(enforce(self.episode(), {}, Path(folder))["violations"], [])
+            exempt = {**self.lock, "exempt": [{"episode": "old", "reason": "Before the lock."}]}
+            Path(folder, "style-lock.json").write_text(json.dumps(exempt), encoding="utf-8")
+            report = enforce(self.episode(duration=30), {}, Path(folder), Path(folder, "old", "episode.json"))
+            self.assertEqual(report["exempt"], "Before the lock.")
+
+    def test_change_bumps_version_and_regenerates_rules(self):
+        import tempfile
+        from studio.stylelock import END, START, write_agents
+        lock = self.bump(copy.deepcopy(self.lock), "Allow music")
+        self.assertEqual((lock["version"], lock["changelog"][-1]["change"]), (2, "Allow music"))
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder, "AGENTS.md")
+            path.write_text("# Rules\n\nHand-written note.\n", encoding="utf-8")
+            write_agents(folder, lock)
+            write_agents(folder, lock)
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("Hand-written note.", text)
+            self.assertEqual(text.count(START), 1)
+            self.assertIn("Style lock v2", text)
+            self.assertLess(text.index(START), text.index(END))

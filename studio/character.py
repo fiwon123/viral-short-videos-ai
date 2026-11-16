@@ -616,7 +616,7 @@ def tail_part(spec, body):
     part = Part("tail", tw + pad * 2, tl + pad * 2, [0.5, (pad + tw * 0.2) / (tl + pad * 2)], "tail", None,
                 (body.offset[0] + bw * 0.32, body.offset[1] - bh * 0.22))
     cx = pad + tw / 2
-    colour = pal["body"] if style != "feather" else pal["accent"]
+    colour = pal.get("tail") or (pal["body"] if style != "feather" else pal["accent"])
     if style == "cat":
         part.body.append(f'<path d="M{cx:.1f} {pad + tw * 0.2:.1f} L{cx:.1f} {pad + tl - tw / 2:.1f}" stroke="{pal["line"]}" '
                          f'stroke-width="{tw + lw * 2:.1f}" stroke-linecap="round"/>'

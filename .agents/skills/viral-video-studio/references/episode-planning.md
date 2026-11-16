@@ -7,7 +7,8 @@ A channel grows through consistency: the same promise, look, and voice, with fre
 | File | Holds | Update when |
 | --- | --- | --- |
 | `workspace/<slug>/MEMORY.md` | Current direction, decisions that stand, direction history, next step | Every session, and whenever direction changes |
-| `channel/AGENTS.md` | Rules for every episode: tone, story rules, look, sound, what to avoid | A rule is learned or the user changes one |
+| `channel/style-lock.json` | The approved look the studio enforces: cast rigs, dialogue, runtime, format, grades, music, sounds, forbidden paths, reference renders, changelog | The user approves or changes the look (`make style-lock CHANGE="..."`) |
+| `channel/AGENTS.md` | Rules for every episode: tone, story rules, look, sound, what to avoid. Its style-lock block is generated; write by hand outside it | A rule is learned or the user changes one |
 | `channel/episode-ledger.md` | One row per episode: topic, hook, series arc, format, results, lessons | An episode is planned, delivered, or its results come in |
 | `channel/ideas.md` | Idea bank: unused ideas with their source and timing, the seasonal calendar, used and rejected ideas | Research turns up an idea, an idea is used, or one is rejected |
 | `channel/series.md` | Series bible: characters and their current state, world rules, running gags, continuity facts, open threads | Every episode of a series |
@@ -17,7 +18,7 @@ Create any missing file from the templates before planning. Keep entries short a
 
 ## Plan each new episode
 
-1. **Load the channel.** Read `MEMORY.md`, `channel/AGENTS.md`, the ledger, `ideas.md`, and `series.md` when it exists.
+1. **Load the channel.** Read `MEMORY.md`, `channel/AGENTS.md` (including its style-lock block), the ledger, `ideas.md`, and `series.md` when it exists. Look at the lock's reference renders before designing anything new.
 2. **Check the calendar.** Today's date and the publishing window: upcoming holidays, seasons, school or sports events, releases, and anniversaries that fit the channel and the market. Add the useful ones to the seasonal calendar in `ideas.md`.
 3. **Check what is moving.** Run a short trend pass for the niche over the last seven days (see [discovery](discovery.md): `discover --shorts --rank velocity --snapshots ...`, or browser research). Note topics, hooks, and formats that are rising, and anything the channel could answer or put its own spin on.
 4. **Avoid repeats.** Compare candidates against the ledger: the same topic, hook pattern, punchline, reveal, or setting used recently. Change at least the angle or the form. Re-read the "lessons" column, and do not repeat a problem already logged.
@@ -46,4 +47,4 @@ Create any missing file from the templates before planning. Keep entries short a
 
 ## When the user changes direction
 
-Update `MEMORY.md` "Direction now" and add a dated line to "Direction history" (what changed, why, from which episode). Update `channel/AGENTS.md` rules, and `brief.md` and `channel.json` when the branding or format changes (then run `make channel-doc`). Mark ideas in `ideas.md` that no longer fit, and note in `series.md` how the series adapts so existing viewers are not lost.
+Update `MEMORY.md` "Direction now" and add a dated line to "Direction history" (what changed, why, from which episode). Edit `channel/style-lock.json` and run `make style-lock CHANNEL=... CHANGE="..."`, then `make style-check` and list older episodes under `exempt` (with a reason) when they no longer match. Update `channel/AGENTS.md` rules, and `brief.md` and `channel.json` when the branding or format changes (then run `make channel-doc`). Mark ideas in `ideas.md` that no longer fit, and note in `series.md` how the series adapts so existing viewers are not lost.

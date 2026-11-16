@@ -30,7 +30,7 @@ Updated: YYYY-MM-DD
 ## Where things are
 - Onboarding answers: research/onboarding.md
 - Trend research: research/trends-YYYY-MM-DD.md, research/snapshots/
-- Rules: channel/AGENTS.md
+- Rules: channel/AGENTS.md (style-lock block generated from channel/style-lock.json)
 - Episodes made, in progress and planned: channel/episode-ledger.md
 - Idea bank and seasonal calendar: channel/ideas.md
 - Series bible: channel/series.md
@@ -40,7 +40,7 @@ Updated: YYYY-MM-DD
 
 ## `workspace/<slug>/channel/AGENTS.md` (channel rules)
 
-Write the rules that hold for every episode here: tone, story rules, visual and sound identity, caption style, thumbnail language, and what to avoid repeating. Add a rule when a lesson repeats.
+Write the rules that hold for every episode here: tone, story rules, visual and sound identity, caption style, thumbnail language, and what to avoid repeating. Add a rule when a lesson repeats. The block between the `style-lock` markers is generated from `style-lock.json` by `make style-lock`; edit the lock, not the block.
 
 ## `workspace/<slug>/channel/episode-ledger.md`
 

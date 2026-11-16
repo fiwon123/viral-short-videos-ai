@@ -1345,12 +1345,74 @@
         "text_size": {"type": "number", "minimum": 0.5, "maximum": 2}
       }
     },
+    "style_lock": {
+      "description": "Channel style lock (style-lock.json): the approved look and rules the studio enforces.",
+      "type": "object", "required": ["version"], "additionalProperties": false,
+      "properties": {
+        "version": {"type": "integer", "minimum": 1},
+        "updated": {"type": "string"},
+        "enforce": {"description": "Refuse episodes that break the lock (default true).", "type": "boolean"},
+        "summary": {"type": "string"},
+        "cast": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "rigs": {"description": "Rig ids the cast may use.", "type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "props": {"description": "Other rigs (props, sets) episodes may use.", "type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "source": {"description": "Where the rigs are built from, relative to the channel.", "type": "string"},
+            "notes": {"type": "object", "additionalProperties": {"type": "string"}},
+            "scale_tolerance": {"description": "Cast members sharing a shot keep the same scale within this fraction.", "type": "number", "minimum": 0}
+          }
+        },
+        "dialogue": {
+          "type": "object", "required": ["allowed"], "additionalProperties": false,
+          "properties": {"allowed": {"type": "boolean"}, "speakers": {"type": "array", "items": {"type": "string"}}}
+        },
+        "runtime": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"min": {"type": "number", "minimum": 0}, "max": {"type": "number", "exclusiveMinimum": 0}}
+        },
+        "format": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"width": {"type": "integer"}, "height": {"type": "integer"}, "fps": {"type": "integer"}}
+        },
+        "grades": {"description": "Allowed post.grade looks; include \"lut\" to allow custom LUTs.", "type": "array", "items": {"type": "string"}},
+        "music": {"type": "object", "additionalProperties": false, "properties": {"allowed": {"type": "boolean"}, "notes": {"type": "string"}}},
+        "sounds": {"type": "object", "additionalProperties": false, "properties": {"library": {"type": "string"}, "notes": {"type": "string"}}},
+        "renderer": {"type": "string"},
+        "forbidden_paths": {"description": "Substrings no episode asset path may contain.", "type": "array", "items": {"type": "string"}},
+        "exempt": {
+          "description": "Episodes made before the lock (by episode folder name); they render as they are.",
+          "type": "array",
+          "items": {"type": "object", "required": ["episode", "reason"], "additionalProperties": false,
+                    "properties": {"episode": {"type": "string"}, "reason": {"type": "string", "minLength": 3}}}
+        },
+        "rules": {"type": "array", "items": {"type": "string"}},
+        "never": {"type": "array", "items": {"type": "string"}},
+        "references": {
+          "type": "array",
+          "items": {"type": "object", "required": ["path"], "additionalProperties": false,
+                    "properties": {"path": {"type": "string"}, "why": {"type": "string"}}}
+        },
+        "changelog": {
+          "type": "array",
+          "items": {"type": "object", "required": ["version", "date", "change"], "additionalProperties": false,
+                    "properties": {"version": {"type": "integer"}, "date": {"type": "string"}, "change": {"type": "string"}}}
+        }
+      }
+    },
     "episode": {
       "type": "object", "required": ["title", "description", "tags", "width", "height", "fps", "scenes", "thumbnail"],
       "additionalProperties": false,
       "properties": {
         "$schema": {"type": "string"},
         "meta": {"type": "object", "additionalProperties": true},
+        "style_exceptions": {
+          "description": "Approved one-off departures from the channel style lock, each with the user's reason.",
+          "type": "array",
+          "items": {"type": "object", "required": ["rule", "reason"], "additionalProperties": false,
+                    "properties": {"rule": {"enum": ["cast", "forbidden_paths", "dialogue", "runtime", "format", "grades", "music", "scale", "sounds"]},
+                                   "reason": {"type": "string", "minLength": 3}}}
+        },
         "poses": {
           "description": "Named poses per rig: {rig: {pose: {part: {prop: value}, mouth: shape}}}.",
           "type": "object",

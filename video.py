@@ -374,6 +374,9 @@ def execute(args):
     validate_episode(episode, args.episode.parent, args.channel.parent, check_visual_assets=args.command != "audio")
     audio_library = load_audio_library(channel, args.channel.parent)
     validate_audio(episode, audio_library)
+    from studio.stylelock import enforce as enforce_style
+
+    style_report = enforce_style(source_episode, channel, args.channel.parent, args.episode)
     if args.command == "still":
         from studio.renderers import choose
         from studio.scenes import load_library, validate_three
@@ -471,8 +474,10 @@ def execute(args):
             validate_three(shot, library)
     validate_visual(episode, library)
     if args.command == "validate":
-        return {"valid": True, "episode": episode["title"], "channel": channel["name"],
-                "warnings": lint_warnings}, 0
+        result = {"valid": True, "episode": episode["title"], "channel": channel["name"], "warnings": lint_warnings}
+        if style_report is not None:
+            result["style_lock"] = style_report
+        return result, 0
     if args.command == "check-visual":
         from studio.audio import prepare_audio
         from studio.visual import audit_visual
@@ -516,6 +521,8 @@ def execute(args):
                     audio_library=audio_library, options=options)
     if lint_warnings:
         report["lint_warnings"] = lint_warnings
+    if style_report is not None:
+        report["style_lock"] = style_report
     return {**report, "package": str(args.out.resolve())}, 0
 
 

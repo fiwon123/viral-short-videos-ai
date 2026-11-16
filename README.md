@@ -62,6 +62,8 @@ After I approve the plan, prepare previews and publishing copy.
 
 </details>
 
+Each channel can lock its approved look in `channel/style-lock.json` (`make style-lock CHANNEL=... INIT=1`). The studio then refuses episodes that use another cast, add dialogue to a wordless channel, leave the runtime or format, or use an unapproved grade, whichever assistant runs it, and writes the rules into `channel/AGENTS.md`. Record approved changes with `make style-lock CHANGE="..."` and audit a channel with `make style-check`.
+
 The assistant keeps each channel's memory in `workspace/<slug>/`: the current direction and its history, an episode ledger with results and lessons, an idea bank with a seasonal calendar, and a series bible for continuity (`make channel-memory SLUG=<slug>` creates any that are missing). With a `YOUTUBE_API_KEY`, `python video.py discover --shorts --rank velocity --snapshots workspace/<slug>/research/snapshots` ranks recent videos by speed and measures real growth when re-run. Without a key it uses browser research.
 
 **✅ Review the direction, story, and preview.** The assistant prepares the assets, runs the checks, and renders locally. For a chat-only AI, share the [studio skill](.agents/skills/viral-video-studio/SKILL.md) and have it return prompts, manifests, and commands you can run locally. [More prompts in the Wiki](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook)

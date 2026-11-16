@@ -26,7 +26,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory discover viral-check character3d assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory style-lock style-check discover viral-check character3d assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews \
@@ -61,6 +61,8 @@ help:
 	@echo "  make batch SEASON=...       validate or render a season manifest"
 	@echo "  make test                   run the local test suite"
 	@echo "  make channel-doc            write channel.md from channel.json"
+	@echo "  make style-lock [INIT=1] [CHANGE=\"...\"]  refresh the channel AGENTS.md from style-lock.json (CHANGE bumps the version)"
+	@echo "  make style-check            audit every episode of the channel against its style lock"
 	@echo "  make support                write the renderer support matrix"
 	@echo "  make parity                 render the shared renderer parity fixture"
 	@echo "  make safearea               write a platform safe-area guide"
@@ -211,6 +213,14 @@ batch:
 
 test:
 	@$(PYTHON) -m unittest discover -s tests -v
+
+style-lock:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@$(PYTHON) -m studio.stylelock $(dir $(CHANNEL)) $(if $(INIT),--init,) $(if $(CHANGE),--change "$(CHANGE)",)
+
+style-check:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@$(PYTHON) -m studio.stylelock $(dir $(CHANNEL)) --check
 
 channel-doc:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
