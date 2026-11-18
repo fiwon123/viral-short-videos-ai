@@ -138,7 +138,44 @@ Keep the production effort similar. Let me choose one.
 
 Why three: it tests whether the format has legs, not just one joke.
 
-## 7. Channel checklist
+## 7. Make the cast
+
+Recurring characters come from `make art` (see [AI Characters and Hook Clips](AI-Characters-and-Hook-Clips)). With a GPU it draws them with a local image model. Without one, give it a character image (`IMAGE=`) or separated layers (`PARTS=`), or it builds the procedural character from the same spec. Review `preview.png` and a still sheet before casting, then reuse the rig all season.
+
+## 8. Lock the look
+
+Once the look is approved, lock it:
+
+```sh
+make style-lock CHANNEL=workspace/<slug>/channel/channel.json INIT=1
+```
+
+`channel/style-lock.json` records the cast, dialogue, runtime, format, grades, music and sounds. `validate`, `audio`, `still` and `render` then refuse an episode that breaks it, whichever assistant runs them, and the rules are copied into `channel/AGENTS.md`.
+
+- **Approved change of direction:** run `make style-lock CHANGE="what changed and why"`; it bumps the version and logs the change.
+- **Episodes it affects:** `make style-check` lists them.
+- **A one-off:** add `style_exceptions` with a reason to that episode.
+
+## 9. Keep the channel memory
+
+The assistant keeps each channel's memory in `workspace/<slug>/`. `make channel-memory SLUG=<slug>` creates any of these that are missing:
+
+- **`MEMORY.md`:** the current direction and its history.
+- **`channel/episode-ledger.md`:** what was made, results and lessons.
+- **`channel/ideas.md`:** the idea bank, with a seasonal calendar.
+- **`channel/series.md`:** the series bible, for continuity.
+
+## 10. Research what is growing
+
+With a `YOUTUBE_API_KEY` on your computer (not in the sandbox), run:
+
+```sh
+python video.py discover --shorts --rank velocity --snapshots workspace/<slug>/research/snapshots
+```
+
+It ranks recent Shorts by speed and measures real growth when you run it again. Without a key, the assistant researches in the browser. See [Find Ideas](Find-Ideas).
+
+## 11. Channel checklist
 
 - [ ] Promise is one sentence
 - [ ] Name and handle are original
@@ -148,6 +185,8 @@ Why three: it tests whether the format has legs, not just one joke.
 - [ ] Description explains audience and format
 - [ ] Tags are real search phrases
 - [ ] `channel.md` is generated
+- [ ] The cast is rigged and reviewed
+- [ ] The look is locked (`style-lock.json`)
 - [ ] Three pilots exist
 - [ ] First pilot is under 45 seconds
 - [ ] No unlicensed character, music or footage

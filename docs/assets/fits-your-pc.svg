@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="330" viewBox="0 0 880 330" role="img" aria-labelledby="title desc">
+  <title id="title">The studio fits your PC</title>
+  <desc id="desc">Without a GPU you get rigged characters from any image, 2.5D hook motion, captions, voices and full renders. A 4 to 11 GB GPU adds AI character art. A 12 GB GPU or ComfyUI adds AI video for the hook. Every level caps CPU and GPU use automatically.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1">
+      <stop stop-color="#111127"/>
+      <stop offset="1" stop-color="#101D33"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="878" height="328" rx="22" fill="url(#bg)" stroke="#364664" stroke-width="2"/>
+  <g font-family="system-ui, -apple-system, Segoe UI, Arial, sans-serif">
+    <text x="30" y="52" fill="#F8FAFC" font-size="28" font-weight="700">Fits your PC, automatically</text>
+    <text x="30" y="80" fill="#94A3B8" font-size="16">Detects CPU, RAM and GPU, picks the best mode and caps CPU use so your PC stays usable.</text>
+    <g transform="translate(30 104)">
+      <rect width="262" height="198" rx="14" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="14" y="16" width="4" height="34" rx="2" fill="#6EE7B7"/>
+      <text x="30" y="32" fill="#6EE7B7" font-size="19" font-weight="700">Any laptop</text>
+      <text x="30" y="52" fill="#94A3B8" font-size="14">no GPU needed</text>
+      <text x="22" y="86" fill="#E2E8F0" font-size="15">✓ Rig any character image</text>
+      <text x="22" y="112" fill="#E2E8F0" font-size="15">✓ Blinks, lip sync, poses</text>
+      <text x="22" y="138" fill="#E2E8F0" font-size="15">✓ 2.5D depth hook motion</text>
+      <text x="22" y="164" fill="#E2E8F0" font-size="15">✓ Voices, captions, sound</text>
+      <text x="22" y="190" fill="#E2E8F0" font-size="15">✓ Full 1080×1920 renders</text>
+    </g>
+    <g transform="translate(309 104)">
+      <rect width="262" height="198" rx="14" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="14" y="16" width="4" height="34" rx="2" fill="#93C5FD"/>
+      <text x="30" y="32" fill="#93C5FD" font-size="19" font-weight="700">GPU 4–11 GB</text>
+      <text x="30" y="52" fill="#94A3B8" font-size="14">or Apple Silicon</text>
+      <text x="22" y="86" fill="#E2E8F0" font-size="15">Everything on the left, plus</text>
+      <text x="22" y="112" fill="#E2E8F0" font-size="15">✓ AI character art made</text>
+      <text x="40" y="132" fill="#E2E8F0" font-size="15">locally (SDXL, SD 1.5)</text>
+      <text x="22" y="158" fill="#E2E8F0" font-size="15">✓ Locked prompt, seed and</text>
+      <text x="40" y="178" fill="#E2E8F0" font-size="15">LoRA for one season look</text>
+    </g>
+    <g transform="translate(588 104)">
+      <rect width="262" height="198" rx="14" fill="#1C2941" stroke="#3D4F70"/>
+      <rect x="14" y="16" width="4" height="34" rx="2" fill="#C4B5FD"/>
+      <text x="30" y="32" fill="#C4B5FD" font-size="19" font-weight="700">GPU 12 GB+</text>
+      <text x="30" y="52" fill="#94A3B8" font-size="14">or a running ComfyUI</text>
+      <text x="22" y="86" fill="#E2E8F0" font-size="15">Everything on the left, plus</text>
+      <text x="22" y="112" fill="#E2E8F0" font-size="15">✓ Flux schnell character art</text>
+      <text x="22" y="138" fill="#E2E8F0" font-size="15">✓ AI video hook clips</text>
+      <text x="40" y="158" fill="#E2E8F0" font-size="15">(Wan 2.2, LTX-Video)</text>
+      <text x="22" y="184" fill="#E2E8F0" font-size="15">✓ Faster parallel renders</text>
+    </g>
+  </g>
+</svg>

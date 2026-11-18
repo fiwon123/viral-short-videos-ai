@@ -65,6 +65,13 @@ The audience should recognize the next video before the title:
 
 Consistency is how a viewer becomes a subscriber.
 
+## Studio tools for the hook
+
+- **`make preview HOOK=20`** renders only the opening 20 seconds, with sound and captions. Approve the hook before the full render.
+- **`"punchline": true`** on a speech line holds 0.3 s of silence before the next line, and `pause_after` sets any length. Captions, lip sync and sound effects follow.
+- **`make hero SHOT=A KEEP=<title id>`** gives the opening shot motion: an AI video clip on a GPU, or a 2.5D depth push anywhere else. See [AI Characters and Hook Clips](AI-Characters-and-Hook-Clips).
+- **`make viral-check`** notes a slow first line, no motion or words in the first second, no sound hit at t=0, long holds, a weak loop and loudness.
+
 ## Pacing template
 
 | Time | Job | Check |
