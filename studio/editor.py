@@ -7,6 +7,7 @@ renderer preview.
 """
 
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -113,7 +114,9 @@ def serve(episode_path, channel_path, port=8765, open_browser=True):
     Handler.channel_path = channel_path
     Handler.episode = load(episode_path, "episode")
     Handler.channel = load(channel_path, "channel")
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    # The dev sandbox sets STUDIO_EDITOR_HOST=0.0.0.0 so the published port reaches
+    # the server; compose binds that port to the host's 127.0.0.1 only.
+    server = ThreadingHTTPServer((os.environ.get("STUDIO_EDITOR_HOST", "127.0.0.1"), port), Handler)
     url = f"http://127.0.0.1:{port}/"
     print(f"editor: {url}")
     if open_browser:

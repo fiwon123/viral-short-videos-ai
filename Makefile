@@ -9,6 +9,13 @@ SHELL := /bin/sh
 export YOUTUBE_API_KEY
 
 PYTHON ?= audio-models/venv/bin/python
+# In the dev sandbox the image's venv is the studio's Python, whatever .env says.
+ifneq ($(SANDBOX_PYTHON),)
+PYTHON := $(SANDBOX_PYTHON)
+endif
+
+# Docker sandbox, agents, and host setup (make setup-host, make claude, ...).
+include sandbox.mk
 
 # An empty value in .env still falls back to discovery; a command-line value always wins.
 CHANNEL := $(strip $(CHANNEL))
@@ -34,6 +41,13 @@ VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
 help:
 	@echo "Viral Short Videos"
+	@echo
+	@echo "  Setup (pick one):"
+	@echo "  make claude | codex | opencode   run an AI agent in the Docker sandbox (-auto: no prompts)"
+	@echo "  make shell                       a shell in the sandbox; make dev-down stops it"
+	@echo "  make dev-build | dev-doctor | reset | agents-version | agents-upgrade"
+	@echo "  make setup-host                  run on the host instead: venv, node_modules, voice models"
+	@echo "  make models                      download the Kokoro voice files (both modes)"
 	@echo
 	@echo "  make status                 resolved channel, episode, and .env"
 	@echo "  make init                   write .env from what is already on disk"

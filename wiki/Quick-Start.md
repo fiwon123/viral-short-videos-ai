@@ -7,20 +7,27 @@ Run a first local render, then open the MP4 and its publishing package.
 
 ## 1. Install
 
-Install Python 3.10+ and FFmpeg with FFprobe first.
+**In Docker (recommended with an AI agent).** Install Docker, then:
 
 ```sh
 git clone https://github.com/fiwon123/viral-short-videos-ai.git
 cd viral-short-videos-ai
-python -m pip install -r requirements.txt
-npm ci --ignore-scripts   # SVG and 3D renderers
-python video.py doctor
+make models   # Kokoro voice files
+make shell    # builds the image once, then opens a terminal in the sandbox
 ```
 
-Install Node.js 22+ and Chrome or Chromium before running the browser renderer setup. For local neural voices, use Python 3.10–3.13 and install `requirements-voice.txt`, then add `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin` under `audio-models/`.
+The image has Python, FFmpeg, eSpeak NG, Node, Chromium, and opencode, Claude Code and Codex. Run the commands below from that terminal, or start an agent directly with `make claude`, `make codex` or `make opencode`.
+
+**On your computer.** Install Python 3.10–3.13, FFmpeg with FFprobe, eSpeak NG, Node.js 22+ and Chrome or Chromium, then:
+
+```sh
+git clone https://github.com/fiwon123/viral-short-videos-ai.git
+cd viral-short-videos-ai
+make setup-host   # venv in audio-models/venv, npm packages, Kokoro voice files
+```
 
 > [!NOTE]
-> `python video.py doctor` reports FFmpeg, Node, Chrome, Kokoro, and the H.264 encoder. Fix anything marked missing before rendering.
+> `make doctor` reports FFmpeg, Node, Chrome, Kokoro, and the H.264 encoder. Fix anything marked missing before rendering.
 
 ## 2. Create a workspace
 

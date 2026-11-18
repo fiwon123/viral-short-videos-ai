@@ -1,0 +1,21 @@
+# The build context only needs the Dockerfile's COPY sources. Everything large
+# or local stays out: renders, models, workspaces, and credentials (a file
+# copied into a layer stays in the image after it is deleted).
+.git
+.dev/
+node_modules
+__pycache__
+*.pyc
+.venv
+audio-models/
+workspace/
+reference-media/
+output/
+channels/
+episodes/
+research/
+examples/
+.audio-takes/
+.env
+.env.*
+.envrc

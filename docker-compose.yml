@@ -1,0 +1,60 @@
+# Dev sandbox: the studio and the AI agents, isolated from the host.
+#
+# `docker compose up -d` works on this file alone, on any OS, with nothing
+# installed but Docker. The developer entry points (`make dev-up`, `make claude`,
+# `python scripts/dev-up.py ...`) also merge docker-compose.agent.yml, which adds
+# the host's gh config and ~/.gitconfig read-only.
+#
+# What the container can reach: this checkout (read-write), and its own volumes.
+# Not the home directory, not the Docker socket, not other projects.
+
+name: viral-short-videos
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    # Defaults are right for Docker Desktop (macOS/Windows). A Linux user whose
+    # uid differs: `HOST_UID="$(id -u)" HOST_GID="$(id -g)" docker compose up -d`
+    # (`make dev-up` does this for you).
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    # Through bash, not executed directly: a Windows checkout does not keep the
+    # executable bit through a bind mount.
+    command: ["/bin/bash", "/workspace/scripts/dev-entrypoint.sh"]
+    ports:
+      # `make editor` (the shot inspector). Published on the host's loopback
+      # only; HOST_PORT moves it when 8765 is taken.
+      - "127.0.0.1:${HOST_PORT:-8765}:8765"
+    # Chromium needs more shared memory than Docker's 64 MB default, or long
+    # renders crash with "Target closed".
+    shm_size: "1gb"
+    environment:
+      - GH_TOKEN=${GH_TOKEN:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - HOME=/home/devuser
+      - HOST_UID=${HOST_UID:-1000}
+      - HOST_GID=${HOST_GID:-1000}
+    volumes:
+      - .:/workspace:cached
+      # The container's own node_modules: the renderer packages carry
+      # platform binaries, so the host's copy (macOS, Windows) cannot be shared.
+      # The entrypoint re-runs `npm ci` when package-lock.json changes.
+      - node-modules:/workspace/node_modules
+      # Each agent's login and sessions. The agent writes them itself on first
+      # run; they survive dev-up, dev-restart and dev-build. Only `make reset`
+      # (down --volumes) signs the agents out.
+      - opencode-data:/home/devuser/.local/share/opencode
+      - claude-config:/home/devuser/.claude
+      - codex-home:/home/devuser/.codex
+    tty: true
+    stdin_open: true
+
+volumes:
+  node-modules:
+  opencode-data:
+  claude-config:
+  codex-home:
