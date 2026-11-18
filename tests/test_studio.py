@@ -1257,6 +1257,47 @@ class ViralCheckTests(unittest.TestCase):
         self.assertEqual(result["score"], 100)
 
 
+    def test_flags_an_opening_without_a_sound_hit(self):
+        from studio.viral_check import check
+        quiet = {"title": "Hit", "fps": 24, "scenes": [{"shots": [{"id": "A", "duration": 2.0, "layers": [],
+                                                                     "speech": [{"at": 0.6, "text": "Late."}]}]}]}
+        self.assertIn("hook-hit", {note["kind"] for note in check(quiet, quiet)["notes"]})
+        quiet["scenes"][0]["shots"][0]["sfx"] = [{"cue": "pop", "at": 0.0}]
+        self.assertNotIn("hook-hit", {note["kind"] for note in check(quiet, quiet)["notes"]})
+
+
+class HookTimingTests(unittest.TestCase):
+    def test_punchline_holds_a_beat_before_the_next_line(self):
+        import numpy as np
+        from unittest import mock
+        from studio import audio
+        from studio.core import SAMPLE_RATE
+
+        def take(line, *args):
+            return np.zeros(SAMPLE_RATE, dtype=np.float32), "test", ""
+        shot = {"id": "A", "duration": 1.0, "speech": [{"speaker": "N", "text": "Setup."},
+                                                       {"speaker": "N", "text": "Joke!", "punchline": True},
+                                                       {"speaker": "N", "text": "Tag."}]}
+        with mock.patch.object(audio, "spoken_take", take):
+            frames, voices, _ = audio.plan_shot(shot, 30, {}, None, None, {}, None, None)
+            starts = [item[0] for item in voices]
+            self.assertEqual(starts[1] - starts[0], 30 + round(0.18 * 30))
+            self.assertEqual(starts[2] - starts[1], 30 + round(0.3 * 30) + round(0.18 * 30))
+            shot["speech"][2]["pause_after"] = 0.5
+            frames, voices, _ = audio.plan_shot(shot, 30, {}, None, None, {}, None, None)
+            self.assertEqual(frames, voices[2][1] + 15)
+
+    def test_opening_keeps_the_shots_that_start_inside_the_window(self):
+        from studio.render import opening
+        episode = {"scenes": [{"shots": [{"id": "A", "duration": 3}, {"id": "B", "duration": 4}]},
+                              {"shots": [{"id": "C", "duration": 5}]}]}
+        self.assertEqual([s["id"] for sc in opening(episode, 5)["scenes"] for s in sc["shots"]], ["A", "B"])
+        self.assertEqual([s["id"] for sc in opening(episode, 7.5)["scenes"] for s in sc["shots"]], ["A", "B", "C"])
+        self.assertEqual(len(episode["scenes"][0]["shots"]), 2)
+        with self.assertRaises(ValueError):
+            opening(episode, 0)
+
+
 class ChannelMemoryTests(unittest.TestCase):
     def test_creates_missing_files_and_keeps_existing(self):
         from datetime import date
