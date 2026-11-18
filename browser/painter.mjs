@@ -544,8 +544,14 @@ export async function createPainter(canvas, data, urlFor) {
     const sw = tile.naturalWidth || tile.width, sh = tile.naturalHeight || tile.height;
     const rx = sw / w, ry = sh / h;
     const focalLength = TURN_FOCAL * Math.max(w, h);
-    const pad = Math.round(0.3 * Math.max(w, h));
     const cx = (layer.pivot?.[0] ?? 0.5) * w, cy = (layer.pivot?.[1] ?? 0.5) * h;
+    // Pad to hold every projected corner: a pivot near one edge swings the far side a long way.
+    let reach = 0.3 * Math.max(w, h);
+    for (const [u, v] of [[0, 0], [w, 0], [w, h], [0, h]]) {
+      const [px, py] = turnPoint(u - cx, v - cy, pose.turn_x ?? 0, pose.turn_y ?? 0, focalLength);
+      reach = Math.max(reach, -(cx + px), cx + px - w, -(cy + py), cy + py - h);
+    }
+    const pad = Math.ceil(reach);
     const box = [w + 2 * pad, h + 2 * pad];
     const pivot = [(pad + cx) / box[0], (pad + cy) / box[1]];
     let source = tile;
