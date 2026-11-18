@@ -649,6 +649,20 @@ class PaintKeyTests(unittest.TestCase):
         self.assertLess(box[2] - box[0], 70)
         self.assertGreater(box[2] - box[0], 40)
 
+    def test_turn_tile_mirror_keeps_edge_pivot_art(self):
+        # A part pivoted near its right edge (a bill on a head) mirrored with turn_y 180 must keep all its art.
+        from PIL import Image
+        from studio.design import turn_tile
+        tile = Image.new("RGBA", (100, 40), (255, 255, 255, 255))
+        mirrored, _ = turn_tile(tile, 0, 180, [0.9, 0.5])
+        box = mirrored.getchannel("A").point(lambda a: 255 if a > 128 else 0).getbbox()
+        self.assertGreaterEqual(box[2] - box[0], 98)
+        for turn in (30, 60, 120, 150):
+            turned, _ = turn_tile(tile, 0, turn, [0.95, 0.5])
+            alpha = turned.getchannel("A")
+            edges = [alpha.getpixel((0, y)) for y in range(turned.height)]
+            self.assertEqual(max(edges), 0, f"art touches the left edge at turn {turn}")
+
     def test_turn_is_keyable(self):
         layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5,
                  "keyframes": [{"at": 1, "turn_y": 180}]}
@@ -1210,6 +1224,33 @@ class DepthPhotoTests(unittest.TestCase):
         self.assertEqual([spec["z"] for spec in specs], [1.2, 0.6, 0.0])
         self.assertLessEqual(specs[0]["width"], 2)
 
+    def test_flat_shapes_get_one_depth_and_the_backdrop_goes_farthest(self):
+        import numpy as np
+        from PIL import Image, ImageDraw
+        from studio.depthphoto import flatten_regions
+        image = Image.new("RGB", (120, 200), (20, 24, 40))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle([10, 80, 110, 120], fill=(40, 60, 120))  # a wide flat badge
+        draw.text((30, 92), "HI", fill=(250, 210, 90))  # small letters on it
+        depth = np.linspace(0, 1, 120)[None, :] * np.ones((200, 1)) * 0.6 + 0.2  # gradient across the badge
+        out, share = flatten_regions(depth, image)
+        badge = out[84:117, 14:107]
+        self.assertLess(float(badge.std()), 0.01, "the badge and its letters sit on one depth")
+        self.assertGreater(float(depth[84:117, 14:107].std()), 0.1)
+        self.assertLess(float(out[5, 5]), 0.25, "the backdrop goes to the farthest depth, not its median")
+        self.assertGreater(share, 0.8)
+
+    def test_textured_photos_are_left_alone(self):
+        import numpy as np
+        from PIL import Image
+        from studio.depthphoto import flatten_regions
+        rng = np.random.default_rng(5)
+        photo = Image.fromarray((rng.random((90, 60, 3)) * 255).astype(np.uint8))
+        depth = np.linspace(0, 1, 90)[:, None] * np.ones((1, 60))
+        out, share = flatten_regions(depth, photo)
+        self.assertEqual(share, 0.0)
+        self.assertTrue(np.allclose(out, depth))
+
 
 class SpeakerCaptionTests(unittest.TestCase):
     def test_speaker_colours_override_the_caption_look(self):
@@ -1241,6 +1282,47 @@ class ViralCheckTests(unittest.TestCase):
         result = check(snappy, snappy)
         self.assertEqual(result["notes"], [])
         self.assertEqual(result["score"], 100)
+
+
+    def test_flags_an_opening_without_a_sound_hit(self):
+        from studio.viral_check import check
+        quiet = {"title": "Hit", "fps": 24, "scenes": [{"shots": [{"id": "A", "duration": 2.0, "layers": [],
+                                                                     "speech": [{"at": 0.6, "text": "Late."}]}]}]}
+        self.assertIn("hook-hit", {note["kind"] for note in check(quiet, quiet)["notes"]})
+        quiet["scenes"][0]["shots"][0]["sfx"] = [{"cue": "pop", "at": 0.0}]
+        self.assertNotIn("hook-hit", {note["kind"] for note in check(quiet, quiet)["notes"]})
+
+
+class HookTimingTests(unittest.TestCase):
+    def test_punchline_holds_a_beat_before_the_next_line(self):
+        import numpy as np
+        from unittest import mock
+        from studio import audio
+        from studio.core import SAMPLE_RATE
+
+        def take(line, *args):
+            return np.zeros(SAMPLE_RATE, dtype=np.float32), "test", ""
+        shot = {"id": "A", "duration": 1.0, "speech": [{"speaker": "N", "text": "Setup."},
+                                                       {"speaker": "N", "text": "Joke!", "punchline": True},
+                                                       {"speaker": "N", "text": "Tag."}]}
+        with mock.patch.object(audio, "spoken_take", take):
+            frames, voices, _ = audio.plan_shot(shot, 30, {}, None, None, {}, None, None)
+            starts = [item[0] for item in voices]
+            self.assertEqual(starts[1] - starts[0], 30 + round(0.18 * 30))
+            self.assertEqual(starts[2] - starts[1], 30 + round(0.3 * 30) + round(0.18 * 30))
+            shot["speech"][2]["pause_after"] = 0.5
+            frames, voices, _ = audio.plan_shot(shot, 30, {}, None, None, {}, None, None)
+            self.assertEqual(frames, voices[2][1] + 15)
+
+    def test_opening_keeps_the_shots_that_start_inside_the_window(self):
+        from studio.render import opening
+        episode = {"scenes": [{"shots": [{"id": "A", "duration": 3}, {"id": "B", "duration": 4}]},
+                              {"shots": [{"id": "C", "duration": 5}]}]}
+        self.assertEqual([s["id"] for sc in opening(episode, 5)["scenes"] for s in sc["shots"]], ["A", "B"])
+        self.assertEqual([s["id"] for sc in opening(episode, 7.5)["scenes"] for s in sc["shots"]], ["A", "B", "C"])
+        self.assertEqual(len(episode["scenes"][0]["shots"]), 2)
+        with self.assertRaises(ValueError):
+            opening(episode, 0)
 
 
 class ChannelMemoryTests(unittest.TestCase):

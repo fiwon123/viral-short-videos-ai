@@ -7,6 +7,7 @@ Manifest checks (no render needed):
 * hook-speech   the first line starts later than 0.5 s
 * hook-motion   nothing moves in the first half second
 * hook-text     no words on screen in the first second (caption or text layer)
+* hook-hit      no sound effect or line lands in the first 0.25 s
 * first-shot    the opening shot runs longer than 3 s without a camera move
 * pacing        a shot holds longer than 6 s, or the average shot is over 4 s
 * runtime       outside the 15-60 s sweet spot (over 180 s is not a Short)
@@ -65,6 +66,13 @@ def manifest_notes(source, expanded):
         if start > 0.5:
             notes.append(_note("hook-speech", "high", f"The first line starts at {start:.2f}s.",
                                "Start talking within 0.5 s; viewers decide in the first second."))
+    hits = [float(cue.get("at", 0)) + float(cue.get("offset", 0) or 0) + float(cue.get("lead", 0) or 0)
+            for cue in first.get("sfx") or []]
+    if speech:
+        hits.append(float(speech[0].get("at", 0)) + float(speech[0].get("lead", 0) or 0))
+    if not any(at <= 0.25 for at in hits):
+        notes.append(_note("hook-hit", "low", "No sound effect or line lands in the first 0.25 s.",
+                           "Put a hit (pop, whoosh, impact) at t=0 so the first frame sounds like something happened."))
     moving = bool(first.get("camera") or first.get("three"))
     for layer in first_expanded.get("layers", []):
         _, speeds = _speeds(layer, float(first["duration"]), fps)
@@ -199,7 +207,7 @@ def main():
     channel = load(channel_path, "channel")
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
-    expanded = prepare_episode(source, channel, channel_path.parent)
+    expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
     print(json.dumps(check(source, expanded, args.video), indent=2))
     return 0
 

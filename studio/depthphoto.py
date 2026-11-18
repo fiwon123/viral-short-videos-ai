@@ -7,9 +7,13 @@ Depth comes from, in order: ``--depth`` (a greyscale map, white = near, as Depth
 Anything, Marigold, ZoeDepth or Photoshop write; ``--invert`` for white = far),
 a local ONNX depth model (``STUDIO_DEPTH_MODEL``, or the first ``*.onnx`` under
 ``audio-models/depth/``; Depth Anything V2 Small from Hugging Face
-``onnx-community/depth-anything-v2-small`` works), or a rough fallback that
+``onnx-community/depth-anything-v2-small`` works; ``make art-models`` downloads it), or a rough fallback that
 treats lower and more detailed areas as nearer. The fallback suits landscapes
 and street scenes; give a real depth map for portraits and close objects.
+
+Flat-painted regions (cartoons, flat art) are refined to one depth each, and a
+large flat backdrop is sent farthest, so bands never cut through a flat shape;
+textured photos are left as estimated (``--no-refine`` skips this).
 
 The photo is cut into equal-area depth bands with feathered edges. Each band
 also covers everything nearer than itself with colour filled in from its own
@@ -56,7 +60,9 @@ def estimate_onnx(image, path):
     """Relative depth (1 = near) from a Depth Anything style ONNX model."""
     import onnxruntime
 
-    session = onnxruntime.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    from .machine import onnx_options
+
+    session = onnxruntime.InferenceSession(str(path), onnx_options(), providers=["CPUExecutionProvider"])
     entry = session.get_inputs()[0]
     shape = entry.shape
     size = shape[2] if len(shape) == 4 and isinstance(shape[2], int) else 518
@@ -82,7 +88,80 @@ def estimate_fallback(image):
     return _normalise(0.7 * vertical + 0.3 * _normalise(detail))
 
 
-def load_depth(image, depth_path=None, invert=False):
+def regions(image, colours=32):
+    """Connected regions of one quantised colour: ``(labels, colour index)`` per pixel.
+
+    Min-label propagation over 4-neighbours with pointer jumping; converges in a few
+    dozen vectorised passes even for large regions.
+    """
+    quantised = np.asarray(image.convert("RGB").quantize(colours, method=Image.Quantize.MEDIANCUT), dtype=np.int32)
+    height, width = quantised.shape
+    labels = np.arange(height * width, dtype=np.int64).reshape(height, width)
+    same_right = quantised[:, 1:] == quantised[:, :-1]
+    same_down = quantised[1:] == quantised[:-1]
+    for _ in range(10000):
+        before = labels
+        labels = labels.copy()
+        right = np.minimum(labels[:, 1:], labels[:, :-1])
+        labels[:, 1:] = np.where(same_right, right, labels[:, 1:])
+        labels[:, :-1] = np.where(same_right, np.minimum(labels[:, :-1], labels[:, 1:]), labels[:, :-1])
+        down = np.minimum(labels[1:], labels[:-1])
+        labels[1:] = np.where(same_down, down, labels[1:])
+        labels[:-1] = np.where(same_down, np.minimum(labels[:-1], labels[1:]), labels[:-1])
+        flat = labels.ravel()
+        labels = flat[flat].reshape(height, width)  # Pointer jumping: follow each label to its root.
+        if np.array_equal(labels, before):
+            break
+    return labels, quantised
+
+
+def flatten_regions(depth, image, min_area=0.002, max_std=8.0):
+    """One depth per flat-painted region, so depth bands never cut through a flat shape.
+
+    Regions bigger than ``min_area`` of the frame whose colour barely varies (std under
+    ``max_std`` of 255: flat paint, not a photo's texture) take their median depth.
+    Smaller regions (letters, outlines, highlights) take the depth around them, unless
+    most of the picture is small regions (a photo), where nothing else changes.
+    A large flat region touching two frame edges is treated as the backdrop and sent farthest.
+    Returns the refined depth and the share of the frame that was flattened.
+    """
+    rgb = np.asarray(image.convert("RGB"), dtype=np.float64)
+    labels, _ = regions(image)
+    ids, inverse, counts = np.unique(labels.ravel(), return_inverse=True, return_counts=True)
+    total = labels.size
+    sums = np.zeros((len(ids), 3))
+    squares = np.zeros((len(ids), 3))
+    for channel in range(3):
+        values = rgb[..., channel].ravel()
+        sums[:, channel] = np.bincount(inverse, values, len(ids))
+        squares[:, channel] = np.bincount(inverse, values * values, len(ids))
+    mean = sums / counts[:, None]
+    std = np.sqrt(np.maximum(squares / counts[:, None] - mean ** 2, 0)).max(axis=1)
+    big = counts >= min_area * total
+    flat_region = big & (std <= max_std)
+    out = depth.copy().ravel()
+    order = np.argsort(inverse, kind="stable")
+    starts = np.concatenate([[0], np.cumsum(counts)[:-1]])
+    flat_depth = depth.ravel()
+    # A large flat region touching two or more frame edges is the backdrop: it goes farthest,
+    # not to its median, which would put it in front of the shapes it surrounds.
+    edges = [np.unique(labels[0]), np.unique(labels[-1]), np.unique(labels[:, 0]), np.unique(labels[:, -1])]
+    touches = np.zeros(len(ids), dtype=int)
+    for edge in edges:
+        touches[np.searchsorted(ids, edge)] += 1
+    backdrop = flat_region & (touches >= 2) & (counts >= 0.2 * total)
+    farthest = float(np.percentile(depth, 2))
+    for index in np.flatnonzero(flat_region):
+        members = order[starts[index]:starts[index] + counts[index]]
+        out[members] = farthest if backdrop[index] else np.median(flat_depth[members])
+    out = out.reshape(depth.shape)
+    small = ~big[inverse].reshape(depth.shape)
+    if small.mean() < 0.5:
+        out = push_pull(out[..., None], (~small).astype(np.float64))[..., 0]
+    return out, float(flat_region[inverse].mean())
+
+
+def load_depth(image, depth_path=None, invert=False, refine=True):
     if depth_path:
         with Image.open(depth_path) as source:
             depth = np.asarray(ImageOps.exif_transpose(source).convert("F").resize(image.size, Image.Resampling.BICUBIC),
@@ -96,7 +175,12 @@ def load_depth(image, depth_path=None, invert=False):
         depth = 1 - depth
     # Soften so band edges follow shapes rather than pixel noise.
     from .light2d import _blur
-    return _blur(depth, max(1, round(min(image.size) / 400))), method
+    depth = _blur(depth, max(1, round(min(image.size) / 400)))
+    if refine:
+        depth, share = flatten_regions(depth, image)
+        if share:
+            method += f"+flat({share:.0%})"
+    return depth, method
 
 
 def _upsample(color, shape):
@@ -160,7 +244,7 @@ def layer_specs(name, files, size, canvas, depth_range=1.2, margin=1.08):
 
 
 def run(episode_path, image_path, depth_path=None, count=4, name=None, depth_range=1.2, shot_id=None,
-        invert=False, feather=0.04, focus=0.5):
+        invert=False, feather=0.04, focus=0.5, refine=True):
     episode_path = Path(episode_path).resolve()
     episode = json.loads(episode_path.read_text(encoding="utf-8"))
     name = name or Path(image_path).stem.lower().replace(" ", "-")
@@ -180,7 +264,7 @@ def run(episode_path, image_path, depth_path=None, count=4, name=None, depth_ran
     longest = 2048
     if max(image.size) > longest:
         image.thumbnail((longest, longest), Image.Resampling.LANCZOS)
-    depth, method = load_depth(image, depth_path, invert)
+    depth, method = load_depth(image, depth_path, invert, refine)
     layers, thresholds = split(image, depth, max(2, min(8, count)), feather)
     folder = episode_path.parent / "art" / "depth" / name
     folder.mkdir(parents=True, exist_ok=True)
@@ -206,6 +290,9 @@ def run(episode_path, image_path, depth_path=None, count=4, name=None, depth_ran
 
 
 def main():
+    from .machine import apply
+
+    apply()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("episode", type=Path)
     parser.add_argument("--image", type=Path, required=True)
@@ -217,9 +304,11 @@ def main():
     parser.add_argument("--feather", type=float, default=0.04)
     parser.add_argument("--shot", help="insert the layers at the bottom of this shot")
     parser.add_argument("--focus", type=float, default=0.5, help="horizontal crop centre, 0-1, for wide photos")
+    parser.add_argument("--no-refine", action="store_true",
+                        help="keep the raw depth (skip one-depth-per-flat-region refinement)")
     args = parser.parse_args()
     print(json.dumps(run(args.episode, args.image, args.depth, args.layers, args.name, args.depth_range, args.shot,
-                         args.invert, args.feather, args.focus), indent=2))
+                         args.invert, args.feather, args.focus, not args.no_refine), indent=2))
     return 0
 
 

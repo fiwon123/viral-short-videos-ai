@@ -1,12 +1,33 @@
 # 🧪 Examples
 
-Explore three original channel workspaces in [the example gallery](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples). Each includes a playable preview and its editable source.
+Explore four original channel workspaces in [the example gallery](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples). Each includes a playable preview and its editable source.
+
+## ⭐ Pocket Stars
+
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/pocket-stars/renders/pip-catches-a-star-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/pocket-stars/renders/pip-catches-a-star-preview/thumbnail.png" width="170" alt="Pocket Stars preview thumbnail"></a>
+
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/pocket-stars/renders/pip-catches-a-star-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/pocket-stars)
+
+- Rigged character (Pip) built with `make character`: `alive` breathing, blinking and sway, poses for the acting
+- Kinetic word captions with emphasis
+- Dusk sky, parallax hills and a falling-star payoff
+
+<details>
+<summary>Render a fresh preview</summary>
+
+```sh
+python video.py render examples/pocket-stars/episodes/pip-catches-a-star/episode.json \
+  --channel examples/pocket-stars/channel/channel.json \
+  --renderer hyperframes --preview --out examples/pocket-stars/renders/pip-catches-a-star-preview-v2
+```
+
+</details>
 
 ## 🎬 Orbit Workshop
 
-<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2/thumbnail.png" width="170" alt="Orbit Workshop preview thumbnail"></a>
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/thumbnail.png" width="170" alt="Orbit Workshop preview thumbnail"></a>
 
-[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview-v2/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/orbit-workshop)
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/orbit-workshop)
 
 - 2D/2.5D robot micro-story
 - Karaoke captions
@@ -25,9 +46,9 @@ python video.py render examples/orbit-workshop/episodes/the-robot-who-unplugged-
 
 ## 🕊️ Paper Crane Post
 
-<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview-v2/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/paper-crane/renders/one-letter-home-preview-v2/thumbnail.png" width="170" alt=" Paper Crane Post preview thumbnail"></a>
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/paper-crane/renders/one-letter-home-preview/thumbnail.png" width="170" alt=" Paper Crane Post preview thumbnail"></a>
 
-[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview-v2/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/paper-crane)
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/paper-crane/renders/one-letter-home-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/paper-crane)
 
 - Parented paper-crane rig with a pivot
 - Camera push-in and animated captions
@@ -46,9 +67,9 @@ python video.py render examples/paper-crane/episodes/one-letter-home/episode.jso
 
 ## 📡 Tiny Signal
 
-<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview-v2/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/tiny-signal/renders/one-small-signal-preview-v2/thumbnail.png" width="170" alt="Tiny Signal preview thumbnail"></a>
+<a href="https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview/video.mp4"><img src="https://raw.githubusercontent.com/fiwon123/viral-short-videos-ai/main/examples/tiny-signal/renders/one-small-signal-preview/thumbnail.png" width="170" alt="Tiny Signal preview thumbnail"></a>
 
-[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview-v2/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/tiny-signal)
+[Watch the preview](https://github.com/fiwon123/viral-short-videos-ai/blob/main/examples/tiny-signal/renders/one-small-signal-preview/video.mp4) · [Browse the workspace](https://github.com/fiwon123/viral-short-videos-ai/tree/main/examples/tiny-signal)
 
 - Three.js scene with emissive materials
 - Camera move and expanding rings

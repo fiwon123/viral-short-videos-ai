@@ -523,6 +523,16 @@ def mix_global(path, total_frames, fps, dialogue, sfx, bed, music_config, ambien
     return mixed
 
 
+PUNCHLINE_PAUSE = 0.3  # Seconds of silence after a line marked ``punchline``.
+
+
+def pause_after(line):
+    """Silence after a line before the next one starts: ``pause_after`` seconds or a punchline beat."""
+    if line.get("pause_after") is not None:
+        return float(line["pause_after"])
+    return PUNCHLINE_PAUSE if line.get("punchline") else 0.0
+
+
 def plan_shot(shot, fps, voice, base, temp, profiles, takes, sound_bank):
     step = SAMPLE_RATE // fps
     frames = frame_count(shot["duration"], fps)
@@ -536,10 +546,11 @@ def plan_shot(shot, fps, voice, base, temp, profiles, takes, sound_bank):
             raise ValueError(f"{shot['id']} has overlapping speech. Move the line by {previous_end - at} frames or omit at.")
         clip, source, detail = spoken_take(line, voice, base, temp, profiles.get(line["speaker"]), takes)
         end = at + math.ceil(len(clip) / step)
-        # Add a brief visual hold when speech extends beyond the requested shot.
-        frames = max(frames, end + math.ceil(0.14 * fps))
+        beat = round(pause_after(line) * fps)
+        # Add a brief visual hold when speech extends beyond the requested shot; a punchline holds its beat.
+        frames = max(frames, end + max(beat, math.ceil(0.14 * fps)))
         voices.append((at, end, line, clip, source, detail))
-        previous_end = end
+        previous_end = end + beat
     for cue in shot.get("sfx", []):
         for layer in flatten_cue(cue):
             at = round((float(cue["at"]) + float(layer.get("offset", 0) or 0)

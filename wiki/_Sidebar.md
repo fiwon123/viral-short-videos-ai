@@ -5,6 +5,7 @@
 - [Create a channel](Create-a-Channel)
 - [Find episode ideas](Find-Ideas)
 - [Make videos with prompts](Create-Videos-with-Prompts)
+- [AI characters and hook clips](AI-Characters-and-Hook-Clips)
 - [Prompt cookbook](AI-Workflow-and-Prompt-Cookbook)
 - [Watch examples](Examples)
 
@@ -18,6 +19,7 @@
 **🛠️ Setup and reference**
 
 - [Quick start](Quick-Start)
+- [Your PC and performance](Your-PC-and-Performance)
 - [Workspace layout](Workspace-Layout)
 - [Core concepts](Core-Concepts)
 - [Manifest reference](Manifest-Reference)

@@ -45,6 +45,8 @@ def options():
             command.add_argument("--preset", help="override the x264 preset")
             command.add_argument("--audio-bitrate", type=int, help="override the AAC bitrate in kbps")
             command.add_argument("--scale", type=float, help="scale the output canvas, for example 0.5")
+            command.add_argument("--seconds", type=float,
+                                 help="render only the opening N seconds (a hook preview to approve before the full render)")
     still = commands.add_parser("still", help="render one frame or a contact sheet for fast review")
     still.add_argument("episode", type=Path)
     still.add_argument("--channel", type=Path)
@@ -104,7 +106,7 @@ def options():
     batch.add_argument("--status", help="only entries with this status")
     batch.add_argument("--renderer", choices=RENDERER_NAMES)
     batch.add_argument("--preview", action="store_true", default=None)
-    batch.add_argument("--jobs", type=int, default=1)
+    batch.add_argument("--jobs", type=int, help="episodes at once (default: the machine profile)")
     batch.add_argument("--validate-only", action="store_true")
     batch.add_argument("--dry-run", action="store_true")
     batch.add_argument("--out-root", type=Path)
@@ -330,7 +332,8 @@ def execute(args):
 
         from studio.pipeline import prepare_episode
 
-        episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent)
+        episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent,
+                                  episode_dir=args.episode.parent)
         data = resolved_config(episode, channel)
         if args.json:
             return data, 0
@@ -365,7 +368,7 @@ def execute(args):
     from studio.pipeline import prepare_episode
 
     source_episode = load(args.episode, "episode")
-    episode = prepare_episode(source_episode, channel, args.channel.parent)
+    episode = prepare_episode(source_episode, channel, args.channel.parent, episode_dir=args.episode.parent)
     from studio.lint import lint
 
     from studio.scenes import load_library as _load_scenes
@@ -449,6 +452,8 @@ def execute(args):
         suffix = "audio" if args.command == "audio" else "v1"
         if args.command == "render" and (args.preview or args.full_size_preview):
             suffix = "preview"
+        if args.command == "render" and args.seconds:
+            suffix = "hook"
         from studio.workspace import default_output
 
         args.out = default_output(args.episode, args.channel, suffix)
@@ -518,7 +523,7 @@ def execute(args):
     renderer = choose(episode, args.renderer)
     report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview,
                     not (args.no_burn or args.no_captions), backend=renderer, library=library,
-                    audio_library=audio_library, options=options)
+                    audio_library=audio_library, options=options, seconds=args.seconds)
     if lint_warnings:
         report["lint_warnings"] = lint_warnings
     if style_report is not None:
@@ -528,6 +533,9 @@ def execute(args):
 
 def main():
     try:
+        from studio.machine import apply
+
+        apply()  # Below-normal priority and capped threads for this run and its children.
         result = execute(options())
     except ModuleNotFoundError as error:
         print(f"studio: {error}. Install requirements.txt in your Python environment.", file=sys.stderr)

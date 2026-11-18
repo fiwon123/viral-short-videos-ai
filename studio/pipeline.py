@@ -6,9 +6,10 @@ layers, and text reveals split last so they see the final layers.
 """
 
 import copy
+from pathlib import Path
 
 
-def prepare_episode(episode, channel, channel_dir, *, style=True):
+def prepare_episode(episode, channel, channel_dir, *, style=True, episode_dir=None):
     from .expand import expand as expand_defs
     from .ik import expand as expand_ik
     from .life import expand as expand_life
@@ -40,4 +41,9 @@ def prepare_episode(episode, channel, channel_dir, *, style=True):
     episode = expand_markers(episode, channel_dir)
     episode = expand_trails(episode)
     episode = expand_particles(episode)
-    return expand_reveal(episode, channel, channel_dir)
+    episode = expand_reveal(episode, channel, channel_dir)
+    if episode_dir is not None:
+        from .videolayer import expand as expand_video
+
+        episode = expand_video(episode, Path(episode_dir), channel_dir)
+    return episode

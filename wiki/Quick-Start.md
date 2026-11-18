@@ -12,8 +12,8 @@ Run a first local render, then open the MP4 and its publishing package.
 ```sh
 git clone https://github.com/fiwon123/viral-short-videos-ai.git
 cd viral-short-videos-ai
-make models   # Kokoro voice files
-make shell    # builds the image once, then opens a terminal in the sandbox
+make models art-models   # voice files, plus depth and cut-out models (optional, about 280 MB)
+make shell               # builds the image once, then opens a terminal in the sandbox
 ```
 
 The image has Python, FFmpeg, eSpeak NG, Node, Chromium, and opencode, Claude Code and Codex. Run the commands below from that terminal, or start an agent directly with `make claude`, `make codex` or `make opencode`.
@@ -27,7 +27,7 @@ make setup-host   # venv in audio-models/venv, npm packages, Kokoro voice files
 ```
 
 > [!NOTE]
-> `make doctor` reports FFmpeg, Node, Chrome, Kokoro, and the H.264 encoder. Fix anything marked missing before rendering.
+> `make doctor` reports FFmpeg, Node, Chrome, Kokoro, and the H.264 encoder. Fix anything marked missing before rendering. `make hardware` shows what your PC can do (AI art, AI video, the 2.5D fallback) and the limits the studio will respect. See [Your PC and Performance](Your-PC-and-Performance).
 
 ## 2. Create a workspace
 
@@ -130,6 +130,29 @@ make render RENDERER=python EPISODE=workspace/my-channel/episodes/my-first-episo
 
 > [!TIP]
 > If discovery finds several channels or episodes, pass `CHANNEL=` and `EPISODE=` explicitly or pin them in `.env`.
+
+### More commands
+
+```sh
+make help                                  # every shortcut
+make hardware                              # machine profile and AI plans
+make preview EPISODE=... HOOK=20           # only the opening 20 seconds
+make still EPISODE=... SHOT=A PROGRESS=0.5 # one review frame (SHEET=6 for a contact sheet)
+make viral-check EPISODE=... [VIDEO=...]   # hook, pacing, loop, loudness and packaging score
+make art CHANNEL=... SPEC=... [IMAGE=...]  # a cast member, rigged
+make hero EPISODE=... SHOT=A KEEP=title    # moving hook shot
+make support                               # renderer support matrix
+make parity                                # shared visual fixture across renderers
+make presets                               # style presets
+make motion MOTION=impact                  # manifest-ready motion recipes
+make schema                                # schema wrappers for editor completion
+make batch SEASON=workspace/<channel>/season.json
+make editor EPISODE=...                    # local shot inspector
+make published EPISODE=workspace/<channel>/episodes/<episode> [URL=...]
+make archive                               # dry run: clears _old folders, caches, old versions; APPLY=1 to act
+```
+
+A finished episode goes to `workspace/<channel>/renders/<episode>-v1/` with the MP4, thumbnail, publishing guide, QA report and captions.
 
 ## 🔗 Related guides
 

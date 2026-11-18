@@ -443,17 +443,21 @@ def _perspective_coeffs(output, source):
     return np.linalg.solve(np.array(rows, dtype=np.float64), np.array(values, dtype=np.float64)).tolist()
 
 
+def turn_pad(offsets, w, h, cx, cy):
+    """Padding that holds every projected corner: a pivot near one edge swings the far side a long way."""
+    reach = max([0.3 * max(w, h)] + [v for px, py in offsets for v in (-(cx + px), cx + px - w, -(cy + py), cy + py - h)])
+    return math.ceil(reach)
+
+
 def turn_tile(tile, turn_x, turn_y, pivot):
     """Perspective-turn a tile about its pivot; returns the padded tile and its new pivot."""
     w, h = tile.size
     focal = TURN_FOCAL * max(w, h)
-    pad = round(0.3 * max(w, h))
     cx, cy = float(pivot[0]) * w, float(pivot[1]) * h
     corners = [(0, 0), (w, 0), (w, h), (0, h)]
-    projected = []
-    for x, y in corners:
-        px, py = turn_point(x - cx, y - cy, turn_x, turn_y, focal)
-        projected.append((pad + cx + px, pad + cy + py))
+    offsets = [turn_point(x - cx, y - cy, turn_x, turn_y, focal) for x, y in corners]
+    pad = turn_pad(offsets, w, h, cx, cy)
+    projected = [(pad + cx + px, pad + cy + py) for px, py in offsets]
     size = (w + 2 * pad, h + 2 * pad)
     try:
         coeffs = _perspective_coeffs(projected, corners)
@@ -775,6 +779,10 @@ class Composition:
         self.layers = []
         for layer in layers:
             tiles = sheet_tiles(layer, canvas, base, channel_base) if layer["kind"] == "sheet" else None
+            if layer["kind"] == "video":
+                from .videolayer import tiles as video_tiles
+
+                tiles = video_tiles(layer, canvas, base, channel_base)
             if layer.get("paint_frames"):
                 tiles = [sprite({**layer, **look}, canvas, channel, font, base, channel_base)
                          for look in layer["paint_frames"]]
