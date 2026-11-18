@@ -7,7 +7,7 @@ Depth comes from, in order: ``--depth`` (a greyscale map, white = near, as Depth
 Anything, Marigold, ZoeDepth or Photoshop write; ``--invert`` for white = far),
 a local ONNX depth model (``STUDIO_DEPTH_MODEL``, or the first ``*.onnx`` under
 ``audio-models/depth/``; Depth Anything V2 Small from Hugging Face
-``onnx-community/depth-anything-v2-small`` works), or a rough fallback that
+``onnx-community/depth-anything-v2-small`` works; ``make art-models`` downloads it), or a rough fallback that
 treats lower and more detailed areas as nearer. The fallback suits landscapes
 and street scenes; give a real depth map for portraits and close objects.
 

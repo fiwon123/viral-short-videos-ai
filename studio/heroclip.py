@@ -26,8 +26,8 @@ Backends, best first (``python -m studio.hardware`` shows what is found):
   model card's licence for commercial use).
 * ``parallax``: no video model. The image is split into depth layers
   (``studio/depthphoto.py``) that push in, nearer layers more (a dolly without a
-  camera, so kept layers and captions stay put). Runs anywhere; a local Depth
-  Anything model (see ``make depth-photo``) gives cleaner layers than the fallback.
+  camera, so kept layers and captions stay put). Runs anywhere; ``make art-models``
+  downloads Depth Anything V2 Small, which gives much cleaner layers than the rough guess.
 
 The frames are packed into one sprite sheet (``art/hero/<name>/clip.png``, at
 most 8192 px a side) and inserted as a ``sheet`` layer whose ``frame`` key plays

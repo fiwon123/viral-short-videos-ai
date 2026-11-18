@@ -36,7 +36,8 @@ def channel(folder):
     folder = Path(folder)
     (folder / "channel.json").write_text(json.dumps({"name": "Art Lab"}))
     (folder / "tess.json").write_text(json.dumps({"id": "tess", "description": "a cheerful courier",
-                                                  "style": "flat cartoon", "seed": 7, "height": 0.35}))
+                                                  "style": "flat cartoon", "seed": 7, "height": 0.35,
+                                                  "cutout": "key"}))
     return folder
 
 
@@ -82,6 +83,36 @@ class CutoutTests(unittest.TestCase):
         self.assertFalse(alpha[5, 5])
         self.assertTrue(alpha[102, 182], "white eyes inside the outline must stay opaque")
         self.assertTrue(alpha[250, 200])
+
+
+class OnnxCutoutTests(unittest.TestCase):
+    def test_model_family_sets_size_and_normalisation(self):
+        import sys
+        import types
+        from unittest import mock
+        from studio.cutout import onnx_alpha
+        seen = {}
+
+        class Session:
+            def __init__(self, path, providers=None):
+                pass
+
+            def get_inputs(self):
+                return [types.SimpleNamespace(name="x", shape=[1, 3, "h", "w"])]
+
+            def run(self, outputs, feed):
+                batch = feed["x"]
+                seen["size"], seen["low"] = batch.shape[-1], float(batch.min())
+                return [np.zeros((1, 1, batch.shape[-2], batch.shape[-1]), dtype=np.float32)]
+        fake = types.SimpleNamespace(InferenceSession=Session, get_available_providers=lambda: ["CPUExecutionProvider"])
+        black = Image.new("RGB", (40, 60))
+        with mock.patch.dict(sys.modules, {"onnxruntime": fake}):
+            onnx_alpha(black, Path("isnet-anime.onnx"))
+            self.assertEqual(seen["size"], 1024)
+            self.assertAlmostEqual(seen["low"], -0.485, places=3)  # mean only
+            onnx_alpha(black, Path("u2netp.onnx"))
+            self.assertEqual(seen["size"], 320)
+            self.assertAlmostEqual(seen["low"], -0.485 / 0.229, places=3)  # ImageNet mean and std
 
 
 class SplitTests(unittest.TestCase):
