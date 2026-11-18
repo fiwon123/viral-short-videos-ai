@@ -142,12 +142,22 @@ def lift_face(cutout, masks, override=None):
     if not face or not (face.get("eyes") or face.get("mouth")):
         return None
     hole = np.zeros_like(head)
-    new_masks = {}
+    new_masks, feathered = {}, {}
     for name, box in zip(("eye-l", "eye-r"), sorted(face.get("eyes") or [], key=lambda box: box[0])):
-        x0, y0, x1, y1 = _grow(box, 0.25, head.shape)
-        region = np.zeros_like(head)
-        region[y0:y1, x0:x1] = True
+        # An ellipse, not the box: its edge falls on skin, where the eye layer and the filled head
+        # underneath match, so no rectangle shows around the eye.
+        x0, y0, x1, y1 = _grow(box, 0.22, head.shape)
+        shape = Image.new("L", (head.shape[1], head.shape[0]), 0)
+        ImageDraw.Draw(shape).ellipse([x0, y0, x1 - 1, y1 - 1], fill=255)
+        region = np.asarray(shape) > 127
         new_masks[name] = region & head
+        # Feather the eye layer so it fades into the fill instead of showing a seam.
+        soft = max(1.0, (x1 - x0) * 0.08)
+        fade = np.asarray(shape.filter(ImageFilter.MinFilter(int(soft * 2) | 1))
+                          .filter(ImageFilter.GaussianBlur(soft)), dtype=np.float64) / 255
+        eye = rgba.copy()
+        eye[..., 3] = (eye[..., 3] * fade).astype(np.uint8)
+        feathered[name] = Image.fromarray(eye, "RGBA")
         hole |= region
     if face.get("mouth"):
         x0, y0, x1, y1 = _grow(face["mouth"], 0.3, head.shape)
@@ -167,7 +177,8 @@ def lift_face(cutout, masks, override=None):
     filled = push_pull(rgb / 255, weight) * 255
     head_pixels = rgba.copy()
     head_pixels[..., :3] = np.where(hole[..., None], np.clip(filled, 0, 255), rgba[..., :3]).astype(np.uint8)
-    face.update({"masks": new_masks, "sources": {part: Image.fromarray(head_pixels, "RGBA")}, "part": part})
+    face.update({"masks": new_masks, "sources": {part: Image.fromarray(head_pixels, "RGBA"), **feathered},
+                 "part": part})
     return face
 
 
