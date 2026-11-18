@@ -154,7 +154,11 @@ def plan(report, spec):
         if backend == "comfyui":
             raise ValueError("ComfyUI has none of the supported checkpoints: "
                              + ", ".join(f"{m} ({MODELS[m]['repo']})" for m in order))
-    if report.get("diffusers") and backend in ("auto", "diffusers"):
+    budget = report.get("profile") or {}
+    usable_gpu = gpu if vram >= 4 else {}  # Under 4 GB a GPU cannot hold an image model; treat it as absent.
+    if report.get("diffusers") and backend in ("auto", "diffusers") and (usable_gpu or budget.get("cpu_ai")
+                                                                         or backend == "diffusers"):
+        gpu = usable_gpu
         vendor = gpu.get("vendor")
         device = "mps" if vendor == "apple" else "cuda" if gpu else "cpu"
         order = [wanted] if wanted != "auto" else preferred(vram if gpu else 0)
@@ -164,6 +168,10 @@ def plan(report, spec):
         if device == "cpu":
             result["warning"] = "No usable GPU: CPU generation takes several minutes per image."
         return result
+    if report.get("diffusers") and backend == "auto":
+        return {"backend": "procedural", "reason": "no GPU with 4 GB or more; CPU image generation is off to keep "
+                                                   "this PC responsive (set STUDIO_CPU_AI=1 to allow it, or pass "
+                                                   "IMAGE= with art made elsewhere)"}
     if backend in ("comfyui", "diffusers"):
         raise ValueError(f"The {backend} backend is not available on this machine (run python -m studio.hardware)")
     return {"backend": "procedural", "reason": "no local image generator found (no ComfyUI, no diffusers/torch); "
@@ -253,6 +261,9 @@ def generate_diffusers(spec, choice):  # pragma: no cover - needs torch and down
     import torch
     from diffusers import AutoPipelineForText2Image
 
+    from .machine import current
+
+    torch.set_num_threads(current()["threads"])
     model = MODELS[choice["model"]]
     device = choice["device"]
     dtype = torch.float16 if device == "cuda" else torch.float32
@@ -581,7 +592,10 @@ def generate(channel_dir, spec_path, *, image=None, parts_dir=None, backend=None
         spec["backend"] = backend
     if seed is not None:
         spec["seed"] = seed
-    report = report if report is not None else probe()
+    if report is None:
+        from .machine import current
+
+        report = {**probe(), "profile": current()}
     choice = plan(report, spec)
     if choice["backend"] in ("comfyui", "diffusers") and not spec.get("description"):
         raise ValueError("Art spec needs a description to generate from")
@@ -681,6 +695,9 @@ def generate(channel_dir, spec_path, *, image=None, parts_dir=None, backend=None
 
 
 def main():
+    from .machine import apply
+
+    apply()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("channel", type=Path, help="channel folder")
     parser.add_argument("--spec", required=True, help="art spec JSON, relative to the channel or absolute")

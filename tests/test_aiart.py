@@ -68,7 +68,12 @@ class PlanTests(unittest.TestCase):
 
     def test_diffusers_picks_device_and_warns_on_cpu(self):
         from studio.aiart import plan
-        cpu = plan({"gpu": None, "comfyui": None, "diffusers": True}, {})
+        refused = plan({"gpu": None, "comfyui": None, "diffusers": True}, {})
+        self.assertEqual(refused["backend"], "procedural", "no CPU diffusion unless the user opts in")
+        self.assertIn("STUDIO_CPU_AI", refused["reason"])
+        tiny = plan({"gpu": {"vendor": "nvidia", "vram_gb": 2}, "comfyui": None, "diffusers": True}, {})
+        self.assertEqual(tiny["backend"], "procedural", "a 2 GB GPU cannot hold an image model")
+        cpu = plan({"gpu": None, "comfyui": None, "diffusers": True, "profile": {"cpu_ai": True}}, {})
         self.assertEqual((cpu["device"], cpu["model"]), ("cpu", "sd15"))
         self.assertIn("warning", cpu)
         mac = plan({"gpu": {"vendor": "apple", "vram_gb": 21}, "comfyui": None, "diffusers": True}, {})
@@ -94,8 +99,8 @@ class OnnxCutoutTests(unittest.TestCase):
         seen = {}
 
         class Session:
-            def __init__(self, path, providers=None):
-                pass
+            def __init__(self, path, options=None, providers=None):
+                seen["threads"] = options.intra_op_num_threads
 
             def get_inputs(self):
                 return [types.SimpleNamespace(name="x", shape=[1, 3, "h", "w"])]
@@ -104,12 +109,15 @@ class OnnxCutoutTests(unittest.TestCase):
                 batch = feed["x"]
                 seen["size"], seen["low"] = batch.shape[-1], float(batch.min())
                 return [np.zeros((1, 1, batch.shape[-2], batch.shape[-1]), dtype=np.float32)]
-        fake = types.SimpleNamespace(InferenceSession=Session, get_available_providers=lambda: ["CPUExecutionProvider"])
+        fake = types.SimpleNamespace(InferenceSession=Session, SessionOptions=types.SimpleNamespace,
+                                     get_available_providers=lambda: ["CPUExecutionProvider"])
         black = Image.new("RGB", (40, 60))
         with mock.patch.dict(sys.modules, {"onnxruntime": fake}):
             onnx_alpha(black, Path("isnet-anime.onnx"))
             self.assertEqual(seen["size"], 1024)
             self.assertAlmostEqual(seen["low"], -0.485, places=3)  # mean only
+            from studio.machine import current
+            self.assertEqual(seen["threads"], current()["threads"], "sessions use the machine's thread budget")
             onnx_alpha(black, Path("u2netp.onnx"))
             self.assertEqual(seen["size"], 320)
             self.assertAlmostEqual(seen["low"], -0.485 / 0.229, places=3)  # ImageNet mean and std

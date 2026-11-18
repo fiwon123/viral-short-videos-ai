@@ -71,7 +71,9 @@ def key_background(image, tolerance=38, feather=1.2):
 def onnx_alpha(image, path):
     import onnxruntime
 
-    session = onnxruntime.InferenceSession(str(path), providers=onnxruntime.get_available_providers())
+    from .machine import onnx_options
+
+    session = onnxruntime.InferenceSession(str(path), onnx_options(), providers=onnxruntime.get_available_providers())
     entry = session.get_inputs()[0]
     shape = entry.shape
     family = Path(path).stem.lower()
@@ -107,6 +109,9 @@ def cut(image, method="auto"):
 
 
 def main():
+    from .machine import apply
+
+    apply()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("source", type=Path)
     parser.add_argument("out", type=Path)
