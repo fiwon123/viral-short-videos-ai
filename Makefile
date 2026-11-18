@@ -33,7 +33,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory style-lock style-check discover viral-check character3d art hardware assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory style-lock style-check discover viral-check character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
@@ -63,6 +63,7 @@ help:
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
 	@echo "  make art SPEC=...           local AI character art, cut out and rigged [IMAGE= PARTS= BACKEND= SEED= DRY=1]"
 	@echo "  make hardware               what this machine can generate art with (GPU, ComfyUI, diffusers)"
+	@echo "  make hero EPISODE=... SHOT=...  AI video clip for a hook shot, 2.5D without a GPU [IMAGE= PROMPT= KEEP= WORKFLOW= BACKEND= SEED= DRY=1]"
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
 	@echo "  make character3d OUT=....glb [SPEC=...]  rigged low-poly 3D character (bones for poses and ik)"
 	@echo "  make viral-check EPISODE=... [VIDEO=...]  score hook, pacing, loop, packaging and loudness"
@@ -173,6 +174,13 @@ art:
 	@$(PYTHON) -m studio.aiart $(CHANNEL_DIR) --spec "$(SPEC)" $(if $(IMAGE),--image "$(IMAGE)",) \
 		$(if $(PARTS),--parts-dir "$(PARTS)",) $(if $(BACKEND),--backend $(BACKEND),) \
 		$(if $(SEED),--seed $(SEED),) $(if $(DRY),--dry-run,)
+
+hero:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<slug>/episodes/<episode>/episode.json"; exit 1; }
+	@test -n "$(SHOT)" || { echo "Set SHOT=<shot id>"; exit 1; }
+	@$(PYTHON) -m studio.heroclip $(EPISODE) --shot $(SHOT) $(CHANNEL_ARG) $(if $(IMAGE),--image "$(IMAGE)",) \
+		$(if $(PROMPT),--prompt "$(PROMPT)",) $(if $(KEEP),--keep $(KEEP),) $(if $(WORKFLOW),--workflow "$(WORKFLOW)",) \
+		$(if $(BACKEND),--backend $(BACKEND),) $(if $(SEED),--seed $(SEED),) $(if $(DRY),--dry-run,)
 
 hardware:
 	@$(PYTHON) -m studio.hardware

@@ -122,9 +122,13 @@ def probe(comfy=True):
 
 def main():
     from .aiart import plan
+    from .heroclip import plan as video_plan, probe_video
 
     report = probe()
+    if report["comfyui"]:
+        probe_video(report["comfyui"])
     report["plan"] = plan(report, {})
+    report["video_plan"] = video_plan(report, {})
     print(json.dumps(report, indent=2))
     return 0
 
