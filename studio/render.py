@@ -296,9 +296,50 @@ def verify(path, timeline, canvas, limit):
             "caption_cues": len(timeline["captions"])}
 
 
+def opening(episode, seconds):
+    """Keep only the shots that start inside the first ``seconds`` (a hook preview).
+
+    The last kept shot keeps its full length so its audio and motion resolve as in the
+    full render; ``trim_video`` cuts the encoded file to ``seconds`` afterwards.
+    """
+    if seconds <= 0:
+        raise ValueError("--seconds must be positive")
+    trimmed, start = dict(episode), 0.0
+    scenes = []
+    for scene in episode["scenes"]:
+        if start >= seconds:
+            break
+        shots = []
+        for shot in scene["shots"]:
+            if start >= seconds:
+                break
+            shots.append(shot)
+            start += float(shot["duration"])
+        scenes.append({**scene, "shots": shots})
+    trimmed["scenes"] = scenes
+    return trimmed
+
+
+def trim_video(out, seconds):
+    """Cut ``video.mp4`` (and the SRT) in the package to the opening ``seconds``."""
+    video = out / "video.mp4"
+    cut = out / "video-cut.mp4"
+    run("ffmpeg", "-y", "-v", "error", "-i", str(video), "-t", f"{seconds:.3f}",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(cut))
+    cut.replace(video)
+    data = probe(video)
+    return float(data["format"]["duration"])
+
+
 def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *, backend="auto", library=None,
-           audio_library=None, options=None):
+           audio_library=None, options=None, seconds=None):
     from .renderers import choose
+
+    full_seconds = None
+    if seconds:
+        full_seconds = sum(float(shot["duration"]) for scene in episode["scenes"] for shot in scene["shots"])
+        episode = opening(episode, seconds)
 
     backend = choose(episode, backend)
     config = render_config(channel, episode)
@@ -356,6 +397,14 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
                     if "three" in shot:
                         timing["three"] = shot["three"]
         report = verify(out / "video.mp4", timeline, canvas, episode.get("max_seconds", MAX_SECONDS))
+        if seconds and report["duration_seconds"] > seconds + 0.05:
+            report["duration_seconds"] = trim_video(out, seconds)
+            limit = round(seconds * timeline["fps"])
+            timeline["captions"] = [{**cue, "end": min(cue["end"], limit)} for cue in timeline["captions"]
+                                    if cue["start"] < limit]
+        if seconds:
+            report["opening_seconds"] = seconds
+            report["full_seconds"] = round(full_seconds, 2)
         report.update({"renderer": backend, "preview": preview, "burned_captions": burn and bool(timeline["captions"]),
                        "audio": audio_summary(timeline)})
         if timeline["captions"] and config.get("captions", True):

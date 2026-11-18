@@ -45,6 +45,8 @@ def options():
             command.add_argument("--preset", help="override the x264 preset")
             command.add_argument("--audio-bitrate", type=int, help="override the AAC bitrate in kbps")
             command.add_argument("--scale", type=float, help="scale the output canvas, for example 0.5")
+            command.add_argument("--seconds", type=float,
+                                 help="render only the opening N seconds (a hook preview to approve before the full render)")
     still = commands.add_parser("still", help="render one frame or a contact sheet for fast review")
     still.add_argument("episode", type=Path)
     still.add_argument("--channel", type=Path)
@@ -449,6 +451,8 @@ def execute(args):
         suffix = "audio" if args.command == "audio" else "v1"
         if args.command == "render" and (args.preview or args.full_size_preview):
             suffix = "preview"
+        if args.command == "render" and args.seconds:
+            suffix = "hook"
         from studio.workspace import default_output
 
         args.out = default_output(args.episode, args.channel, suffix)
@@ -518,7 +522,7 @@ def execute(args):
     renderer = choose(episode, args.renderer)
     report = render(episode, channel, args.episode.parent, args.channel.parent, args.out, args.preview,
                     not (args.no_burn or args.no_captions), backend=renderer, library=library,
-                    audio_library=audio_library, options=options)
+                    audio_library=audio_library, options=options, seconds=args.seconds)
     if lint_warnings:
         report["lint_warnings"] = lint_warnings
     if style_report is not None:

@@ -87,7 +87,7 @@ help:
 	@echo "  make validate  EPISODE=episodes/<slug>/episode.json"
 	@echo "  make check     EPISODE=episodes/<slug>/episode.json"
 	@echo "  make audio     EPISODE=episodes/<slug>/episode.json [OUT=<dir>]"
-	@echo "  make preview   EPISODE=episodes/<slug>/episode.json [OUT=<dir>]"
+	@echo "  make preview   EPISODE=episodes/<slug>/episode.json [OUT=<dir>] [HOOK=20 opening seconds only]"
 	@echo "  make render    EPISODE=episodes/<slug>/episode.json [OUT=<dir>]"
 	@echo
 	@echo "  CHANNEL and EPISODE are discovered when unambiguous, else set them,"
@@ -277,7 +277,7 @@ audio:
 preview:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=episodes/<slug>/episode.json"; exit 1; }
 	@$(PYTHON) video.py render $(EPISODE) $(CHANNEL_ARG) --renderer $(RENDERER) \
-		$(OUT_ARG) $(if $(PREVIEW_FLAG),$(PREVIEW_FLAG),--full-size-preview)
+		$(OUT_ARG) $(if $(PREVIEW_FLAG),$(PREVIEW_FLAG),--full-size-preview) $(if $(HOOK),--seconds $(HOOK),)
 
 render:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=episodes/<slug>/episode.json"; exit 1; }

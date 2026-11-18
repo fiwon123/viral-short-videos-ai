@@ -803,7 +803,9 @@
         "lead": {"type": "number", "minimum": -10, "maximum": 10},
         "words": {"type": "array", "items": {"$ref": "#/$defs/word"}},
         "visemes": {"type": "array", "items": {"$ref": "#/$defs/viseme"}},
-        "lipsync": {"description": "false keeps this line out of automatic lip sync.", "type": "boolean"}
+        "lipsync": {"description": "false keeps this line out of automatic lip sync.", "type": "boolean"},
+        "punchline": {"description": "Hold a 0.3 s beat of silence after this line so the joke lands.", "type": "boolean"},
+        "pause_after": {"description": "Seconds of silence after this line before the next one (overrides punchline).", "type": "number", "minimum": 0, "maximum": 2}
       }
     },
     "sfx_layer": {
