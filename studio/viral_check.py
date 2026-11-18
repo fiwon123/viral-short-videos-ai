@@ -207,7 +207,7 @@ def main():
     channel = load(channel_path, "channel")
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
-    expanded = prepare_episode(source, channel, channel_path.parent)
+    expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
     print(json.dumps(check(source, expanded, args.video), indent=2))
     return 0
 

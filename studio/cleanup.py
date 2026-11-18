@@ -32,7 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 UPLOAD_FILES = ("video.mp4", "thumbnail.png", "captions.srt", "publishing.md", "publishing.json")
 SMALL_FILES = ("publishing.md", "publishing.json")
-CACHE_DIRS = (".audio-takes", ".raster", "__pycache__")
+CACHE_DIRS = (".audio-takes", ".raster", ".video-frames", "__pycache__")
 CACHE_FILES = ("episode-raster.json",)
 JUNK_RENDER = re.compile(r"(-preview|-stills)$|^_review$|^\.studio-")
 VERSION = re.compile(r"^(?P<base>.+?)(?:-v(?P<n>\d+))?$")

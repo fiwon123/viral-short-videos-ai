@@ -332,7 +332,8 @@ def execute(args):
 
         from studio.pipeline import prepare_episode
 
-        episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent)
+        episode = prepare_episode(load(args.episode, "episode"), channel, args.channel.parent,
+                                  episode_dir=args.episode.parent)
         data = resolved_config(episode, channel)
         if args.json:
             return data, 0
@@ -367,7 +368,7 @@ def execute(args):
     from studio.pipeline import prepare_episode
 
     source_episode = load(args.episode, "episode")
-    episode = prepare_episode(source_episode, channel, args.channel.parent)
+    episode = prepare_episode(source_episode, channel, args.channel.parent, episode_dir=args.episode.parent)
     from studio.lint import lint
 
     from studio.scenes import load_library as _load_scenes

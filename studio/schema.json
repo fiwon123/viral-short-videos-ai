@@ -487,13 +487,13 @@
       "type": "object", "required": ["id", "kind", "x", "y"],
       "allOf": [
         {"$ref": "#/$defs/pose"},
-        {"if": {"required": ["asset_scope"]}, "then": {"properties": {"kind": {"enum": ["image", "svg", "sheet", "particles"]}}}},
+        {"if": {"required": ["asset_scope"]}, "then": {"properties": {"kind": {"enum": ["image", "svg", "sheet", "video", "particles"]}}}},
         {"if": {"properties": {"kind": {"const": "sheet"}}}, "then": {"required": ["columns", "rows"]}}
       ],
       "unevaluatedProperties": false,
       "properties": {
         "id": {"$ref": "#/$defs/text"},
-        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image", "svg", "sheet", "group", "particles", "use"]},
+        "kind": {"enum": ["rect", "ellipse", "polygon", "text", "image", "svg", "sheet", "video", "group", "particles", "use"]},
         "ref": {"$ref": "#/$defs/text"},
         "plane": {"enum": ["background", "foreground"]},
         "asset_scope": {"enum": ["episode", "channel"]},
@@ -511,7 +511,13 @@
         "turn_depth": {"description": "How far this child sits in front of its parent's surface when the parent turns (turn_x/turn_y), as a fraction of the parent's smaller side. 0 follows the parent exactly; face features use about 0.12.",
                        "type": "number", "minimum": 0, "maximum": 1},
         "depth_photo": {"description": "Set by make depth-photo; marks the layers of one photo split.", "$ref": "#/$defs/text"},
-        "hero_clip": {"description": "Set by make hero; marks the sprite-sheet layer of one AI video clip.", "$ref": "#/$defs/text"},
+        "hero_clip": {"description": "Set by make hero; marks the layer of one AI video clip.", "$ref": "#/$defs/text"},
+        "fit": {"description": "Video layers: contain (default) fits the clip inside the box; cover fills it and crops.", "enum": ["contain", "cover"]},
+        "clip_start": {"description": "Video layers: seconds into the clip to start from.", "type": "number", "minimum": 0, "maximum": 3600},
+        "clip_speed": {"description": "Video layers: playback speed (0.5 = half speed).", "type": "number", "exclusiveMinimum": 0, "maximum": 8},
+        "loop": {"description": "Video layers: wrap to the start instead of holding the last frame.", "type": "boolean"},
+        "video_fps": {"description": "Set by the video expander; do not author.", "type": "number"},
+        "video_frames": {"description": "Set by the video expander; do not author.", "type": "integer"},
         "lit": {"description": "Shade this layer (and its children) with the shot light; a number scales it.",
                 "anyOf": [{"type": "boolean"}, {"type": "number", "minimum": 0, "maximum": 2}]},
         "reveal": {"$ref": "#/$defs/reveal"},
@@ -708,7 +714,7 @@
         },
         "keyframes": {"type": "array", "items": {"$ref": "#/$defs/keyframe"}}
       },
-      "if": {"properties": {"kind": {"enum": ["image", "svg", "sheet", "particles"]}}},
+      "if": {"properties": {"kind": {"enum": ["image", "svg", "sheet", "video", "particles"]}}},
       "then": {"required": ["file"]},
       "else": {
         "allOf": [

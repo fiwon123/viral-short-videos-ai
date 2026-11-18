@@ -171,7 +171,7 @@ def main():
     channel = load(channel_path, "channel")
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
-    expanded = prepare_episode(source, channel, channel_path.parent)
+    expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
     library = load_audio_library(channel, channel_path.parent)
     sounds = set((library[0] if library else {}).get("sounds", {}))
     report = spot(source, expanded, sounds)

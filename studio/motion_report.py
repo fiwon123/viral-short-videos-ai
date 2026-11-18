@@ -309,7 +309,7 @@ def main():
     channel = load(channel_path, "channel")
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
-    expanded = prepare_episode(source, channel, channel_path.parent)
+    expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
     data, charts = report(source, expanded, args.hold, channel.get("palette"))
     target = args.out or args.episode.parent / "motion-report.png"
     data["chart"] = str(chart(charts, data["fps"], target))

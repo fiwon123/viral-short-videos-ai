@@ -779,6 +779,10 @@ class Composition:
         self.layers = []
         for layer in layers:
             tiles = sheet_tiles(layer, canvas, base, channel_base) if layer["kind"] == "sheet" else None
+            if layer["kind"] == "video":
+                from .videolayer import tiles as video_tiles
+
+                tiles = video_tiles(layer, canvas, base, channel_base)
             if layer.get("paint_frames"):
                 tiles = [sprite({**layer, **look}, canvas, channel, font, base, channel_base)
                          for look in layer["paint_frames"]]

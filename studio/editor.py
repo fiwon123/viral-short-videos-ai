@@ -75,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(415, {"error": "Use a renderer preview for SVG or 3D shots"})
         base = self.episode_path.parent
         channel_dir = self.channel_path.parent
-        episode = prepare_episode(self.episode, self.channel, channel_dir)
+        episode = prepare_episode(self.episode, self.channel, channel_dir, episode_dir=base)
         styled = next((item for scene in episode["scenes"] for item in scene["shots"]
                        if item["id"] == shot_id), shot)
         font = resolve_font(self.channel, channel_dir)

@@ -233,9 +233,15 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
                             frames.append(name)
                         visual["frames"] = frames
                         visual["boil_fps"] = float(layer.get("boil_fps", 12))
-                elif layer["kind"] == "sheet":
+                elif layer["kind"] in ("sheet", "video"):
                     frames = []
-                    for frame_index, tile in enumerate(sheet_tiles(layer, canvas, base, channel_base)):
+                    if layer["kind"] == "video":
+                        from .videolayer import tiles as video_tiles
+
+                        source_tiles = video_tiles(layer, canvas, base, channel_base)
+                    else:
+                        source_tiles = sheet_tiles(layer, canvas, base, channel_base)
+                    for frame_index, tile in enumerate(source_tiles):
                         name = f"shot-{len(shots)}-layer-{index}-frame-{frame_index}.png"
                         tile.save(assets / name)
                         frames.append(name)
