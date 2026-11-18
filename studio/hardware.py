@@ -124,7 +124,10 @@ def main():
     from .aiart import plan
     from .heroclip import plan as video_plan, probe_video
 
+    from .machine import profile, specs
+
     report = probe()
+    report["profile"] = profile(specs(gpu=report["gpu"]))
     if report["comfyui"]:
         probe_video(report["comfyui"])
     report["plan"] = plan(report, {})

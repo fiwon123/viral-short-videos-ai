@@ -60,7 +60,9 @@ def estimate_onnx(image, path):
     """Relative depth (1 = near) from a Depth Anything style ONNX model."""
     import onnxruntime
 
-    session = onnxruntime.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    from .machine import onnx_options
+
+    session = onnxruntime.InferenceSession(str(path), onnx_options(), providers=["CPUExecutionProvider"])
     entry = session.get_inputs()[0]
     shape = entry.shape
     size = shape[2] if len(shape) == 4 and isinstance(shape[2], int) else 518
@@ -288,6 +290,9 @@ def run(episode_path, image_path, depth_path=None, count=4, name=None, depth_ran
 
 
 def main():
+    from .machine import apply
+
+    apply()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("episode", type=Path)
     parser.add_argument("--image", type=Path, required=True)

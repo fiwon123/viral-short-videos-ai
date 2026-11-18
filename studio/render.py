@@ -35,7 +35,9 @@ def encoder(width, height, fps, config=None):
     preset = config.get("preset", "medium")
     tune = config.get("tune", "animation")
     if "libx264" in encoders:
-        options = ["-c:v", "libx264", "-preset", preset, "-crf", str(crf)]
+        from .machine import x264_threads
+
+        options = ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), *x264_threads()]
         if tune != "none":
             options.extend(["-tune", tune])
         return options
@@ -322,10 +324,12 @@ def opening(episode, seconds):
 
 def trim_video(out, seconds):
     """Cut ``video.mp4`` (and the SRT) in the package to the opening ``seconds``."""
+    from .machine import x264_threads
+
     video = out / "video.mp4"
     cut = out / "video-cut.mp4"
     run("ffmpeg", "-y", "-v", "error", "-i", str(video), "-t", f"{seconds:.3f}",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", *x264_threads(), "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(cut))
     cut.replace(video)
     data = probe(video)

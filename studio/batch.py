@@ -45,7 +45,7 @@ def _command(episode, channel, season, entry, *, renderer, preview, validate_onl
     return command
 
 
-def run(season_path, *, only=(), status=None, renderer=None, preview=None, jobs=1,
+def run(season_path, *, only=(), status=None, renderer=None, preview=None, jobs=None,
         validate_only=False, dry_run=False, out_root=None):
     season, path = load(season_path)
     base = path.parent
@@ -86,6 +86,10 @@ def run(season_path, *, only=(), status=None, renderer=None, preview=None, jobs=
                 "detail": detail[-1] if detail else ""}
 
     results = []
+    if jobs is None:
+        from .machine import current
+
+        jobs = current()["jobs"]
     workers = max(1, min(int(jobs), len(plan)))
     if workers == 1:
         results = [execute(item) for item in plan]

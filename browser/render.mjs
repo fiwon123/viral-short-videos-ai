@@ -26,13 +26,19 @@ async function remotion() {
   const composition = await selectComposition({...common, id: "ViralVideo"});
   const licenseKey = process.env.REMOTION_LICENSE_KEY;
   const isProduction = mode !== "preview";
-  await renderMedia({...common, composition, codec: "h264", muted: true, concurrency: 2,
+  await renderMedia({...common, composition, codec: "h264", muted: true, concurrency: workers(),
     imageFormat: "png", colorSpace: "bt709", pixelFormat: "yuv420p", crf: 17,
     outputLocation: join(work, "picture.mp4"), licenseKey, isProduction});
   const coverProps = {...composition.props, cover: true};
   await renderStill({...common, composition: {...composition, props: coverProps},
     inputProps: {...inputProps, cover: true}, frame: data.cover.frame,
     imageFormat: "png", output: join(work, "cover.png"), licenseKey, isProduction});
+}
+
+// Chromium workers from the machine profile (studio/machine.py), 2 when run on its own.
+function workers() {
+  const value = Number.parseInt(process.env.STUDIO_BROWSER_WORKERS ?? "", 10);
+  return Number.isFinite(value) && value > 0 ? value : 2;
 }
 
 function html(cover = false) {
@@ -68,7 +74,7 @@ async function hyperframes() {
     bundle: true, format: "iife", minify: true});
   await writeFile(index, html());
   hf("render", work, "--output", join(work, `picture.${format}`), "--format", format,
-    "--fps", String(data.fps), "--workers", "2", "--no-browser-gpu");
+    "--fps", String(data.fps), "--workers", String(workers()), "--no-browser-gpu");
   await writeFile(index, html(true));
   const stills = join(work, "stills");
   hf("snapshot", work, "--at", String(data.cover.frame / data.fps), "--no-end",

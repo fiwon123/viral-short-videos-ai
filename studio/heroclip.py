@@ -243,12 +243,13 @@ def generate_diffusers(choice, image, prompt, negative, seed, frames, size):  # 
 def write_clip(frames, fps, path):
     """Encode frames as a high-quality H.264 MP4 (even dimensions, no audio)."""
     from .core import run
+    from .machine import x264_threads
 
     width, height = frames[0].size
     width, height = width - width % 2, height - height % 2
     data = b"".join(frame.convert("RGB").resize((width, height)).tobytes() for frame in frames)
     run("ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}",
-        "-r", f"{fps:g}", "-i", "-", "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "14",
+        "-r", f"{fps:g}", "-i", "-", "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "14", *x264_threads(),
         "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(path), data=data)
 
 
@@ -396,6 +397,9 @@ def run(episode_path, shot_id, *, image=None, prompt="", seconds=None, seed=0, w
 
 
 def main():
+    from .machine import apply
+
+    apply()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("episode", type=Path)
     parser.add_argument("--shot", required=True)

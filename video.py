@@ -106,7 +106,7 @@ def options():
     batch.add_argument("--status", help="only entries with this status")
     batch.add_argument("--renderer", choices=RENDERER_NAMES)
     batch.add_argument("--preview", action="store_true", default=None)
-    batch.add_argument("--jobs", type=int, default=1)
+    batch.add_argument("--jobs", type=int, help="episodes at once (default: the machine profile)")
     batch.add_argument("--validate-only", action="store_true")
     batch.add_argument("--dry-run", action="store_true")
     batch.add_argument("--out-root", type=Path)
@@ -533,6 +533,9 @@ def execute(args):
 
 def main():
     try:
+        from studio.machine import apply
+
+        apply()  # Below-normal priority and capped threads for this run and its children.
         result = execute(options())
     except ModuleNotFoundError as error:
         print(f"studio: {error}. Install requirements.txt in your Python environment.", file=sys.stderr)
