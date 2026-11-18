@@ -83,7 +83,11 @@ def find_face(rgb, head, override=None):
         result["eyes"] = [absolute(box) for box in override.get("eyes", [])] or None
         result["mouth"] = absolute(override["mouth"]) if override.get("mouth") else None
         return result
-    feature = interior & (np.sqrt(((rgb - skin) ** 2).sum(axis=2)) > 60)
+    # Features are dark (lines, pupils, mouths) or near-white (eye whites, teeth); lighter or tinted
+    # paint such as a belly patch or blush differs from the skin too but is not a feature.
+    darker = rgb.mean(axis=2) < skin.mean() - 50
+    whiteish = (rgb.min(axis=2) > 190) & (rgb.max(axis=2) - rgb.min(axis=2) < 60)
+    feature = interior & (np.sqrt(((rgb - skin) ** 2).sum(axis=2)) > 60) & (darker | whiteish)
     cx = (hx0 + hx1) / 2
     blobs = _components(feature, max(4, int(head.sum() * 0.0008)))
     small = [blob for blob in blobs if blob.sum() <= head.sum() * 0.08]
@@ -113,12 +117,28 @@ def _grow(box, amount, limit):
     return [max(0, int(x0 - dx)), max(0, int(y0 - dy)), min(limit[1], int(x1 + dx) + 1), min(limit[0], int(y1 + dy) + 1)]
 
 
+def face_part(masks):
+    """The part that carries the face: the head, or the body of a character without one (a blob)."""
+    return "head" if "head" in masks and masks["head"].any() else "body"
+
+
 def lift_face(cutout, masks, override=None):
-    """Return ``{"masks", "sources", "eyes", "mouth", "skin", "line"}`` or None when no face is found."""
+    """Return ``{"masks", "sources", "eyes", "mouth", "skin", "line", "part"}`` or None when no face is found."""
     rgba = np.asarray(cutout.convert("RGBA"))
     rgb = rgba[..., :3].astype(np.float64)
-    head = masks["head"]
-    face = find_face(rgb, head, override)
+    part = face_part(masks)
+    head = masks[part]
+    region = head
+    if part == "body":
+        # A blob's face sits in the upper body; search the top three quarters as if it were a head,
+        # starting where the body is wide (an antenna or a tuft on top is not part of the face).
+        widths = head.sum(axis=1)
+        rows = np.flatnonzero(widths >= widths.max() * 0.4)
+        top, bottom = rows.min(), np.nonzero(head)[0].max()
+        region = head.copy()
+        region[:top] = False
+        region[top + int((bottom - top) * 0.75):] = False
+    face = find_face(rgb, region, override)
     if not face or not (face.get("eyes") or face.get("mouth")):
         return None
     hole = np.zeros_like(head)
@@ -134,14 +154,20 @@ def lift_face(cutout, masks, override=None):
         hole[y0:y1, x0:x1] = True
     hole &= head
     # Fill the holes from the surrounding head pixels so a blink or a new mouth shows skin.
-    # Sample skin only: outline and feature pixels next to a hole would smear dark into it.
+    # Sample the paint around each hole but not the lines or whites: an outline next to a hole would
+    # smear dark into it, while a belly patch or blush under a mouth should continue through the fill.
     skin = np.array([int(face["skin"][i:i + 2], 16) for i in (1, 3, 5)], dtype=np.float64)
-    skin_like = np.sqrt(((rgb - skin) ** 2).sum(axis=2)) < 45
-    weight = (head & ~hole & skin_like).astype(np.float64)
+    darker = rgb.mean(axis=2) < skin.mean() - 50
+    whiteish = (rgb.min(axis=2) > 190) & (rgb.max(axis=2) - rgb.min(axis=2) < 60)
+    # Anti-aliased line edges are half line colour: keep a few pixels away from every dark line too.
+    reach = max(3, int(min(head.shape) * 0.012)) | 1
+    halo = np.asarray(Image.fromarray(np.where(darker, 255, 0).astype(np.uint8), "L")
+                      .filter(ImageFilter.MaxFilter(reach))) > 127
+    weight = (head & ~hole & ~halo & ~whiteish).astype(np.float64)
     filled = push_pull(rgb / 255, weight) * 255
     head_pixels = rgba.copy()
     head_pixels[..., :3] = np.where(hole[..., None], np.clip(filled, 0, 255), rgba[..., :3]).astype(np.uint8)
-    face.update({"masks": new_masks, "sources": {"head": Image.fromarray(head_pixels, "RGBA")}})
+    face.update({"masks": new_masks, "sources": {part: Image.fromarray(head_pixels, "RGBA")}, "part": part})
     return face
 
 
@@ -167,9 +193,10 @@ def mouth_layers(face, cutout, masks, marks, spec, folder, out_dir):
 
     class Face:
         extra = {"pad": 0, "h": 0, "pivot_y": 0}
-    head_pivot = _pivot("head", masks["head"], marks)
+    owner = face.get("part", "head")
+    head_pivot = _pivot(owner, masks[owner], marks)
     layers = []
-    for part in mouth_parts(mouth_spec, "head", Face()):
+    for part in mouth_parts(mouth_spec, owner, Face()):
         shape = part.extra["shape"]
         (out_dir / f"{part.name}.svg").write_text(part.svg(), encoding="utf-8")
         layer = {"id": part.name, "kind": "svg", "file": f"{folder}/{part.name}.svg", "asset_scope": "channel",
@@ -177,7 +204,7 @@ def mouth_layers(face, cutout, masks, marks, spec, folder, out_dir):
                  "y": round((centre[1] - head_pivot[1]) * scale / canvas_h, 5),
                  "width": round(part.width * per_unit * scale / canvas_w, 5),
                  "height": round(part.height * per_unit * scale / canvas_h, 5),
-                 "pivot": part.pivot, "role": "mouth", "parent": "head",
+                 "pivot": part.pivot, "role": "mouth", "parent": owner,
                  "variant_group": "mouth", "mouth_shape": shape}
         if shape != "rest":
             layer["visible"] = False

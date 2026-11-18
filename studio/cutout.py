@@ -2,7 +2,8 @@
 
     python -m studio.cutout in.png out.png [--method auto|rembg|onnx|key]
 
-``auto`` uses the best available: ``rembg`` (pip install rembg), then an ONNX
+``auto`` uses the colour key when the border is one flat colour (exact, keeps thin
+lines such as antennae and whiskers), and otherwise the best available: ``rembg`` (pip install rembg), then an ONNX
 matting model (``STUDIO_CUTOUT_MODEL`` or the first ``*.onnx`` under
 ``audio-models/cutout/``; U2-Net, IS-Net and BiRefNet exports work), then a
 key on the flat background colour. Generated art is prompted onto a plain
@@ -39,11 +40,20 @@ def available(method):
     return method == "key"
 
 
-def choose(method="auto"):
+def flat_border(image, spread=6.0):
+    """True when the image border is one flat colour (the key is exact there; models soften thin details)."""
+    rgb = np.asarray(image.convert("RGB"), dtype=np.float32)
+    border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    return float(border.std(axis=0).max()) <= spread
+
+
+def choose(method="auto", image=None):
     if method != "auto":
         if not available(method):
             raise ValueError(f"Cutout method {method!r} is not available on this machine")
         return method
+    if image is not None and flat_border(image):
+        return "key"
     return next(name for name in ("rembg", "onnx", "key") if available(name))
 
 
@@ -94,7 +104,7 @@ def onnx_alpha(image, path):
 
 def cut(image, method="auto"):
     """Return ``(RGBA image, method used)``."""
-    method = choose(method)
+    method = choose(method, image)
     image = image.convert("RGBA")
     if method == "rembg":
         from rembg import remove

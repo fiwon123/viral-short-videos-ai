@@ -300,5 +300,53 @@ class FaceTests(unittest.TestCase):
                             "eyes blink")
 
 
+def blob():
+    """A head-less character: an antenna on a wide body with eyes, a mouth on a light belly patch, and feet."""
+    image = Image.new("RGB", (300, 420), (255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    line, skin = (26, 22, 56), (255, 201, 77)
+    draw.line([(150, 30), (150, 90)], fill=line, width=4)
+    draw.ellipse([138, 18, 162, 42], fill=(255, 120, 90), outline=line, width=3)  # antenna ball
+    draw.ellipse([90, 340, 140, 375], fill=(255, 140, 100), outline=line, width=3)  # feet
+    draw.ellipse([160, 340, 210, 375], fill=(255, 140, 100), outline=line, width=3)
+    draw.ellipse([50, 80, 250, 350], fill=skin, outline=line, width=5)  # body
+    draw.ellipse([90, 220, 210, 340], fill=(250, 222, 150))  # light belly patch
+    for x in (95, 165):
+        draw.ellipse([x, 140, x + 40, 185], fill=(255, 255, 255), outline=line, width=3)
+        draw.ellipse([x + 12, 152, x + 28, 172], fill=line)
+    draw.arc([125, 210, 175, 240], 20, 160, fill=line, width=4)  # mouth at the top of the belly
+    return image
+
+
+class BlobFaceTests(unittest.TestCase):
+    def test_flat_background_uses_the_exact_key(self):
+        from studio.cutout import choose
+        self.assertEqual(choose("auto", blob()), "key")
+        busy = Image.fromarray((np.random.default_rng(1).random((60, 40, 3)) * 255).astype(np.uint8))
+        self.assertEqual(choose("auto", busy), choose("auto"))
+
+    def test_an_antenna_is_not_a_head_and_the_body_carries_the_face(self):
+        from studio.aiart import generate
+        with TemporaryDirectory() as folder:
+            base = channel(folder)
+            blob().save(Path(folder) / "blob.png")
+            spec = json.loads((base / "tess.json").read_text())
+            spec.pop("cutout")
+            (base / "tess.json").write_text(json.dumps(spec))
+            result = generate(base, "tess.json", image="blob.png", report={"gpu": None, "comfyui": None})
+            parts = result["parts"]
+            self.assertNotIn("head", parts, "the antenna ball on a stem is not a head")
+            self.assertIn("eye-l", parts)
+            self.assertEqual(sum(part.startswith("mouth-") for part in parts), 13, "mouth found on the belly patch")
+            art = json.loads((base / "art/characters/tess/art.json").read_text())
+            self.assertEqual(art["cutout"], "key")
+            self.assertIsNotNone(art["face"]["mouth"])
+            rig = {layer["id"]: layer for layer in json.loads((base / "rigs.json").read_text())["rigs"]["tess"]}
+            self.assertEqual(rig["mouth-rest"]["parent"], "body")
+            self.assertEqual(rig["eye-l"]["parent"], "body")
+            cutout = np.asarray(Image.open(base / "art/characters/tess/cutout.png"))
+            self.assertTrue((cutout[..., 3] > 127)[:30].any(), "the key keeps the antenna ball")
+
+
 if __name__ == "__main__":
     unittest.main()
