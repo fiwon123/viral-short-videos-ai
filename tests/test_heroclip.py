@@ -57,15 +57,15 @@ class HeroPlanTests(unittest.TestCase):
 
 
 class HeroSheetTests(unittest.TestCase):
-    def test_pack_fits_the_limit_and_keeps_order(self):
-        from studio.heroclip import pack
-        frames = [Image.new("RGB", (480, 832), (index * 5, 0, 0)) for index in range(49)]
-        sheet, columns, rows = pack(frames, limit=4096)
-        self.assertLessEqual(max(sheet.size), 4096)
-        self.assertGreaterEqual(columns * rows, 49)
-        cell = (sheet.width // columns, sheet.height // rows)
-        last = sheet.getpixel(((48 % columns) * cell[0] + 2, (48 // columns) * cell[1] + 2))
-        self.assertEqual(last[0], 240)
+    def test_write_clip_encodes_every_frame(self):
+        from studio.core import probe
+        from studio.heroclip import write_clip
+        frames = [Image.new("RGB", (97, 161), (index * 20, 40, 60)) for index in range(9)]
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / "clip.mp4"
+            write_clip(frames, 24, path)
+            video = next(s for s in probe(path, count_frames=True)["streams"] if s["codec_type"] == "video")
+            self.assertEqual((video["width"], video["height"], int(video["nb_read_frames"])), (96, 160, 9))
 
     def test_place_keeps_named_layers_above(self):
         from studio.heroclip import place
@@ -145,8 +145,8 @@ class HeroRunTests(unittest.TestCase):
                 self.assertEqual(graph["9"]["inputs"]["seed"], 3)
                 shot = json.loads(path.read_text())["scenes"][0]["shots"][0]
                 layer = shot["layers"][0]
-                self.assertEqual((layer["kind"], layer["count"], layer["hero_clip"]), ("sheet", 9, "a"))
-                self.assertEqual(layer["keyframes"][-1], {"at": 0.1875, "frame": 8, "ease": "linear"})
+                self.assertEqual((layer["kind"], layer["hero_clip"]), ("video", "a"))
+                self.assertTrue((Path(folder) / layer["file"]).is_file())
                 load(path, "episode")
                 run(path, "A", image=Path(folder) / "plate.png", prompt="clouds drift", seed=3, seconds=1.0,
                     report=report)

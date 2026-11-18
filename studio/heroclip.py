@@ -29,9 +29,9 @@ Backends, best first (``python -m studio.hardware`` shows what is found):
   camera, so kept layers and captions stay put). Runs anywhere; ``make art-models``
   downloads Depth Anything V2 Small, which gives much cleaner layers than the rough guess.
 
-The frames are packed into one sprite sheet (``art/hero/<name>/clip.png``, at
-most 8192 px a side) and inserted as a ``sheet`` layer whose ``frame`` key plays
-the clip once over its length and then holds the last frame. Results are cached
+The frames are encoded as ``art/hero/<name>/clip-<key>.mp4`` at the model's size
+and inserted as a ``video`` layer (``studio/videolayer.py``) that plays once and
+holds its last frame. Results are cached
 by image, prompt, seed, model and length; ``clip.json`` records the backend,
 model, licence, seed and prompt.
 """
@@ -39,7 +39,6 @@ model, licence, seed and prompt.
 import argparse
 import hashlib
 import json
-import math
 import subprocess
 import sys
 import time
@@ -52,7 +51,6 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-MAX_SHEET = 8192
 WAN = {"unet": "wan2.2_ti2v_5b", "clip": "umt5_xxl", "vae": "wan2.2_vae", "node": "Wan22ImageToVideoLatent",
        "license": "Apache-2.0", "fps": 24, "step": 4, "max_seconds": 5}
 LTX = {"repo": "Lightricks/LTX-Video", "license": "LTX-Video licence (see the model card)", "fps": 24, "step": 8,
@@ -240,31 +238,24 @@ def generate_diffusers(choice, image, prompt, negative, seed, frames, size):  # 
     return [frame.convert("RGB") for frame in result.frames[0]]
 
 
-# ---------------------------------------------------------------- packing and insertion
+# ---------------------------------------------------------------- encoding and insertion
 
-def pack(frames, limit=MAX_SHEET):
-    """One sprite sheet (columns x rows) from frames, scaled so neither side passes ``limit``."""
-    count = len(frames)
+def write_clip(frames, fps, path):
+    """Encode frames as a high-quality H.264 MP4 (even dimensions, no audio)."""
+    from .core import run
+
     width, height = frames[0].size
-    best = None
-    for columns in range(1, count + 1):
-        rows = math.ceil(count / columns)
-        scale = min(1.0, limit / (columns * width), limit / (rows * height))
-        if best is None or scale > best[2] + 1e-9:
-            best = (columns, rows, scale)
-    columns, rows, scale = best
-    cell = (max(1, int(width * scale)), max(1, int(height * scale)))
-    sheet = Image.new("RGB", (columns * cell[0], rows * cell[1]))
-    for index, frame in enumerate(frames):
-        sheet.paste(frame.resize(cell, Image.Resampling.LANCZOS), ((index % columns) * cell[0], (index // columns) * cell[1]))
-    return sheet, columns, rows
+    width, height = width - width % 2, height - height % 2
+    data = b"".join(frame.convert("RGB").resize((width, height)).tobytes() for frame in frames)
+    run("ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}",
+        "-r", f"{fps:g}", "-i", "-", "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "14",
+        "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(path), data=data)
 
 
-def sheet_layer(name, file, columns, rows, count, clip_seconds, shot_seconds):
-    end = min(1.0, clip_seconds / max(shot_seconds, 1e-6))
-    return {"id": f"hero-{name}", "kind": "sheet", "file": file, "columns": columns, "rows": rows, "count": count,
-            "x": 0.5, "y": 0.5, "width": 1.0, "height": 1.0, "hero_clip": name,
-            "keyframes": [{"at": 0, "frame": 0}, {"at": round(end, 4), "frame": count - 1, "ease": "linear"}]}
+def video_layer(name, file):
+    """A full-frame video layer; the video expander plays it once and holds the last frame."""
+    return {"id": f"hero-{name}", "kind": "video", "file": file, "x": 0.5, "y": 0.5, "width": 1.0, "height": 1.0,
+            "fit": "cover", "hero_clip": name}
 
 
 def _shot(episode, shot_id):
@@ -371,9 +362,9 @@ def run(episode_path, shot_id, *, image=None, prompt="", seconds=None, seed=0, w
                 "model": choice["model"], "frames": frames_wanted, "size": size,
                 "workflow": hashlib.sha256(Path(workflow).read_bytes()).hexdigest() if workflow else None}
     key = hashlib.sha256(json.dumps(key_data, sort_keys=True).encode()).hexdigest()[:16]
-    sheet_path = folder / f"clip-{key}.png"
+    clip_path = folder / f"clip-{key}.mp4"
     meta_path = folder / f"clip-{key}.json"
-    if sheet_path.is_file() and meta_path.is_file():
+    if clip_path.is_file() and meta_path.is_file():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
     else:
         if choice["backend"] == "comfyui":
@@ -387,19 +378,18 @@ def run(episode_path, shot_id, *, image=None, prompt="", seconds=None, seed=0, w
             frames = run_comfy(choice["url"], graph)
         else:
             frames = generate_diffusers(choice, start, prompt, negative, seed, frames_wanted, size)
-        sheet, columns, rows = pack(frames)
-        sheet.save(sheet_path, optimize=True)
-        meta = {"columns": columns, "rows": rows, "count": len(frames), "fps": choice["fps"]}
+        write_clip(frames, choice["fps"], clip_path)
+        meta = {"count": len(frames), "fps": choice["fps"], "size": list(frames[0].size)}
         meta_path.write_text(json.dumps(meta) + "\n", encoding="utf-8")
     clip_seconds = meta["count"] / meta["fps"]
-    file = str(sheet_path.relative_to(episode_path.parent))
-    layer = sheet_layer(name, file, meta["columns"], meta["rows"], meta["count"], clip_seconds, shot_seconds)
+    file = str(clip_path.relative_to(episode_path.parent))
+    layer = video_layer(name, file)
     kept = [item for item in shot.get("layers", []) if item.get("hero_clip") != name]
     shot["layers"] = place(kept, [layer], over, keep)
     episode_path.write_text(json.dumps(episode, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     record = {"backend": choice["backend"], "model": choice["model"], "license": choice["license"],
               "reason": choice["reason"], "seed": seed, "prompt": prompt, "frames": meta["count"],
-              "seconds": round(clip_seconds, 2), "sheet": file, "placed": "over the shot" if over else "under the shot",
+              "seconds": round(clip_seconds, 2), "clip": file, "placed": "over the shot" if over else "under the shot",
               "kept_above": sorted(keep)}
     (folder / "clip.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     return {"shot": shot_id, "plan": choice, **record}
