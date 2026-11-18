@@ -487,7 +487,7 @@
       "type": "object", "required": ["id", "kind", "x", "y"],
       "allOf": [
         {"$ref": "#/$defs/pose"},
-        {"if": {"required": ["asset_scope"]}, "then": {"properties": {"kind": {"enum": ["svg", "sheet", "particles"]}}}},
+        {"if": {"required": ["asset_scope"]}, "then": {"properties": {"kind": {"enum": ["image", "svg", "sheet", "particles"]}}}},
         {"if": {"properties": {"kind": {"const": "sheet"}}}, "then": {"required": ["columns", "rows"]}}
       ],
       "unevaluatedProperties": false,

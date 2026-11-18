@@ -33,7 +33,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory style-lock style-check discover viral-check character3d assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory style-lock style-check discover viral-check character3d art hardware assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
@@ -61,6 +61,8 @@ help:
 	@echo "  make depth-photo IMAGE=...  split a photo into parallax depth layers [DEPTH= LAYERS= NAME= SHOT=]"
 	@echo "  make spot [APPLY=1]         propose SFX cues from the episode's motion"
 	@echo "  make character SPEC=...     build a shaded, rig-ready character from a JSON spec"
+	@echo "  make art SPEC=...           local AI character art, cut out and rigged [IMAGE= PARTS= BACKEND= SEED= DRY=1]"
+	@echo "  make hardware               what this machine can generate art with (GPU, ComfyUI, diffusers)"
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
 	@echo "  make character3d OUT=....glb [SPEC=...]  rigged low-poly 3D character (bones for poses and ik)"
 	@echo "  make viral-check EPISODE=... [VIDEO=...]  score hook, pacing, loop, packaging and loudness"
@@ -164,6 +166,16 @@ character:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
 	@test -n "$(SPEC)" || { echo "Set SPEC=art/characters/<id>.json (relative to the channel)"; exit 1; }
 	@$(PYTHON) -m studio.character $(CHANNEL_DIR) --spec "$(SPEC)"
+
+art:
+	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
+	@test -n "$(SPEC)" || { echo "Set SPEC=art/characters/<id>.json (relative to the channel)"; exit 1; }
+	@$(PYTHON) -m studio.aiart $(CHANNEL_DIR) --spec "$(SPEC)" $(if $(IMAGE),--image "$(IMAGE)",) \
+		$(if $(PARTS),--parts-dir "$(PARTS)",) $(if $(BACKEND),--backend $(BACKEND),) \
+		$(if $(SEED),--seed $(SEED),) $(if $(DRY),--dry-run,)
+
+hardware:
+	@$(PYTHON) -m studio.hardware
 
 spot:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
