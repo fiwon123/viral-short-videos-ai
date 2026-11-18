@@ -1,0 +1,18 @@
+# Host-only mounts for the agents in the sandbox, merged by the developer entry
+# points (`make dev-up`, `make claude`, `scripts/dev-up.py`) after they create
+# each source, so none is missing:
+#
+#     docker compose -f docker-compose.yml -f docker-compose.agent.yml up -d dev
+#
+# Kept out of docker-compose.yml because a missing bind-mount source is fatal on
+# Windows and becomes a root-owned directory on Linux.
+#
+# Not here, on purpose: the agents (installed in the image), their logins (named
+# volumes in docker-compose.yml), and the Docker socket (it would give the agent
+# control of the host).
+
+services:
+  dev:
+    volumes:
+      - ${HOST_HOME:-${HOME}}/.config/gh:/home/devuser/.config/gh:ro
+      - ${HOST_HOME:-${HOME}}/.gitconfig:/home/devuser/.gitconfig:ro

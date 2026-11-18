@@ -108,14 +108,26 @@ Each example includes a preview MP4, editable episode source, channel identity, 
 
 ## 🛠️ Install and render locally
 
-Install **Python 3.10+** and **FFmpeg with FFprobe**. For SVG or 3D rendering, also install **Node.js 22+** and **Chrome or Chromium**.
+Pick one. Both use the same commands and the same `workspace/`.
+
+**Option A — Docker sandbox (recommended with an AI agent).** Needs only [Docker](https://docs.docker.com/get-docker/). Everything else — Python, FFmpeg, Node, Chromium, and opencode, Claude Code and Codex — is in the image, and the agent can reach this folder and nothing else on your machine.
 
 ```sh
 git clone https://github.com/fiwon123/viral-short-videos-ai.git
 cd viral-short-videos-ai
-python -m pip install -r requirements.txt
-npm ci --ignore-scripts   # SVG and 3D renderers
-python video.py doctor
+make models          # Kokoro voice files, once
+make claude          # or: make codex, make opencode   (add -auto to skip prompts)
+```
+
+The first run builds the image (several minutes). Each agent asks for its login once; it is kept in a Docker volume. `make shell` opens a terminal in the sandbox, `make dev-down` stops it, `make dev-doctor` checks everything. On Windows without WSL, use `python scripts/dev-up.py claude`.
+
+**Option B — on your computer.** Install **Python 3.10–3.13**, **FFmpeg with FFprobe**, **eSpeak NG**, **Node.js 22+** and **Chrome or Chromium**, then:
+
+```sh
+git clone https://github.com/fiwon123/viral-short-videos-ai.git
+cd viral-short-videos-ai
+make setup-host      # venv in audio-models/venv, npm packages, voice files
+make doctor
 ```
 
 Useful checks:
