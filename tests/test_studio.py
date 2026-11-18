@@ -649,6 +649,20 @@ class PaintKeyTests(unittest.TestCase):
         self.assertLess(box[2] - box[0], 70)
         self.assertGreater(box[2] - box[0], 40)
 
+    def test_turn_tile_mirror_keeps_edge_pivot_art(self):
+        # A part pivoted near its right edge (a bill on a head) mirrored with turn_y 180 must keep all its art.
+        from PIL import Image
+        from studio.design import turn_tile
+        tile = Image.new("RGBA", (100, 40), (255, 255, 255, 255))
+        mirrored, _ = turn_tile(tile, 0, 180, [0.9, 0.5])
+        box = mirrored.getchannel("A").point(lambda a: 255 if a > 128 else 0).getbbox()
+        self.assertGreaterEqual(box[2] - box[0], 98)
+        for turn in (30, 60, 120, 150):
+            turned, _ = turn_tile(tile, 0, turn, [0.95, 0.5])
+            alpha = turned.getchannel("A")
+            edges = [alpha.getpixel((0, y)) for y in range(turned.height)]
+            self.assertEqual(max(edges), 0, f"art touches the left edge at turn {turn}")
+
     def test_turn_is_keyable(self):
         layer = {"id": "a", "kind": "rect", "x": 0.5, "y": 0.5,
                  "keyframes": [{"at": 1, "turn_y": 180}]}
