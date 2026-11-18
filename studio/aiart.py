@@ -39,6 +39,9 @@ with boxes in fractions of the cut-out character::
 
     "parts": {"head": [0.2, 0.0, 0.8, 0.32], "arm-l": [0.0, 0.3, 0.25, 0.7]}
 
+The face is made to act (``studio/aiface.py``): eyes lifted for blinks, the painted
+mouth replaced by a lip-sync mouth set. ``"face": false`` keeps the art as drawn.
+
 Outputs ``art/characters/<id>/`` (``source.png``, ``cutout.png``, one PNG per
 part, ``preview.png``, ``art.json`` with the model, licence and seed) and the
 rig ``<id>`` in the channel rig library, with starter poses.
@@ -423,6 +426,16 @@ def _pivot(name, mask, marks):
     return (left + right) / 2, (top + bottom) / 2
 
 
+def geometry(image, spec):
+    """``(feet pixel, canvas units per pixel, canvas)`` for a cut-out character image."""
+    alpha = np.asarray(image.convert("RGBA"))[..., 3] > 127
+    ys, xs = np.nonzero(alpha)
+    feet = (float(np.median(xs[ys >= ys.max() - max(2, alpha.shape[0] // 50)])), float(ys.max() + 1))
+    canvas = spec.get("canvas") or [1080, 1920]
+    scale = float(spec.get("height", 0.3)) * canvas[1] / max(1, ys.max() + 1 - ys.min())
+    return feet, scale, canvas
+
+
 def build_rig(image, masks, marks, spec, folder, out_dir, sources=None):
     """Write one PNG per part and return rig layers (canvas fractions, feet at 0,0).
 
@@ -430,11 +443,7 @@ def build_rig(image, masks, marks, spec, folder, out_dir, sources=None):
     hidden under other parts); otherwise every part is cut from ``image``.
     """
     rgba = np.asarray(image.convert("RGBA"))
-    alpha = rgba[..., 3] > 127
-    ys, xs = np.nonzero(alpha)
-    feet = (float(np.median(xs[ys >= ys.max() - max(2, alpha.shape[0] // 50)])), float(ys.max() + 1))
-    canvas_w, canvas_h = spec.get("canvas") or [1080, 1920]
-    scale = float(spec.get("height", 0.3)) * canvas_h / max(1, ys.max() + 1 - ys.min())
+    feet, scale, (canvas_w, canvas_h) = geometry(image, spec)
     pivots, layers = {}, []
     names = sorted(masks, key=lambda name: ORDER.index(name) if name in ORDER else
                    (ORDER.index("head") + 0.5 if name.startswith("mouth") else len(ORDER)))
@@ -630,8 +639,24 @@ def generate(channel_dir, spec_path, *, image=None, parts_dir=None, backend=None
         cutout = _crop(cutout)
         alpha = np.asarray(cutout)[..., 3] > 127
         masks, marks = split(alpha, spec.get("parts"))
+    face = None
+    if not piece_images and spec.get("face", True) is not False and "head" in masks:
+        from .aiface import lift_face
+
+        face = lift_face(cutout, masks, spec.get("face") if isinstance(spec.get("face"), dict) else None)
+        if face:
+            masks.update(face["masks"])
+            piece_images = face["sources"]
+            provenance["face"] = {key: face[key] for key in ("eyes", "mouth", "skin", "line")}
     cutout.save(out / "cutout.png")
     rig = build_rig(cutout, masks, marks, spec, folder, out, sources=piece_images)
+    if face:
+        from .aiface import mouth_layers
+
+        mouths = mouth_layers(face, cutout, masks, marks, spec, folder, out)
+        arms = [index for index, layer in enumerate(rig) if layer["role"] == "arm"]
+        at = arms[0] if arms else len(rig)
+        rig[at:at] = mouths  # Over the face, under the arms.
     preview(cutout, masks).save(out / "preview.png")
     provenance["parts"] = [layer["id"] for layer in rig]
     (out / "art.json").write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")

@@ -26,6 +26,9 @@ def figure():
     draw.ellipse([140, 50, 260, 170], fill=skin, outline=line, width=4)
     draw.ellipse([175, 95, 190, 110], fill=(255, 255, 255), outline=line, width=3)
     draw.ellipse([210, 95, 225, 110], fill=(255, 255, 255), outline=line, width=3)
+    draw.ellipse([179, 99, 186, 106], fill=line)
+    draw.ellipse([214, 99, 221, 106], fill=line)
+    draw.arc([180, 120, 220, 150], 20, 160, fill=line, width=4)
     return image
 
 
@@ -185,7 +188,7 @@ class GenerateTests(unittest.TestCase):
                 self.assertEqual((art["model"], art["license"], art["cutout"]),
                                  ("sdxl", "CreativeML Open RAIL++-M", "key"))
                 library = json.loads((base / "rigs.json").read_text())
-                self.assertEqual(len(library["rigs"]["tess"]), 6)
+                self.assertEqual(len(library["rigs"]["tess"]), 6 + 2 + 13, "body parts, lifted eyes, mouth set")
                 self.assertIn("wave", library["poses"]["tess"])
                 self.assertEqual(json.loads((base / "channel.json").read_text())["rig_library"], "rigs.json")
                 from studio.core import load
@@ -215,6 +218,55 @@ class GenerateTests(unittest.TestCase):
             fallback = generate(base, "tess.json", report=none)
             self.assertEqual(fallback["plan"]["backend"], "procedural")
             self.assertTrue((base / "art/characters/tess/body.svg").is_file())
+
+
+class FaceTests(unittest.TestCase):
+    def test_finds_the_eyes_and_mouth_inside_the_head(self):
+        from studio.aiart import _crop, split
+        from studio.aiface import find_face
+        from studio.cutout import cut
+        cutout = _crop(cut(figure(), "key")[0])
+        rgba = np.asarray(cutout)
+        masks, _ = split(rgba[..., 3] > 127)
+        face = find_face(rgba[..., :3].astype(float), masks["head"])
+        self.assertEqual(len(face["eyes"]), 2)
+        left, right = sorted(face["eyes"])
+        self.assertLess(left[2], right[0], "two separate eyes")
+        self.assertGreater(face["mouth"][1], left[3], "mouth below the eyes")
+        self.assertEqual(face["skin"], "#F0B478")
+        override = find_face(rgba[..., :3].astype(float), masks["head"], {"mouth": [0.4, 0.7, 0.6, 0.8]})
+        self.assertIsNone(override["eyes"])
+        self.assertIsNotNone(override["mouth"])
+
+    def test_generated_rig_blinks_and_lip_syncs(self):
+        from studio.aiart import generate
+        from studio.pipeline import prepare_episode
+        with TemporaryDirectory() as folder:
+            base = channel(folder)
+            figure().save(Path(folder, "art.png"))
+            result = generate(base, "tess.json", image="art.png", report={"gpu": None, "comfyui": None})
+            parts = result["parts"]
+            self.assertIn("eye-l", parts)
+            self.assertEqual(sum(part.startswith("mouth-") for part in parts), 13)
+            self.assertLess(parts.index("mouth-rest"), parts.index("arm-l"), "mouths draw under the arms")
+            head = np.asarray(Image.open(base / "art/characters/tess/head.png").convert("RGB")).astype(int)
+            library = json.loads((base / "rigs.json").read_text())
+            head_layer = next(layer for layer in library["rigs"]["tess"] if layer["id"] == "head")
+            self.assertEqual(head_layer["role"], "head")
+            # The painted mouth is gone: the lower face is skin now, only the outline stays dark.
+            dark = head.sum(axis=2) < 200
+            interior = dark[int(head.shape[0] * 0.6):int(head.shape[0] * 0.85), int(head.shape[1] * 0.3):int(head.shape[1] * 0.7)]
+            self.assertFalse(interior.any(), "no dark mouth pixels left inside the face")
+            channel_data = json.loads((base / "channel.json").read_text())
+            episode = {"title": "t", "width": 540, "height": 960, "fps": 12, "scenes": [{"id": "S", "shots": [{
+                "id": "A", "duration": 3.0, "speech": [{"speaker": "Tess", "text": "Hi there"}],
+                "layers": [{"id": "tess", "kind": "use", "ref": "tess", "x": 0.5, "y": 0.8,
+                            "alive": {"talk": "Tess"}}]}]}]}
+            expanded = prepare_episode(episode, channel_data, base, style=False)
+            layers = {layer["id"]: layer for layer in expanded["scenes"][0]["shots"][0]["layers"]}
+            self.assertEqual(layers["tess/mouth-e"].get("viseme_for"), "Tess")
+            self.assertTrue(any("scale_y" in key for key in layers["tess/eye-l"].get("keyframes", [])),
+                            "eyes blink")
 
 
 if __name__ == "__main__":
