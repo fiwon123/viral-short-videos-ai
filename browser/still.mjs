@@ -1,6 +1,6 @@
 import {spawnSync} from "node:child_process";
 import {existsSync} from "node:fs";
-import {readFile, readdir, rename, writeFile} from "node:fs/promises";
+import {copyFile, readFile, readdir, rename, rm, writeFile} from "node:fs/promises";
 import {join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 
@@ -63,7 +63,20 @@ async function hyperframes() {
     "--output", stills, "--no-browser-gpu");
   const names = (await readdir(stills)).filter((name) => name.endsWith(".png"));
   if (names.length !== 1) throw new Error("Expected one HyperFrames still");
-  await rename(join(stills, names[0]), resolve(output));
+  await move(join(stills, names[0]), resolve(output));
+}
+
+// The frame is rendered under the system temp directory, which is often another
+// filesystem than --out (tmpfs /tmp, or a container's bind mount), and rename
+// cannot cross filesystems.
+async function move(from, to) {
+  try {
+    await rename(from, to);
+  } catch (error) {
+    if (error.code !== "EXDEV") throw error;
+    await copyFile(from, to);
+    await rm(from, {force: true});
+  }
 }
 
 try {
