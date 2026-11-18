@@ -1,0 +1,71 @@
+name: CI
+
+# Runs on release pull requests (dev -> main) and by hand, never on feature
+# branches: those are gated by `make test` locally. Skipped is not passed — a
+# run that never triggered verified nothing.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test:
+    name: CI (studio tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install system tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.txt -r requirements-voice.txt
+          npm ci --ignore-scripts
+
+      # unittest reports a skipped test as OK. Every tool a test needs is
+      # installed above, so a skip here means a test silently stopped running.
+      - name: Test
+        run: |
+          set -o pipefail
+          make test PYTHON=python 2>&1 | tee test.log
+          if grep -qE '^OK \(.*skipped=' test.log; then
+            echo "::error::tests were skipped — a skipped test is not a passing one"
+            exit 1
+          fi
+
+  sandbox:
+    name: CI (sandbox image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the dev image
+        run: make dev-build HOST_UID="$(id -u)" HOST_GID="$(id -g)"
+
+      - name: Studio doctor and tests inside the sandbox
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/workspace \
+            -v vsv-ci-node-modules:/workspace/node_modules \
+            viral-short-videos-dev bash -c 'make --no-print-directory doctor && make --no-print-directory test'
