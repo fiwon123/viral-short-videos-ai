@@ -1,160 +1,199 @@
 <h1 align="center">🎬 Viral Short Videos AI</h1>
 
-<p align="center"><strong>Build an original animated channel with AI, then turn ideas into videos ready for upload.</strong></p>
+<p align="center"><strong>Your AI assistant becomes an animation studio for YouTube Shorts and TikTok.</strong><br>
+Characters that talk and blink, hooks that move, captions that pop, all rendered on your own PC.</p>
 
 <p align="center">
-  <a href="#-build-with-ai"><img alt="Build with AI" src="https://img.shields.io/badge/Build_with_AI-7C3AED?style=flat-square"></a>
-  <a href="#-plan-for-monetization"><img alt="Monetization" src="https://img.shields.io/badge/Monetization-0E7490?style=flat-square"></a>
-  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki"><img alt="Studio Wiki" src="https://img.shields.io/badge/Studio_Wiki-2563EB?style=flat-square"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-15803D?style=flat-square"></a>
+  <a href="#-quick-start"><img alt="Quick start" src="https://img.shields.io/badge/Quick_start-7C3AED?style=for-the-badge"></a>
+  <a href="#-fits-your-pc"><img alt="No GPU required" src="https://img.shields.io/badge/No_GPU_required-15803D?style=for-the-badge"></a>
+  <a href="https://github.com/fiwon123/viral-short-videos-ai/wiki"><img alt="Wiki" src="https://img.shields.io/badge/Wiki-2563EB?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <img src="docs/assets/ai-channel-flow.svg" alt="From idea to AI-run channel" width="880">
+  <img alt="Shorts and TikTok" src="https://img.shields.io/badge/9%3A16-Shorts_·_TikTok_·_Reels-0E7490?style=flat-square">
+  <img alt="Works with" src="https://img.shields.io/badge/works_with-Claude_Code_·_Codex_·_opencode-7C3AED?style=flat-square">
+  <img alt="Local and free" src="https://img.shields.io/badge/renders-local_·_free-15803D?style=flat-square">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-334155?style=flat-square"></a>
 </p>
 
-## 🤖 Build with AI
+<p align="center">
+  <img src="docs/assets/showcase.gif" alt="Four example Shorts playing: a character catching a star, a robot unplugging the moon, a paper crane letter, and a 3D signal" width="860">
+</p>
 
-Open this repository in an AI assistant that can read and edit local files and run commands. Choose a starting point and copy the matching prompt.
+<p align="center"><em>Made with the studio on a regular computer: no paid services, no GPU.</em></p>
 
-| I want to… | What you can make |
-| --- | --- |
-| 🎨 **Start a channel** | Compare niches, choose a series format, and create a name, logo, banner, and voice guide. |
-| 🎬 **Make a video** | Turn an idea into an animated Short with captions, sound, a thumbnail, and publishing copy. |
-| 📅 **Grow an existing channel** | Reuse the cast and visual style, plan a batch of episodes, and test one change at a time. |
+---
+
+## ✨ What you can make
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🎭 Characters that act</h3>
+      Turn any character image into a rig that breathes, blinks and lip-syncs. Or let a local AI model draw your cast.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🪝 Hooks that stop the scroll</h3>
+      Preview just the first 20 seconds, add punchline pauses, score the hook, and give the opening shot depth or AI motion.
+    </td>
+    <td width="33%" valign="top">
+      <h3>💬 Voices and captions</h3>
+      Local text-to-speech voices, word-by-word captions, sound effects placed on the right words, and music that ducks under the voice.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🎥 Real animation tools</h3>
+      Poses, IK, motion recipes, camera moves, 2.5D depth, 3D scenes, physics, and video layers for your own footage.
+    </td>
+    <td width="33%" valign="top">
+      <h3>📺 A channel that remembers</h3>
+      It interviews you, researches trends, builds the brand kit, locks the look, and keeps a memory of every episode.
+    </td>
+    <td width="33%" valign="top">
+      <h3>📦 Ready to upload</h3>
+      A 1080×1920 MP4, thumbnail, captions file, and titles, descriptions and tags for YouTube and TikTok.
+    </td>
+  </tr>
+</table>
+
+## 🎭 Any character, ready to act
+
+<p align="center">
+  <img src="docs/assets/pipeline.gif" alt="A character image is cut out, split into body, eyes and mouth, and then talks and blinks" width="700">
+</p>
+
+Give it a picture, from an AI image generator, your own drawing or an import, and `make art` does the rest: it cuts the character out, finds the body, arms, legs, eyes and mouth, and builds a rig. The eyes blink, the body breathes, and a 13-shape mouth lip-syncs to the voice. With a GPU it can also draw the character for you, using only models licensed for commercial use. [How it works →](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Characters-and-Hook-Clips)
+
+## 🪝 Make the first seconds count
+
+<table>
+  <tr>
+    <td align="center" width="55%"><img src="docs/assets/hook-push.gif" alt="An opening shot before and after a 2.5D depth push" width="440"><br><sub><b>make hero</b>: depth motion for the opening shot, or an AI video clip on a GPU</sub></td>
+    <td align="center" width="45%"><img src="docs/assets/kinetic-captions.gif" alt="A character with word-by-word kinetic captions" width="300"><br><sub>Kinetic word captions, poses and idle motion</sub></td>
+  </tr>
+</table>
+
+- **Approve the hook first:** `make preview HOOK=20` renders only the opening 20 seconds, with sound.
+- **Let jokes land:** mark a line `"punchline": true` for a beat of silence.
+- **Check before you post:** `make viral-check` scores the hook, pacing, loop, loudness and packaging.
+
+## 💻 Fits your PC
+
+<p align="center">
+  <img src="docs/assets/fits-your-pc.svg" alt="What the studio does on a laptop without a GPU, with a 4 to 11 GB GPU, and with a 12 GB GPU or ComfyUI" width="860">
+</p>
+
+You never configure hardware. Every command detects your CPU, RAM and GPU, picks the best mode, runs at low priority, and caps CPU threads so your computer stays usable. Want to experiment? Every limit can be changed. [See the options →](https://github.com/fiwon123/viral-short-videos-ai/wiki/Your-PC-and-Performance)
+
+## 🚀 Quick start
+
+**1 · Get it.** You need [Docker](https://docs.docker.com/get-docker/); everything else ships in the image.
+
+```sh
+git clone https://github.com/fiwon123/viral-short-videos-ai.git
+cd viral-short-videos-ai
+make models art-models   # voice, depth and cut-out models, once
+```
+
+**2 · Start your AI assistant inside the studio.**
+
+```sh
+make claude              # or: make codex, make opencode
+```
+
+**3 · Paste a prompt** from below and review what it makes. That's it.
 
 <details>
-<summary>🎨 Start a channel</summary>
-  
+<summary>🖥️ Prefer to install on your computer instead of Docker?</summary>
+
+Install Python 3.10–3.13, FFmpeg with FFprobe, eSpeak NG, Node.js 22+ and Chrome or Chromium, then:
+
+```sh
+make setup-host   # venv, npm packages, voice files
+make doctor       # checks every dependency
+make hardware     # shows what your PC can do
+```
+
+Then open the folder in your AI assistant. On Windows without WSL, use `python scripts/dev-up.py claude` for the Docker route. [Full guide →](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start)
+</details>
+
+## 🤖 Copy a prompt
+
+<details open>
+<summary>🎨 <b>Start a new channel</b></summary>
+
 ```text
 Read AGENTS.md and .agents/skills/viral-video-studio/SKILL.md.
 Help me start an animated Shorts channel. Ask me one question at a time about
 audience, tone, topic, format, animation style, platform, length and voice.
-Then show me the Shorts growing fastest in that space this week, ranked by
-views with views per hour and breakout ratio, and propose three original
-directions. Let me pick one, then build its brand kit, set up the channel
-memory, and render a preview of the first episode.
+Then show me the Shorts growing fastest in that space this week and propose
+three original directions. Let me pick one, then build its brand kit and cast,
+set up the channel memory, and render a preview of the first episode.
 ```
-
 </details>
 
 <details>
-<summary>🎬 Make one video for an existing channel</summary>
+<summary>🎬 <b>Make a video for my channel</b></summary>
 
 ```text
-Use the approved identity and assets for [channel]. Turn [idea] into a
-[runtime] animated video in [language] for [platform].
-Give me a timed shot plan, then render a preview with captions and sound.
-After review, export the MP4, thumbnail, editable source, and publishing copy.
+Use the approved identity and cast for [channel]. Turn [idea] into a
+[runtime] animated Short in [language] for [platform].
+Give me a timed shot plan, show me the hook preview, then export the MP4,
+thumbnail, captions and publishing copy.
 ```
-
 </details>
 
 <details>
-<summary>📅 Plan a batch for an existing channel</summary>
+<summary>🎭 <b>Bring my own character</b></summary>
 
 ```text
-Use the approved format, cast, and style for [channel]. Propose five episodes
-with distinct hooks and payoffs. Use my analytics if I share them and compare
-uploads at the same age. Recommend one change to test across the batch.
-After I approve the plan, prepare previews and publishing copy.
+Here is my character image: [path]. Rig it for [channel] with make art,
+show me the preview, then make a 15-second test where it talks and waves.
 ```
-
 </details>
 
-Each channel can lock its approved look in `channel/style-lock.json` (`make style-lock CHANNEL=... INIT=1`). The studio then refuses episodes that use another cast, add dialogue to a wordless channel, leave the runtime or format, or use an unapproved grade, whichever assistant runs it, and writes the rules into `channel/AGENTS.md`. Record approved changes with `make style-lock CHANGE="..."` and audit a channel with `make style-check`.
+<details>
+<summary>📅 <b>Plan a batch of episodes</b></summary>
 
-The assistant keeps each channel's memory in `workspace/<slug>/`: the current direction and its history, an episode ledger with results and lessons, an idea bank with a seasonal calendar, and a series bible for continuity (`make channel-memory SLUG=<slug>` creates any that are missing). With a `YOUTUBE_API_KEY`, `python video.py discover --shorts --rank velocity --snapshots workspace/<slug>/research/snapshots` ranks recent videos by speed and measures real growth when re-run. Without a key it uses browser research.
+```text
+Use the approved format, cast and style for [channel]. Propose five episodes
+with distinct hooks and payoffs. Use my analytics if I share them. Recommend
+one change to test across the batch, then prepare previews and publishing copy.
+```
+</details>
 
-**✅ Review the direction, story, and preview.** The assistant prepares the assets, runs the checks, and renders locally. For a chat-only AI, share the [studio skill](.agents/skills/viral-video-studio/SKILL.md) and have it return prompts, manifests, and commands you can run locally. [More prompts in the Wiki](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook)
+[More prompts in the wiki →](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook)
 
-## 💰 Plan for monetization
-
-| Platform | What to track |
-| --- | --- |
-| **YouTube Shorts** | In eligible regions, expanded YPP starts at **500 subscribers**, **3 valid public uploads in 90 days**, and **3M qualified Shorts views in 90 days** on the Shorts route. The current ads and Premium entry path requires **1,000 subscribers** and **10M qualified Shorts views in 90 days**. [YouTube eligibility](https://support.google.com/youtube/answer/94522) |
-| **TikTok Creator Rewards** | In eligible regions, track **10,000 followers** and **100,000 views in 30 days**. Eligible original videos must run **at least 1 minute** and reach **1,000 qualified For You views** to begin earning. [TikTok Creator Rewards](https://support.tiktok.com/en/business-and-creator/creator-rewards-program/creator-rewards-program) |
-
-> [!IMPORTANT]
-> From **February 1, 2027**, the YouTube Shorts route for new ads and Premium applicants rises to **20M qualified views in 90 days**. A separate **10M-view threshold** applies to monthly Shorts Creator Pool earnings. Check availability and progress in your platform dashboard. [YouTube announcement](https://support.google.com/youtube/answer/12843009)
-
-[See the full monetization guide, including watch-hour routes and application checklists](https://github.com/fiwon123/viral-short-videos-ai/wiki/YouTube-and-TikTok-Monetization).
-
-## 🎯 Focus a Short so it can travel
-
-<p align="center">
-  <img src="docs/assets/short-anatomy.svg" alt="Hook, setup, escalation, payoff and loop" width="880">
-</p>
-
-- **One question** in the first frame.
-- **One visible change** every few seconds.
-- **One payoff** that answers the title, thumbnail and hook.
-- **A loop** that makes the last frame lead back to the first.
-- **A phone test** with sound and muted.
-
-No one can guarantee a viral video. These choices make the story easier to stop for, finish and share. [Full guide](https://github.com/fiwon123/viral-short-videos-ai/wiki/Make-Shorts-Travel).
-
-## 🎞️ See what you can make
+## 🎞️ Examples
 
 <table>
   <tr>
-    <td align="center" width="33%"><a href="examples/orbit-workshop"><img src="examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/thumbnail.png" width="180" alt="Orbit Workshop episode thumbnail"><br><strong>Orbit Workshop</strong></a><br>2D/2.5D · karaoke captions</td>
-    <td align="center" width="33%"><a href="examples/paper-crane"><img src="examples/paper-crane/renders/one-letter-home-preview/thumbnail.png" width="180" alt="Paper Crane Post episode thumbnail"><br><strong>Paper Crane Post</strong></a><br>Character rig · camera movement</td>
-    <td align="center" width="33%"><a href="examples/tiny-signal"><img src="examples/tiny-signal/renders/one-small-signal-preview/thumbnail.png" width="180" alt="Tiny Signal episode thumbnail"><br><strong>Tiny Signal</strong></a><br>3D lighting · mastered sound</td>
+    <td align="center" width="25%"><a href="examples/pocket-stars"><img src="examples/pocket-stars/renders/pip-catches-a-star-preview/thumbnail.png" width="150" alt="Pocket Stars thumbnail"><br><b>Pocket Stars</b></a><br><sub>Rigged character · kinetic captions</sub></td>
+    <td align="center" width="25%"><a href="examples/orbit-workshop"><img src="examples/orbit-workshop/renders/the-robot-who-unplugged-the-moon-preview/thumbnail.png" width="150" alt="Orbit Workshop thumbnail"><br><b>Orbit Workshop</b></a><br><sub>2D/2.5D · karaoke captions</sub></td>
+    <td align="center" width="25%"><a href="examples/paper-crane"><img src="examples/paper-crane/renders/one-letter-home-preview/thumbnail.png" width="150" alt="Paper Crane Post thumbnail"><br><b>Paper Crane Post</b></a><br><sub>Camera moves · sound stems</sub></td>
+    <td align="center" width="25%"><a href="examples/tiny-signal"><img src="examples/tiny-signal/renders/one-small-signal-preview/thumbnail.png" width="150" alt="Tiny Signal thumbnail"><br><b>Tiny Signal</b></a><br><sub>3D lighting · mastered sound</sub></td>
   </tr>
 </table>
 
-Each example includes a preview MP4, editable episode source, channel identity, and publishing copy. [Watch the previews and explore the examples](https://github.com/fiwon123/viral-short-videos-ai/wiki/Examples).
+Each example has the MP4, the editable episode, the channel identity and the publishing copy. [Explore the examples →](https://github.com/fiwon123/viral-short-videos-ai/wiki/Examples)
 
-## 🛠️ Install and render locally
+## 💰 Built for monetized channels
 
-Pick one. Both use the same commands and the same `workspace/`.
-
-**Option A — Docker sandbox (recommended with an AI agent).** Needs only [Docker](https://docs.docker.com/get-docker/). Everything else — Python, FFmpeg, Node, Chromium, and opencode, Claude Code and Codex — is in the image, and the agent can reach this folder and nothing else on your machine.
-
-```sh
-git clone https://github.com/fiwon123/viral-short-videos-ai.git
-cd viral-short-videos-ai
-make models          # Kokoro voice files, once
-make claude          # or: make codex, make opencode   (add -auto to skip prompts)
-```
-
-The first run builds the image (several minutes). Each agent asks for its login once; it is kept in a Docker volume. `make shell` opens a terminal in the sandbox, `make dev-down` stops it, `make dev-doctor` checks everything. On Windows without WSL, use `python scripts/dev-up.py claude`.
-
-**Option B — on your computer.** Install **Python 3.10–3.13**, **FFmpeg with FFprobe**, **eSpeak NG**, **Node.js 22+** and **Chrome or Chromium**, then:
-
-```sh
-git clone https://github.com/fiwon123/viral-short-videos-ai.git
-cd viral-short-videos-ai
-make setup-host      # venv in audio-models/venv, npm packages, voice files
-make doctor
-```
-
-Useful checks:
-
-```sh
-make support   # renderer support matrix
-make parity    # shared visual fixture across renderers
-make still EPISODE=workspace/<channel>/episodes/<episode>/episode.json SHOT=A PROGRESS=0.5
-make presets   # available style presets
-make motion MOTION=impact   # manifest-ready motion recipes
-make schema    # per-manifest schema wrappers for editor completion
-make batch SEASON=workspace/<channel>/season.json   # validate or render a season
-make editor EPISODE=workspace/<channel>/episodes/<episode>/episode.json
-make published EPISODE=workspace/<channel>/episodes/<episode> [URL=...]   # mark an uploaded episode
-make archive   # dry run: empties renders/_old and episodes/_old, caches, old versions, archives published renders; APPLY=1 to act
-```
-
-Each channel has its own workspace. A finished episode goes to `workspace/<channel>/renders/<episode>-v1/` with the MP4, thumbnail, publishing guide, QA report, and captions when present.
-
-| Find | Guide |
+| Platform | Milestones to track |
 | --- | --- |
-| First render and commands | [Quick Start](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start) |
-| Multiple channels and migration | [Workspace Layout](https://github.com/fiwon123/viral-short-videos-ai/wiki/Workspace-Layout) |
-| Camera, captions, sound, and effects | [Creative Controls](https://github.com/fiwon123/viral-short-videos-ai/wiki/Creative-Controls) |
-| Schema and validation | [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) |
-| Masks, markers, particles, stems, visemes | [Advanced Controls](https://github.com/fiwon123/viral-short-videos-ai/wiki/Advanced-Controls) |
-| What each renderer supports | [Renderer Support](https://github.com/fiwon123/viral-short-videos-ai/wiki/Renderer-Support) |
-| Upload package and fixes | [QA, Export and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
+| **YouTube Shorts** | 500 subscribers and 3M Shorts views in 90 days for the first YPP tier; 1,000 subscribers and 10M views for ads revenue (20M from February 1, 2027). [YouTube eligibility](https://support.google.com/youtube/answer/94522) |
+| **TikTok Creator Rewards** | 10,000 followers and 100,000 views in 30 days; videos of at least 1 minute. [Creator Rewards](https://support.tiktok.com/en/business-and-creator/creator-rewards-program/creator-rewards-program) |
 
-MIT licensed. [LICENSE](LICENSE)
+Rules change by region, so check your dashboard. [Full monetization guide →](https://github.com/fiwon123/viral-short-videos-ai/wiki/YouTube-and-TikTok-Monetization)
+
+## 📚 Learn more
+
+| Topic | Guides |
+| --- | --- |
+| 🚀 **Get started** | [Quick Start](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start) · [Your PC and Performance](https://github.com/fiwon123/viral-short-videos-ai/wiki/Your-PC-and-Performance) · [Examples](https://github.com/fiwon123/viral-short-videos-ai/wiki/Examples) |
+| 🎨 **Create** | [Create a Channel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Create-a-Channel) · [AI Characters and Hook Clips](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Characters-and-Hook-Clips) · [Prompt Cookbook](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook) |
+| 📈 **Grow** | [Make Shorts Travel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Make-Shorts-Travel) · [Batch Production](https://github.com/fiwon123/viral-short-videos-ai/wiki/Automate-a-Channel) · [QA and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) |
+| 🛠️ **Reference** | [Creative Controls](https://github.com/fiwon123/viral-short-videos-ai/wiki/Creative-Controls) · [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) · [Renderer Support](https://github.com/fiwon123/viral-short-videos-ai/wiki/Renderer-Support) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
+
+<p align="center"><sub>MIT licensed · Made for creators who want to ship original animated Shorts, not copies. No one can promise a viral video; the studio helps you make one worth watching.</sub></p>
