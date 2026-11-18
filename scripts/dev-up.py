@@ -187,6 +187,28 @@ def prepare_agent_mounts() -> None:
     # create a missing mount point on the host as root.
     (REPO_ROOT / "node_modules").mkdir(exist_ok=True)
     (REPO_ROOT / "audio-models").mkdir(exist_ok=True)
+    # .env is masked inside the sandbox (docker-compose.yml); the mount target
+    # must exist or Docker creates it on the host as root.
+    (REPO_ROOT / ".env").touch(exist_ok=True)
+
+
+SECRET_SKIP = {"node_modules", ".git", "audio-models"}
+
+
+def secret_files() -> list[str]:
+    """Secret-looking files the sandbox would expose (./.env is masked)."""
+    found = []
+    for path in REPO_ROOT.rglob("*"):
+        rel = path.relative_to(REPO_ROOT)
+        if rel.parts and rel.parts[0] in SECRET_SKIP:
+            continue
+        name = path.name
+        if not (name == ".env" or name == ".envrc" or name.startswith(".env.")):
+            continue
+        if rel.as_posix() == ".env" or name.endswith(".env.example"):
+            continue
+        found.append(rel.as_posix())
+    return sorted(found)
 
 
 # ---------------------------------------------------------------------------
@@ -386,6 +408,14 @@ def preflight() -> None:
         raise SystemExit(1)
 
     require_docker()
+
+    exposed = secret_files()
+    if exposed:
+        error("these files can hold secrets and would be readable inside the sandbox:")
+        for name in exposed:
+            error(f"  {name}")
+        error("Only ./.env is hidden from the agents. Move the others out of the repository.")
+        raise SystemExit(1)
 
     if not check_gh_token():
         raise SystemExit(1)

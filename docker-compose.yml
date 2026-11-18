@@ -40,6 +40,11 @@ services:
       - HOST_GID=${HOST_GID:-1000}
     volumes:
       - .:/workspace:cached
+      # .env holds the API keys. Inside the sandbox it is an empty read-only
+      # file, so no agent can read or change it, whatever its permission mode
+      # (Codex has no file deny list). The studio falls back to what needs no
+      # key; run `make discover` on the host for the YouTube API.
+      - ./scripts/masked-env:/workspace/.env:ro
       # The container's own node_modules: the renderer packages carry
       # platform binaries, so the host's copy (macOS, Windows) cannot be shared.
       # The entrypoint re-runs `npm ci` when package-lock.json changes.

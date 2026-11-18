@@ -6,6 +6,9 @@ that is never rebuilt, a mount point the container user cannot write.
 """
 
 import ast
+import shutil
+import subprocess
+import tempfile
 import json
 import re
 import unittest
@@ -13,6 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FILE_MOUNTS = {"/home/devuser/.gitconfig"}
+# Mount targets inside the checkout, created on the host by `prepare-mounts`.
+HOST_TARGETS = {"/workspace/.env"}
 
 
 def files_under(folder):
@@ -85,7 +90,7 @@ class SandboxTests(unittest.TestCase):
         created = set(re.findall(r"(/[\w./-]+)", block.group(1)))
         owned = set(re.findall(r"(/[\w./-]+)", block.group(2)))
         home = "/home/devuser"
-        for target in destinations:
+        for target in destinations - HOST_TARGETS:
             if target in FILE_MOUNTS:
                 # A file mount needs only its parent; the home is created and
                 # chowned with the user.
@@ -95,6 +100,58 @@ class SandboxTests(unittest.TestCase):
                             f"{target}: create it in the Dockerfile's mount-point block")
             self.assertTrue(any(target == o or target.startswith(o + "/") for o in owned),
                             f"{target}: chown it to the runtime user in the Dockerfile")
+
+    def test_secrets_file_is_masked_for_every_agent(self):
+        # Codex has no file deny list, so the only guard that holds for every
+        # agent in every mode is that the secret is not in the container.
+        compose = (ROOT / "docker-compose.yml").read_text()
+        self.assertRegex(compose, r"(?m)^\s*- \./scripts/masked-env:/workspace/\.env:ro$")
+        self.assertEqual((ROOT / "scripts" / "masked-env").stat().st_size, 0, "scripts/masked-env must stay empty")
+        self.assertNotIn("YOUTUBE_API_KEY", compose, "API keys must not be forwarded into the sandbox")
+        sandbox = (ROOT / "sandbox.mk").read_text()
+        self.assertRegex(sandbox, r"(?m)^preflight:.*\bcheck-secrets\b")
+        self.assertIn("[ -e .env ] || touch .env", sandbox, "prepare-mounts must create the mask target")
+        launcher = (ROOT / "scripts" / "dev-up.py").read_text()
+        self.assertIn('(REPO_ROOT / ".env").touch(exist_ok=True)', launcher)
+        self.assertIn("exposed = secret_files()", launcher)
+
+    @unittest.skipUnless(shutil.which("make"), "make is not installed")
+    def test_sandbox_refuses_unmasked_secret_files(self):
+        # Driven through make: any secret-looking file but ./.env would be
+        # readable in the sandbox, so the sandbox must not start.
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            shutil.copy(ROOT / "sandbox.mk", work / "sandbox.mk")
+            (work / "docker-compose.yml").write_text("name: scratch\n")
+
+            def check():
+                return subprocess.run(["make", "-s", "-f", "sandbox.mk", "check-secrets"], cwd=work,
+                                      capture_output=True, text=True).returncode
+
+            for allowed in (".env", ".env.example", "channel/.env.example"):
+                (work / allowed).parent.mkdir(parents=True, exist_ok=True)
+                (work / allowed).write_text("")
+            self.assertEqual(check(), 0, "./.env and .env.example files are allowed")
+            for exposed in (".env.local", ".envrc", "workspace/demo/.env"):
+                path = work / exposed
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("")
+                self.assertNotEqual(check(), 0, f"{exposed} would be readable in the sandbox")
+                path.unlink()
+
+    def test_init_fills_the_empty_mask_target(self):
+        # prepare-mounts leaves an empty placeholder; `make init` must still
+        # write it, and must still refuse to overwrite a filled-in one.
+        from studio import project
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".env.example").write_text("CHANNEL=\nEPISODE=\n")
+            target = root / ".env"
+            target.write_text("")
+            project.init(root=root)
+            self.assertIn("CHANNEL=", target.read_text())
+            with self.assertRaises(ValueError):
+                project.init(root=root)
 
     def test_agents_are_pinned(self):
         for arg in ("OPENCODE_VERSION", "CLAUDE_CODE_VERSION", "CODEX_VERSION"):

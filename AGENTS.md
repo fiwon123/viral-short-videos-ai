@@ -49,7 +49,9 @@ The studio runs in one of two places. Both use the same Makefile targets and the
 ## Environment and secret files
 
 - `.env` holds `YOUTUBE_API_KEY`. Never open, print, quote or summarize `.env`, `.env.*` or `.envrc`, and never run `printenv`, `env`, `docker compose config` or `docker inspect`, which dump values. To confirm a variable is set: `test -n "$YOUTUBE_API_KEY" && echo set`.
-- `.claude/settings.json` and `opencode.json` deny these by path and command string. That is a backstop with gaps (an interpreter can still open a file), not permission. Codex has no deny list: `make codex-auto` can read `.env`.
+- **In the sandbox the secrets are not there.** `.env` is an empty read-only file inside the container, so no agent can read or change the keys, in any mode. This is the only guard that covers Codex, which has no file deny list. The sandbox refuses to start while any other `.env*`/`.envrc` file is in the checkout (`.env.example` excepted). API keys are never forwarded into it: run `make discover` (YouTube API) on the host; in the sandbox the studio uses browser research instead.
+- **On the host** `.claude/settings.json` and `opencode.json` deny these by path and command string — a backstop with gaps (an interpreter can still open a file), not permission — and nothing stops Codex. Run Codex through `make codex`.
+- `GH_TOKEN` is forwarded into the sandbox so agents can open issues and PRs. Any agent that can run `gh` can use it; give the sandbox a fine-grained token limited to this repository if that matters.
 - Never put a key, token or credential in a tracked file, a commit or a reply.
 
 ## CI

@@ -16,7 +16,7 @@
 .PHONY: setup-host models dev-up dev-down dev-restart dev-shell shell dev-log dev-build reset \
         dev-agent opencode opencode-auto claude claude-auto codex codex-auto \
         agents-version agents-upgrade opencode-upgrade claude-upgrade codex-upgrade \
-        dev-doctor check-image image-inputs-hash preflight check-host check-identity check-port \
+        dev-doctor check-image image-inputs-hash preflight check-host check-identity check-secrets check-port \
         prepare-mounts
 
 # --- Host identity -----------------------------------------------------------
@@ -32,9 +32,11 @@ HOST_PYTHON ?= $(shell command -v python3 2>/dev/null || command -v python 2>/de
 
 # --- Agents --------------------------------------------------------------------
 # Plain targets ask before acting. The -auto targets do not: the container is the
-# boundary. Claude's deny rules for .env (.claude/settings.json) and opencode's
-# (opencode.json) still apply; Codex has no file deny list, so codex-auto can
-# read .env. Extra flags for one run: make claude AGENT_ARGS="--model sonnet".
+# boundary. .env is an empty read-only file inside it (docker-compose.yml), so
+# no agent can read the keys in any mode — Codex included, which has no file
+# deny list of its own — and check-secrets refuses to start while any other
+# secret file is in the checkout. Extra flags for one run:
+# make claude AGENT_ARGS="--model sonnet".
 OPENCODE_CMD      ?= opencode
 OPENCODE_AUTO_CMD ?= opencode --auto
 CLAUDE_CMD        ?= claude
@@ -92,7 +94,21 @@ models:
 	done
 
 # --- Preflight -----------------------------------------------------------------
-preflight: check-host check-identity check-port prepare-mounts
+preflight: check-host check-identity check-secrets check-port prepare-mounts
+
+# The sandbox masks .env (docker-compose.yml). Any other secret file in the
+# checkout would be readable by every agent in it, Codex included, so the
+# sandbox refuses to start until it is moved out of the repository.
+check-secrets:
+	@found="$$(find . \( -path ./node_modules -o -path ./.git -o -path ./audio-models \) -prune -o \
+	  \( -name '.env.*' -o -name '.envrc' -o -name '.env' \) -print 2>/dev/null \
+	  | grep -v -e '^\./\.env$$' -e '\.env\.example$$' || true)"; \
+	if [ -n "$$found" ]; then \
+	  echo "ERROR: these files can hold secrets and would be readable inside the sandbox:" >&2; \
+	  echo "$$found" | sed 's/^/         /' >&2; \
+	  echo "       Only ./.env is hidden from the agents. Move the others out of the repository." >&2; \
+	  exit 1; \
+	fi
 
 # The sandbox targets drive Docker from the host. Inside the sandbox there is no
 # Docker (on purpose), so say where you are instead of failing on `docker`.
@@ -114,10 +130,12 @@ check-port:
 	  exit 1; \
 	fi
 
-# Mount sources the host must provide. node_modules is created too: the volume
-# mounted on it would otherwise make Docker create it on the host as root.
+# Mount sources and targets the host must provide. node_modules and .env are
+# mount targets inside the checkout: Docker would create a missing one on the
+# host as root. An empty .env is what `make init` fills in.
 prepare-mounts:
 	@mkdir -p "$(HOST_HOME)/.config/gh" node_modules audio-models && touch "$(HOST_HOME)/.gitconfig"
+	@[ -e .env ] || touch .env
 
 check-image:
 	@have="$$(docker image inspect --format '{{ index .Config.Labels "dev.image-inputs" }}' '$(DEV_IMAGE)' 2>/dev/null || true)"; \
