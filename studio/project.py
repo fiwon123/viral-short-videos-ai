@@ -127,7 +127,8 @@ def status(root=ROOT):
 
 def init(root=ROOT, force=False):
     target = root / ".env"
-    if target.exists() and not force:
+    # An empty .env is a placeholder (the sandbox creates one to mask it).
+    if target.exists() and target.stat().st_size and not force:
         raise ValueError(".env already exists. Delete it, or run make init FORCE=1.")
     template = root / ".env.example"
     if not template.is_file():

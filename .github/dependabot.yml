@@ -1,0 +1,43 @@
+# Dependency updates, opened against dev (Dependabot's default is the
+# repository's default branch, main, which would bypass the integration branch).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Remotion's packages are pinned to one exact version and must move together.
+      remotion:
+        patterns: ["remotion", "@remotion/*"]
+  - package-ecosystem: "pip"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "deps"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "monthly"
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "ci"
+  # The sandbox base image (node:22-trixie). Agent pins move with make agents-upgrade.
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "monthly"
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "deps"

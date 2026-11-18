@@ -57,6 +57,8 @@ def create(slug, episode=None, root=None, today=None):
         content = content.replace("YYYY-MM-DD", stamp, 1) if "Updated: YYYY-MM-DD" in content else content
         target.write_text(content, encoding="utf-8")
         created.append(str(target))
+    from .cleanup import ensure_old_folders
+    created += [str(path) for path in ensure_old_folders(base)]
     return created
 
 

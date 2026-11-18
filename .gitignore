@@ -3,6 +3,7 @@ __pycache__/
 node_modules/
 .env
 .env.*
+.envrc
 !.env.example
 
 # Local production inputs and outputs
@@ -21,3 +22,6 @@ node_modules/
 # Local speech models and generated takes
 /audio-models/
 .audio-takes/
+
+# Per-checkout sandbox state
+.dev/

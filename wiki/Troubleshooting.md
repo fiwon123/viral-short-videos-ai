@@ -99,3 +99,17 @@ The GitHub Wiki is edited in the repository's Wiki tab. The `wiki/` folder is a 
 - [Quick Start](Quick-Start)
 - [Workspace Layout](Workspace-Layout)
 - [Contributing](Contributing)
+
+## Docker sandbox
+
+| Message | Fix |
+| --- | --- |
+| `the dev image is out of date` | `make dev-build`. The Dockerfile, a requirements file or `package-lock.json` changed; agent logins are kept. |
+| `host port 8765 (make editor) is already in use` | Free the port, or `HOST_PORT=8766 make dev-up`. |
+| `has CRLF line endings, so bash cannot parse it` | A Windows checkout from before `.gitattributes`: `git rm --cached -r . && git reset --hard`. |
+| `these files can hold secrets and would be readable inside the sandbox` | Only `./.env` is hidden from the agents. Move the listed files out of the repository. |
+| `make discover` has no API key in the sandbox | Keys are not available there by design. Run `make discover` on the host. |
+| `you are already inside the sandbox` | Run the studio commands directly there (`make test`, `make render ...`). |
+| An agent asks to sign in again | Its login lives in a Docker volume; only `make reset` removes it. |
+
+`make dev-doctor` checks Docker, the image, the studio inside the sandbox, and each agent's login.
