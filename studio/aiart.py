@@ -372,7 +372,9 @@ def split(alpha, boxes=None):
         candidate = top + int(np.argmin(smooth[top:bottom]))
         head_width = smooth[:candidate].max() if candidate else 0
         below = smooth[candidate:min(height, candidate + int(height * 0.12))].max()
-        if smooth[candidate] < 0.82 * head_width and smooth[candidate] < 0.9 * below:
+        # A head is a real part of the figure: an antenna ball or a hair tuft on a thin stem is not.
+        substantial = alpha[:candidate].sum() >= alpha.sum() * 0.08 and head_width >= width * 0.25
+        if smooth[candidate] < 0.82 * head_width and smooth[candidate] < 0.9 * below and substantial:
             neck = candidate
     if neck:
         head = alpha.copy()
@@ -654,7 +656,7 @@ def generate(channel_dir, spec_path, *, image=None, parts_dir=None, backend=None
         alpha = np.asarray(cutout)[..., 3] > 127
         masks, marks = split(alpha, spec.get("parts"))
     face = None
-    if not piece_images and spec.get("face", True) is not False and "head" in masks:
+    if not piece_images and spec.get("face", True) is not False and ("head" in masks or "body" in masks):
         from .aiface import lift_face
 
         face = lift_face(cutout, masks, spec.get("face") if isinstance(spec.get("face"), dict) else None)
