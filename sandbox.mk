@@ -13,7 +13,7 @@
 #
 # POSIX hosts (Linux, macOS, WSL2). Native Windows: `python scripts/dev-up.py`.
 
-.PHONY: setup-host models dev-up dev-down dev-restart dev-shell shell dev-log dev-build reset \
+.PHONY: setup-host models art-models dev-up dev-down dev-restart dev-shell shell dev-log dev-build reset \
         dev-agent opencode opencode-auto claude claude-auto codex codex-auto \
         agents-version agents-upgrade opencode-upgrade claude-upgrade codex-upgrade \
         dev-doctor check-image image-inputs-hash preflight check-host check-identity check-secrets check-port \
@@ -90,6 +90,20 @@ models:
 	  if [ -s "audio-models/$$f" ]; then echo "[models] $$f present"; continue; fi; \
 	  echo "[models] downloading $$f"; \
 	  curl -fL --retry 3 -o "audio-models/$$f.part" "$(KOKORO_URL)/$$f" && mv "audio-models/$$f.part" "audio-models/$$f" \
+	    || { rm -f "audio-models/$$f.part"; echo "ERROR: could not download $$f" >&2; exit 1; }; \
+	done
+
+# Optional art models (Apache-2.0): Depth Anything V2 Small for depth-photo and the hero
+# fallback, IS-Net anime for character cut-outs. About 280 MB; skipped when present.
+ART_MODELS ?= depth/depth-anything-v2-small.onnx=https://huggingface.co/onnx-community/depth-anything-v2-small/resolve/main/onnx/model.onnx \
+	cutout/isnet-anime.onnx=https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-anime.onnx
+
+art-models:
+	@for item in $(ART_MODELS); do \
+	  f=$${item%%=*}; url=$${item#*=}; mkdir -p "audio-models/$$(dirname $$f)"; \
+	  if [ -s "audio-models/$$f" ]; then echo "[art-models] $$f present"; continue; fi; \
+	  echo "[art-models] downloading $$f"; \
+	  curl -fL --retry 3 -o "audio-models/$$f.part" "$$url" && mv "audio-models/$$f.part" "audio-models/$$f" \
 	    || { rm -f "audio-models/$$f.part"; echo "ERROR: could not download $$f" >&2; exit 1; }; \
 	done
 

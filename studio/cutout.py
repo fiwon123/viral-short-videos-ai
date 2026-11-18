@@ -74,9 +74,14 @@ def onnx_alpha(image, path):
     session = onnxruntime.InferenceSession(str(path), providers=onnxruntime.get_available_providers())
     entry = session.get_inputs()[0]
     shape = entry.shape
-    size = shape[2] if len(shape) == 4 and isinstance(shape[2], int) else 320
+    family = Path(path).stem.lower()
+    # IS-Net (isnet-anime, isnet-general-use) is trained on 1024 px with mean-only normalisation;
+    # U2-Net and BiRefNet use ImageNet mean and std.
+    fallback, std = (1024, (1.0, 1.0, 1.0)) if "isnet" in family else \
+        (1024, (0.229, 0.224, 0.225)) if "birefnet" in family else (320, (0.229, 0.224, 0.225))
+    size = shape[2] if len(shape) == 4 and isinstance(shape[2], int) else fallback
     rgb = np.asarray(image.convert("RGB").resize((size, size), Image.BICUBIC), dtype=np.float32) / 255
-    rgb = (rgb - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
+    rgb = (rgb - np.array([0.485, 0.456, 0.406])) / np.array(std)
     batch = rgb.transpose(2, 0, 1)[None].astype(np.float32)
     out = np.asarray(session.run(None, {entry.name: batch})[0], dtype=np.float32).squeeze()
     if out.ndim == 3:

@@ -48,6 +48,7 @@ help:
 	@echo "  make dev-build | dev-doctor | reset | agents-version | agents-upgrade"
 	@echo "  make setup-host                  run on the host instead: venv, node_modules, voice models"
 	@echo "  make models                      download the Kokoro voice files (both modes)"
+	@echo "  make art-models                  optional depth and cartoon cut-out models for art, hero and depth-photo (~280 MB)"
 	@echo
 	@echo "  make status                 resolved channel, episode, and .env"
 	@echo "  make init                   write .env from what is already on disk"
