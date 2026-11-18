@@ -1224,6 +1224,33 @@ class DepthPhotoTests(unittest.TestCase):
         self.assertEqual([spec["z"] for spec in specs], [1.2, 0.6, 0.0])
         self.assertLessEqual(specs[0]["width"], 2)
 
+    def test_flat_shapes_get_one_depth_and_the_backdrop_goes_farthest(self):
+        import numpy as np
+        from PIL import Image, ImageDraw
+        from studio.depthphoto import flatten_regions
+        image = Image.new("RGB", (120, 200), (20, 24, 40))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle([10, 80, 110, 120], fill=(40, 60, 120))  # a wide flat badge
+        draw.text((30, 92), "HI", fill=(250, 210, 90))  # small letters on it
+        depth = np.linspace(0, 1, 120)[None, :] * np.ones((200, 1)) * 0.6 + 0.2  # gradient across the badge
+        out, share = flatten_regions(depth, image)
+        badge = out[84:117, 14:107]
+        self.assertLess(float(badge.std()), 0.01, "the badge and its letters sit on one depth")
+        self.assertGreater(float(depth[84:117, 14:107].std()), 0.1)
+        self.assertLess(float(out[5, 5]), 0.25, "the backdrop goes to the farthest depth, not its median")
+        self.assertGreater(share, 0.8)
+
+    def test_textured_photos_are_left_alone(self):
+        import numpy as np
+        from PIL import Image
+        from studio.depthphoto import flatten_regions
+        rng = np.random.default_rng(5)
+        photo = Image.fromarray((rng.random((90, 60, 3)) * 255).astype(np.uint8))
+        depth = np.linspace(0, 1, 90)[:, None] * np.ones((1, 60))
+        out, share = flatten_regions(depth, photo)
+        self.assertEqual(share, 0.0)
+        self.assertTrue(np.allclose(out, depth))
+
 
 class SpeakerCaptionTests(unittest.TestCase):
     def test_speaker_colours_override_the_caption_look(self):
