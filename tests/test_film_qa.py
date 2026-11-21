@@ -102,6 +102,28 @@ class AnalyseTests(unittest.TestCase):
         self.assertEqual(analyse(stack, FPS)[1]["cuts"], [1.0])
         self.assertEqual(analyse(stack.mean(axis=3), FPS)[1]["cuts"], [])
 
+    def test_a_single_frame_pop_is_a_glitch_not_two_cuts(self):
+        from studio.film_qa import analyse
+        frames = moving(3)
+        frames[36] = scene(9)  # one frame of another picture, then back
+        notes, metrics, _ = analyse(np.stack(frames), FPS)
+        self.assertEqual(kinds(notes).get("pop"), "high")
+        self.assertEqual(metrics["pops"], [1.5])
+        self.assertEqual(metrics["cuts"], [])
+
+    def test_frame_zero_that_jumps_is_flagged(self):
+        from studio.film_qa import analyse
+        frames = moving(3)
+        frames[0] = scene(11)  # the poster is a different picture
+        notes, metrics, _ = analyse(np.stack(frames), FPS)
+        self.assertEqual(kinds(notes).get("first-frame"), "high")
+        self.assertTrue(metrics["first_frame_jump"])
+        self.assertEqual(metrics["cuts"], [])
+        clean = analyse(np.stack(moving(1) + moving(2, 4)), FPS)
+        self.assertNotIn("pop", kinds(clean[0]))
+        self.assertNotIn("first-frame", kinds(clean[0]))
+        self.assertEqual(clean[1]["cuts"], [1.0], "a real cut stays a cut")
+
     def test_treatment_meta_and_stop_parsing(self):
         from studio.film_qa import parse_stops, read_meta
         self.assertEqual(parse_stops(["8-8.6", "10.0 to 10.5; 12–12.4s"]), [(8.0, 8.6), (10.0, 10.5), (12.0, 12.4)])

@@ -17,6 +17,8 @@ picture freezes for seconds. This tool reads the pixels instead:
 * blank         a run of empty frames (flat colour, no edges)
 * one-framing   the longest stretch without a hard cut (a Short reads as a slide
                 when one framing holds for most of it)
+* pop           a single frame that jumps away and back (a glitch, not two cuts)
+* first-frame   frame 0 is a different picture from the opening (the poster is wrong)
 * off-beat      a montage whose cuts mostly miss the music's beat (when the
                 render's timeline.json carries the track's beat grid)
 
@@ -45,6 +47,7 @@ from PIL import Image, ImageDraw
 
 STILL = 0.12        # mean per-frame change (0-255 levels) under which a frame reads as frozen
 CUT = 18.0          # a per-frame change this large, well above its neighbours, is a hard cut
+POP = 6.0           # a frame that changes this much from both neighbours, which match, is a pop
 LOW = 1.0           # a second under this much motion is low-energy
 BURST = 3.0         # at least one second should reach this
 DEAD = (0.8, 1.5)   # seconds of stillness: medium, high
@@ -164,17 +167,47 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None):
     if count > 1:
         change[1:] = np.abs(np.diff(stack, axis=0)).reshape(count - 1, -1).mean(axis=1)
     grey = stack.mean(axis=3) if stack.ndim == 4 else stack
+    # A pop: frame i jumps away from both neighbours while they match each other (shown a frame
+    # early, a key on the wrong side of a cut). It is a glitch, not two cuts and not motion.
+    pops = []
+    for index in range(1, count - 1):
+        a, b = change[index], change[index + 1]
+        if a > POP and b > POP:
+            around = float(np.abs(stack[index + 1] - stack[index - 1]).mean())
+            if around < min(a, b) / 3:
+                pops.append(index)
+    glitch = set(pops) | {index + 1 for index in pops}
+    first_jump = False
+    if count >= 4 and 1 not in glitch:
+        after = float(np.median(change[2:min(count, 8)]))
+        first_jump = bool(change[1] > CUT and change[1] > 3 * max(after, 1.0))
+        if first_jump:
+            glitch.add(1)
     cuts = []
     for index in range(1, count):
+        if index in glitch:
+            continue
         around = np.concatenate([change[max(1, index - 4):index], change[index + 1:index + 5]])
         floor = float(np.median(around)) if len(around) else 0.0
         if change[index] > CUT and change[index] > 3 * max(floor, 1.0):
             cuts.append(index)
     moving = change.copy()
     moving[cuts] = 0  # a cut is a change of picture, not motion
+    moving[sorted(glitch)] = 0
     seconds = int(np.ceil(duration - 0.5)) if duration >= 1 else 1
     energy = [round(float(moving[round(s * fps):round((s + 1) * fps)].sum()) / 10, 2) for s in range(seconds)]
     notes = []
+    if first_jump:
+        notes.append(_note("first-frame", "high", "Frame 0 is a different picture from the rest of the opening.",
+                           "Frame 0 is the poster feeds show: make it the opening shot. Usually a camera or layer "
+                           "key that is not applied at t=0, or a transition starting on the wrong frame.", at=0.0))
+    for index in pops:
+        shot = _shot_at(shots, index / fps)
+        where = f" in shot {shot}" if shot else ""
+        notes.append(_note("pop", "high", f"A single-frame pop at {index / fps:.2f} s (frame {index}){where}.",
+                           "Look at the frame and its neighbours: an element shown one frame early, a key on the "
+                           "wrong side of a cut, or a visibility switch that flips back.", at=round(index / fps, 3),
+                           shot=shot))
 
     still = change < STILL
     still[0] = False
@@ -266,6 +299,7 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None):
         if duration else 0, "median_framing": round(float(np.median(lengths)), 2) if lengths else 0,
         "longest_framing": round(longest, 2), "route": route, "stops": [list(stop) for stop in stops],
         "cuts_on_beat": beat_share, "bpm": (beat or {}).get("bpm"),
+        "pops": [round(index / fps, 3) for index in pops], "first_frame_jump": first_jump,
         "shots": per_shot,
     }
     return notes, metrics, dead_runs
