@@ -52,24 +52,67 @@ def decode(path, seconds=None):
     return np.frombuffer(data, dtype="<f4").astype(np.float64)
 
 
-def tempo(samples):
-    """BPM from the autocorrelation of an onset-strength envelope (60-180)."""
-    hop = 512
-    frames = len(samples) // hop
+HOP = 512
+
+
+def onsets(samples):
+    """Onset strength per hop: the rise in log energy (index i is the boundary at (i + 1) * HOP)."""
+    frames = len(samples) // HOP
     if frames < 64:
         return None
-    energy = np.sqrt(np.mean(samples[:frames * hop].reshape(frames, hop) ** 2, axis=1))
-    onset = np.maximum(0, np.diff(np.log1p(energy * 100)))
-    onset -= onset.mean()
+    energy = np.sqrt(np.mean(samples[:frames * HOP].reshape(frames, HOP) ** 2, axis=1))
+    return np.maximum(0, np.diff(np.log1p(energy * 100)))
+
+
+def tempo(samples):
+    """BPM from the autocorrelation of an onset-strength envelope (60-180)."""
+    onset = onsets(samples)
+    if onset is None:
+        return None
+    # Smooth over three hops: a beat period is rarely a whole number of hops (120 bpm is 21.5), and
+    # unsmoothed clicks then line up better at two beats than at one, halving the tempo.
+    onset = np.convolve(onset, [0.25, 0.5, 0.25], mode="same")
+    onset = onset - onset.mean()
     corr = np.correlate(onset, onset, mode="full")[len(onset) - 1:]
-    fps = RATE / hop
+    fps = RATE / HOP
     lags = np.arange(len(corr))
     valid = (lags >= fps * 60 / 180) & (lags <= fps * 60 / 60)
     if not valid.any() or corr[valid].max() <= 0:
         return None
-    best = lags[valid][np.argmax(corr[valid])]
-    bpm = 60 * fps / best
+    best = int(lags[valid][np.argmax(corr[valid])])
+    half = round(best / 2)
+    if half >= fps * 60 / 180 and corr[max(1, half - 1):half + 2].max() >= 0.6 * corr[best]:
+        best = int(max(1, half - 1) + np.argmax(corr[max(1, half - 1):half + 2]))  # the faster pulse is there too
+    left, middle, right = corr[best - 1], corr[best], corr[min(best + 1, len(corr) - 1)]
+    curve = left - 2 * middle + right
+    lag = best + (0.5 * (left - right) / curve if curve < 0 else 0.0)  # parabolic peak: a fractional lag
+    bpm = 60 * fps / lag
     return round(float(bpm), 1)
+
+
+def first_beat(samples, bpm):
+    """Seconds to the first beat: the phase of the beat grid that collects the most onset strength."""
+    onset = onsets(samples)
+    if onset is None or not bpm:
+        return None
+    fps = RATE / HOP
+    period = fps * 60.0 / float(bpm)
+    best, phase = -1.0, 0.0
+    for start in np.arange(0.0, period, 1.0):
+        picks = np.round(np.arange(start, len(onset), period)).astype(int)
+        score = float(onset[picks[picks < len(onset)]].sum())
+        if score > best:
+            best, phase = score, start
+    return round(float((phase + 1) * HOP / RATE), 3)
+
+
+def beat_grid(path):
+    """{"bpm", "offset"} measured from an audio file, or None when it has no steady pulse."""
+    samples = decode(path, seconds=120)
+    bpm = tempo(samples)
+    if not bpm:
+        return None
+    return {"bpm": bpm, "offset": first_beat(samples, bpm)}
 
 
 def analyse(path):
@@ -85,7 +128,8 @@ def analyse(path):
     bpm = tempo(samples)
     score = (loudness + 30) / 20 + ((bpm or 100) - 100) / 60 - min(dynamics, 6) / 12
     energy = "high" if score > 0.85 else "low" if score < 0.25 else "medium"
-    return {"duration": round(duration, 2), "bpm": bpm, "loudness_db": loudness, "energy": energy}
+    return {"duration": round(duration, 2), "bpm": bpm, "first_beat": first_beat(samples, bpm),
+            "loudness_db": loudness, "energy": energy}
 
 
 def moods_for(path, energy, bpm):
@@ -179,6 +223,8 @@ def expand(episode, channel, channel_dir):
     track = pick(index["tracks"], music, runtime, episode.get("title", ""))
     episode["music"] = {**{key: value for key, value in music.items() if key not in ("mood", "energy", "bpm")},
                         "library_file": str((base / track["file"]).resolve()), "library_track": track["title"]}
+    if track.get("bpm") and track.get("first_beat") is not None and "beat" not in music:
+        episode["music"]["beat"] = {"bpm": track["bpm"], "offset": track["first_beat"]}  # for at_beat anchors
     return episode
 
 

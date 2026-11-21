@@ -40,7 +40,7 @@ Write `episodes/<episode>/treatment.md` (template in [memory templates](../../..
 | Route | What carries the eye | Cuts | Use it for |
 | --- | --- | --- | --- |
 | **Continuous** | One world, a camera travelling through it, one subject followed | 0–2 | Loops, ASMR, a single physical process, a journey |
-| **Montage** | Cuts on the beat, each shot readable at a glance | Many, on the beat | Lists ("five ways to…"), escalation gags, music-led Shorts |
+| **Montage** | Cuts on the beat (`snap: "beat"` on each shot, `at_beat` on keys and hits), each shot readable at a glance | Many, on the beat | Lists ("five ways to…"), escalation gags, music-led Shorts |
 | **Hybrid** | A continuous spine broken by a quick burst at the turn or the payoff | A burst | Most character gags and stories |
 
 **The energy curve.** Rate each stretch 0 to 10 before deciding a single key. The shapes that work in an 8–20 s Short:
@@ -102,7 +102,7 @@ Rules:
 - **Pose to pose.** Block the anticipation, the key pose and the settle before easing (the [animation cookbook](animation-cookbook.md) maps these to `pose_keys`, `motion` recipes and `ik`). Every appearance gets an expression and a pose that belong to that beat: frowning at the phone, a sigh of relief while pocketing it, not just a blink and a bob.
 - **Nothing moves linearly** except a drift. Hard ease-out for snappy arrivals, springs only for things that should feel physical, overshoot only on a true landing. Squash on contact, stretch on speed.
 - **No pixel-still holds.** A hold longer than 0.8 s keeps a drift, an idle or a breath. Only a declared stop is still.
-- **Action on the word.** When a line names a thing, the thing appears, moves or changes on that word, not a second later. Put the key at the measured word time from the audio pass.
+- **Action on the word.** When a line names a thing, the thing appears, moves or changes on that word, not a second later. Write the key with `at_word` (the [animation cookbook](animation-cookbook.md) shows the fields) so it stays on the word when a take is re-recorded.
 - **Sound lands with the motion.** A hit on the contact frame, a whoosh under the whip, silence before the payoff. Frame one has a sound (viral-check's `hook-hit`).
 
 ## The character bar

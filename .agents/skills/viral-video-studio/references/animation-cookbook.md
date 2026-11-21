@@ -45,6 +45,18 @@ Use this when blocking and polishing motion. Every field below expands at load t
 
 Put the `impact` on the frame of contact and the sound cue on the same `t`. `make spot` will propose one.
 
+### Time it to the word or the beat
+
+Keys, camera keys, recipes and sound cues accept `at_word` or `at_beat` in place of their number, so the action stays on its word when a take is re-recorded and on the beat when the track changes:
+
+```json
+"keyframes": [{"at": 0, "scale": 1}, {"at_word": "barbell", "scale": 1}, {"at_word": {"word": "barbell", "edge": "end"}, "scale": 1.6, "ease": "out"}],
+"motion": [{"recipe": "impact", "at_word": {"word": "crash", "offset": -0.03}}],
+"sfx": [{"cue": "pop", "at_beat": {"bar": 3, "beat": 1}}]
+```
+
+Words are matched in the line's caption text (`line`, `occurrence`, `edge`: `start`/`middle`/`end`, `offset` in seconds). Beats come from `music.beat`, filled by the music library; give a montage's shots `"snap": "beat"` so each cut lands on the next beat. Render, still, audio and check-visual measure the takes first; validate and the reports use a text estimate. An anchor that lands outside its shot is an error that names the time and the shot.
+
 ## Paths
 
 ```json
