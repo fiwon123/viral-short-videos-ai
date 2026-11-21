@@ -71,7 +71,7 @@ help:
 	@echo "  make film-qa VIDEO=... [EPISODE=...]  energy curve, dead runs, frozen end, framing of a render (red exits 1)"
 	@echo "  make treatment-lint EPISODE=...  check the episode's treatment.md plan before building (red exits 1)"
 	@echo "  make state EPISODE=... [WRITE=1]  the stage the evidence supports and the next command"
-	@echo "  make review-pack EPISODE=... [VIDEO=...]  a director-pass packet for a reviewer who did not build it"
+	@echo "  make review-pack EPISODE=... [VIDEO=...] [LENS=sound]  director, sound and continuity packets for cold reviewers"
 	@echo "  make deliver EPISODE=... [VIDEO=...]  gate the master and write delivery.md (VERIFY=delivery.md checks it)"
 	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
@@ -152,7 +152,7 @@ deliver:
 
 review-pack:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
-	@$(PYTHON) -m studio.episode_state review-pack $(EPISODE) $(if $(VIDEO),--video $(VIDEO),)
+	@$(PYTHON) -m studio.episode_state review-pack $(EPISODE) $(if $(VIDEO),--video $(VIDEO),) $(if $(LENS),--lens $(LENS),)
 
 treatment-lint:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json (or its treatment.md)"; exit 1; }

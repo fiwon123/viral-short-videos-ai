@@ -189,6 +189,88 @@ class ReviewPackTests(unittest.TestCase):
             self.assertIn("episodes/ep/review/director-ep-preview.md", prompt)
             self.assertIn("Picture first", prompt)
 
+    def cut_clip(self, path):
+        """Two seconds: a test pattern, then a hard cut at 1.0 s to a different one, with a tone and a hit."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y",
+                        "-f", "lavfi", "-i", "testsrc2=size=90x160:rate=24:duration=1",
+                        "-f", "lavfi", "-i", "smptebars=size=90x160:rate=24:duration=1",
+                        "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+                        "-filter_complex", "[0:v][1:v]concat=n=2:v=1[v]", "-map", "[v]", "-map", "2:a",
+                        "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(path)], check=True)
+        timeline = {"fps": 24, "captions": [], "scenes": [{"id": "S", "shots": [
+            {"id": "A", "start": 0, "end": 24, "sfx": [{"start": 6, "sound": "pop", "gain": 0.5}]},
+            {"id": "B", "start": 24, "end": 48, "sfx": [{"start": 30, "sound": "thud"}]}]}]}
+        (path.parent / "timeline.json").write_text(json.dumps(timeline), encoding="utf-8")
+        return path
+
+    def test_sound_and_continuity_reviewers_get_their_evidence(self):
+        from PIL import Image
+        from studio.episode_state import review_pack
+        with TemporaryDirectory() as temp:
+            layout = Layout(temp)
+            (layout.folder / "treatment.md").write_text(GOOD + KEY_STILLS, encoding="utf-8")
+            (layout.folder / "review").mkdir()
+            (layout.folder / "review" / "director-ep-v1.md").write_text("P0: the hook\n", encoding="utf-8")
+            layout.age_episode()
+            video = self.cut_clip(layout.renders / "ep-preview" / "video.mp4")
+            result = review_pack(layout.episode)
+            pack = Path(result["pack"])
+            self.assertEqual(set(result["lenses"]), {"director", "sound", "continuity"})
+            for name in ("prompt.md", "prompt-sound.md", "prompt-continuity.md", "sound.png", "sound-cues.json",
+                         "cuts.png"):
+                self.assertTrue((pack / name).is_file(), name)
+            cues = json.loads((pack / "sound-cues.json").read_text(encoding="utf-8"))
+            self.assertEqual([(cue["at"], cue["sound"], cue["shot"]) for cue in cues],
+                             [(0.25, "pop", "A"), (1.25, "thud", "B")])
+            report = json.loads((video.parent / "film-qa" / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["metrics"]["cuts"], [1.0])
+            with Image.open(pack / "cuts.png") as sheet:  # one cut: one row of two frames
+                self.assertGreaterEqual(sheet.width, 2 * 270)
+                self.assertLess(sheet.height, 2 * (480 + 22))
+                import numpy as np
+                pixels = np.asarray(sheet.convert("L"), dtype=np.float32)[30:]
+                before, after = pixels[:, :270], pixels[:, 282:552]
+                self.assertGreater(float(np.abs(before - after).mean()), 20, "both sides of the cut, not one frame twice")
+            sound = (pack / "prompt-sound.md").read_text(encoding="utf-8")
+            continuity = (pack / "prompt-continuity.md").read_text(encoding="utf-8")
+            self.assertIn("episodes/ep/review/sound-ep-preview.md", sound)
+            self.assertIn("sound.png", sound)
+            self.assertIn("episodes/ep/review/continuity-ep-preview.md", continuity)
+            self.assertIn("cuts.png", continuity)
+            for prompt in (sound, continuity, (pack / "prompt.md").read_text(encoding="utf-8")):
+                self.assertIn("review/director-ep-v1.md", prompt)
+
+    def test_cue_table_carries_film_qa_sync_rows(self):
+        from studio.episode_state import cue_table
+        with TemporaryDirectory() as temp:
+            timeline = Path(temp) / "timeline.json"
+            timeline.write_text(json.dumps({"fps": 24, "scenes": [{"id": "S", "shots": [
+                {"id": "A", "sfx": [{"start": 6, "sound": "pop"}, {"start": 12, "source": "sfx/thud-2.wav"}]}]}]}),
+                encoding="utf-8")
+            report = {"metrics": {"sync": [{"cue": 0.5, "status": "late", "offset_ms": 210, "picture": 0.29}]}}
+            cues = cue_table(timeline, report)
+            self.assertEqual(cues[0]["sound"], "pop")
+            self.assertNotIn("status", cues[0])
+            self.assertEqual((cues[1]["sound"], cues[1]["status"], cues[1]["offset_ms"]), ("thud-2", "late", 210))
+
+    def test_cli_lens_picks_one_reviewer(self):
+        with TemporaryDirectory() as temp:
+            layout = Layout(temp)
+            layout.age_episode()
+            self.cut_clip(layout.renders / "ep-preview" / "video.mp4")
+            result = subprocess.run([sys.executable, "-m", "studio.episode_state", "review-pack", str(layout.episode),
+                                     "--lens", "sound"], cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            pack = Path(json.loads(result.stdout)["pack"])
+            self.assertTrue((pack / "prompt-sound.md").is_file())
+            self.assertFalse((pack / "prompt-continuity.md").exists())
+            self.assertFalse((pack / "prompt.md").exists())
+            bad = subprocess.run([sys.executable, "-m", "studio.episode_state", "review-pack", str(layout.episode),
+                                  "--lens", "lighting"], cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(bad.returncode, 1)
+            self.assertIn("Unknown lens lighting", bad.stderr)
+
     def test_no_fresh_render_is_an_error(self):
         from studio.episode_state import review_pack
         with TemporaryDirectory() as temp:
