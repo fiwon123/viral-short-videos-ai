@@ -76,7 +76,7 @@ Give it a picture, from an AI image generator, your own drawing or an import, an
 
 - **Approve the hook first:** `make preview HOOK=20` renders only the opening 20 seconds, with sound.
 - **Let jokes land:** mark a line `"punchline": true` for a beat of silence.
-- **Check before you post:** `make viral-check` scores the hook, pacing, loop, loudness and packaging.
+- **Check before you post:** `make viral-check` scores the hook, pacing, loop, loudness and packaging, and every render measures its own energy curve (`film-qa/`): frozen endings, dead holds and one-framing films are caught from the pixels.
 
 ## 💻 Fits your PC
 

@@ -68,6 +68,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Flat-region depth refinement | Done | `depthphoto.regions` (median-cut quantise + min-label propagation with pointer jumping) and `flatten_regions`: big regions with colour std ≤ 8 take their median depth, a big flat region touching two frame edges goes to the 2nd-percentile depth (backdrop), small regions are push-pull filled from their surroundings unless they cover half the frame (photos untouched). On by default in `load_depth`, `--no-refine`. Removes the band ghosting on flat art in the hero fallback. About 2.5 s at 720×1280. |
 | Video layers | Done | `studio/videolayer.py`: layer `kind: video` with `fit`, `clip_start`, `clip_speed`, `loop`. `expand` (run by `prepare_episode(..., episode_dir=)`) writes one `frame` key per frame change (renderers hold `frame`), `tiles` decodes with ffmpeg at layer size and episode fps into `.video-frames/<hash>/` (a cleanup cache) and returns a lazy `Frames` list (6-frame LRU). Python and HyperFrames read it like a sheet. `make hero` now writes `clip-<key>.mp4` (CRF 14) with a cover-fit video layer, replacing the 8192 px sprite sheet. 4 s 1080×1920 render: +45 MB peak versus an image layer. Callers without `episode_dir` (none in the CLI) leave a video on frame 0. |
 | Machine profile | Done | `studio/machine.py`: cores (affinity), RAM (sysconf / Windows API) and GPU give a tier and a budget: threads, batch jobs, Chromium workers, niceness 10, `cpu_ai` off. `apply()` (video.py and module mains) lowers priority (POSIX nice, Windows BELOW_NORMAL) and sets BLAS/OMP thread env for children; x264 gets `-threads`, ONNX sessions `intra_op_num_threads`, torch `set_num_threads`, `browser/render.mjs` reads `STUDIO_BROWSER_WORKERS`, `batch --jobs` defaults to the profile. `aiart.plan` refuses CPU diffusion and sub-4 GB GPUs unless `STUDIO_CPU_AI=1`. Overrides: `STUDIO_PROFILE/THREADS/JOBS/BROWSER_WORKERS/NICE/CPU_AI`. |
+| Film QA (pixel gate) | Done | `studio/film_qa.py`, `make film-qa VIDEO= [EPISODE=]`; every full render writes `film-qa/` (report, energy chart, contact sheet) and a `film_qa` verdict in `qa.json` (never fails the render). Colour frame diffs at 90 px wide: energy per second, dead runs (0.8 s medium, 1.5 s high) outside treatment `Stop:` lines, frozen ending, blank runs, hard cuts, longest framing (6/12 s; `Route: continuous` relaxes it). Red exits 1. `viral-check` no longer exempts a shot over 10 s because it has a camera or 3D block. Calibrated on channel renders: the manifest checks passed films whose last 7 s were frozen. Method adapted from huashu-motion, huashu-art-motion and lanshu (MIT). |
 | Still pending | Pending | Nothing from the original plan or the 2026-11-15 audit. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -86,10 +87,11 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~Music~~ Done: `make music-import`, `music: {mood, energy, bpm}` | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | ~~Voices~~ Done: `command` engine, per-line `pitch`/`pace`/`intensity`, free options documented in the audio reference | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 113 tests including the style-lock tests.
+Tests: `make test` passes, 179 tests.
 
 ## Log
 
+- 2026-11-21: Film QA landed (#39): the render's pixels gate delivery. Started the direction work from a study of four MIT agent video skills: treatment lint (#40), direction standard (#38), word and beat anchoring (#41).
 - 2026-11-15: Channel style lock landed so any assistant keeps a channel's approved look.
 - 2026-11-15: Contact check and colliders tuned on a real 3D channel (113 warnings to 10 real ones on an existing episode).
 - 2026-11-15: Layering and contact audit across 2D, 2.5D and 3D (see the status row).
