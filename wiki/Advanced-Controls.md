@@ -102,7 +102,7 @@ They are authoring helpers. Paste the result into an episode and edit the layers
 ```
 
 - `track` keeps a layer at a chosen screen point while the background parallaxes.
-- `shakes` are timed, decaying camera jitters.
+- `shakes` are timed, decaying camera jitters: `at` is a fraction of the shot, `duration` is seconds and `frequency` is Hz. They are baked into the camera keys on a dense grid, so `hold` cuts and crash zooms keep their exact timing.
 - 3D camera keys can animate `fov`.
 - 3D shots can focus-pull:
 

@@ -764,7 +764,7 @@ def apply_post(image, config, *, seed=0, palette=None):
 
 class Composition:
     def __init__(self, shot, canvas, channel, font, base, *, episode_post=None, motion_blur=0,
-                 channel_base=None):
+                 channel_base=None, seconds=None):
         self.shot = shot
         self.canvas = canvas
         self.base = base
@@ -772,7 +772,7 @@ class Composition:
         self.palette = channel["palette"]
         self.background = resolve_color(shot.get("background", "background"), self.palette)
         self.post = _merge(channel.get("post"), episode_post, shot.get("post"))
-        self.camera = resolve_camera(shot) if shot.get("camera") else None
+        self.camera = resolve_camera(shot, seconds=seconds) if shot.get("camera") else None
         self.camera_points = camera_points({**shot, "camera": self.camera}) if shot.get("camera") else None
         self.track = (self.camera or {}).get("track")
         layers = sorted(depth_order(shot["layers"]), key=lambda item: item.get("plane") != "background")
