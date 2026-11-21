@@ -77,6 +77,7 @@ Run from the repository root, on the host or in the sandbox (`make shell`):
 | `make test` | The `unittest` suite in `tests/` (Python; the browser pose-parity tests run `node`). Every change. |
 | `make validate EPISODE=...` | The manifest against the schema, the style lock and the lint rules |
 | `make check EPISODE=...` | Visual QA notes: captions, contrast, sound density, contacts |
+| `make film-qa VIDEO=...` | The render's pixels: energy per second, dead runs, frozen ending, blank frames, longest framing (red exits 1) |
 | `make parity` | The renderers still agree on the shared fixture (non-zero past the threshold). Renderer changes. |
 | `make doctor` | ffmpeg, the h264 encoder, the node renderers and Kokoro are usable |
 
@@ -113,7 +114,7 @@ unverified and retry in a smaller batch.
 |---|---|
 | Layout, colour, captions, a pose | a still at the moment that matters |
 | Motion, timing, easing, a camera move | `make still ONION=3`, `make motion-report`, or the preview MP4 frames |
-| A whole episode | a contact sheet plus `make viral-check` |
+| A whole episode | a contact sheet plus `make viral-check` and `make film-qa VIDEO=...` |
 
 The Read tool renders PNG, JPEG and GIF, not MP4: pull frames out of a video
 (`ffmpeg -ss <t> -i video.mp4 -frames:v 1 frame.png`) before review.

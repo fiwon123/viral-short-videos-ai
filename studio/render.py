@@ -426,5 +426,17 @@ def render(episode, channel, episode_dir, channel_dir, target, preview, burn, *,
         report["render"] = {key: config[key] for key in ("crf", "preset", "tune", "supersample", "motion_blur",
                                                          "audio_bitrate", "captions", "thumbnail", "publishing")
                             if key in config}
+        if not seconds:  # a hook preview is cut short on purpose; its ending is not the film's
+            report["film_qa"] = film_check(out / "video.mp4", episode_dir)
         write_json(out / "qa.json", report)
     return report
+
+
+def film_check(video, episode_dir):
+    """Pixel energy, dead runs and framing for the rendered file (``film-qa/`` beside it). Never fails a render."""
+    from .film_qa import run, summary
+
+    try:
+        return summary(run(video, treatment=Path(episode_dir) / "treatment.md"))
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        return {"verdict": "unchecked", "error": str(error)}

@@ -31,6 +31,7 @@ Create any missing file from the templates before planning. Keep entries short a
 ## Push the odds before publishing
 
 - Run `make viral-check EPISODE=...` on the manifest while blocking, and again with `VIDEO=.../video.mp4` after the preview render. Fix every high and medium note, or write in `NOTES.md` why it is intentional. Record the score.
+- Read the render's `film-qa/report.json` and `energy.png` (or run `make film-qa VIDEO=... EPISODE=...`). The manifest can say a shot moves while the picture stands still; the pixels cannot. A red verdict (a frozen ending, 1.5 s or more of nothing moving outside a declared stop, a flat film, a blank stretch, one framing for most of the Short) is not delivered. Record the verdict and mean energy in the ledger.
 - The check covers the opening (speech by 0.5 s, motion in the first half second, words in the first second, a non-blank first frame), pacing (a visible change every 2–4 s), runtime (15–45 s), captions, the loop (last frame leading into the first), loudness, and packaging (2–4 word thumbnail text, a title under 60 characters echoed in the first line).
 - **Act fast on timely topics.** A trend that is rising in views per hour is worth an episode within 24–72 hours. After that, prefer evergreen ideas.
 - **Double down on outliers.** When an episode clearly beats the channel's median (about 2× at the same age), plan a follow-up or a series continuation within days, and log why it may have worked.
