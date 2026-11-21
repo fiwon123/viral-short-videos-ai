@@ -193,7 +193,11 @@ def music_bed(spec, base):
             return play_segments(track, plan["segments"], fade_out=0.3 if plan.get("end_trim") else 0.0)
         return track
     if "file" in spec:
-        return read_audio(asset(base, spec["file"]), channels=2)
+        track = read_audio(asset(base, spec["file"]), channels=2)
+        if spec.get("arrangement"):  # fitted like a library track (studio.music.expand with episode_dir)
+            plan = spec["arrangement"]
+            return play_segments(track, plan["segments"], fade_out=0.3 if plan.get("end_trim") else 0.0)
+        return track
     notes = []
     for pitch in [130.81, 196, 164.81, 196, 110, 164.81, 146.83, 164.81]:
         t, env, tone = oscillator(0.5, pitch, 1.7)
