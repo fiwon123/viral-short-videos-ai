@@ -57,6 +57,8 @@ from PIL import Image, ImageDraw
 
 STILL = 0.12        # mean per-frame change (0-255 levels) under which a frame reads as frozen
 CUT = 18.0          # a per-frame change this large, well above its neighbours, is a hard cut
+SOFT_CUT = (8.0, 6.0, 0.15)  # ...or this large, this many times its neighbours and over this share of the
+                             # frame: a cut between similar framings (one object jumping changes less)
 POP = 6.0           # a frame that changes this much from both neighbours, which match, is a pop
 LOW = 1.0           # a second under this much motion is low-energy
 BURST = 3.0         # at least one second should reach this
@@ -377,6 +379,11 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), leve
         floor = float(np.median(around)) if len(around) else 0.0
         if change[index] > CUT and change[index] > 3 * max(floor, 1.0):
             cuts.append(index)
+        elif change[index] >= SOFT_CUT[0] and change[index] >= SOFT_CUT[1] * max(floor, 1.0):
+            moved = np.abs(stack[index] - stack[index - 1])
+            moved = moved.mean(axis=-1) if moved.ndim == 3 else moved
+            if float((moved > 20).mean()) >= SOFT_CUT[2]:
+                cuts.append(index)  # a lone spike over much of the frame: a cut-in on the same set
     moving = change.copy()
     moving[cuts] = 0  # a cut is a change of picture, not motion
     moving[sorted(glitch)] = 0
