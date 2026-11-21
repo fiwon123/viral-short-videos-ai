@@ -30,9 +30,13 @@ was edited by hand or the MP4 changed afterwards. The maker adds notes (why each
 amber item is acceptable) below the facts. Review files are listed, never read:
 the reviewer's words are their own.
 
-``review-pack`` gathers what a cold reviewer needs (contact sheet, energy chart,
-film-qa report, treatment, the treatment's key-still frames) into
-``review/pack-<render>/`` with a filled director-pass ``prompt.md``.
+``review-pack`` gathers what cold reviewers need into ``review/pack-<render>/``,
+one prompt per lens: the director (``prompt.md``: contact sheet, energy chart,
+film-qa report, treatment, the treatment's key-still frames), sound
+(``prompt-sound.md``: ``sound.png``, the mix's level with every cue and cut marked,
+and ``sound-cues.json``) and continuity (``prompt-continuity.md``: ``cuts.png``, the
+frames on both sides of every hard cut). Each lists the earlier review notes so a
+round does not re-report what was fixed.
 
 Adapted from lanshu-create-ai-presenter-video's evidence state machine, the
 fingerprinted delivery notes of huashu-art-motion and cinetic's critic files (MIT).
@@ -47,6 +51,9 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = ("concept", "planned", "built", "stills", "previewed", "reviewed", "mastered", "delivered", "published")
@@ -66,8 +73,65 @@ Files (in this folder): {files}
 3. Read report.json last. Name any film-qa note you disagree with, and why.
 4. Give the three notes a demanding director would give, ranked P0/P1, each with the fix.
 
+Earlier notes for this episode (read them first; do not re-report what was fixed): {earlier}
+
 Write the result to {target}. The verdict is yours; do not soften it for the maker.
 """
+SOUND_PROMPT = """You are the sound reviewer for a vertical animated Short you did not make. You cannot hear it, so
+read it. Be specific and demanding.
+
+Files (in this folder): {files}
+
+sound.png is the soundtrack: the mix's level over time (dB), a tick and a name for every sound cue, a grey line
+for every hard cut, and the picture's motion per second as pale bars behind. sound-cues.json lists every cue
+(time, sound, shot) and, where film-qa measured it, its sync status and offset in ms.
+
+Answer with times:
+1. The hook: does a sound start within the first 0.3 s, while something moves?
+2. Lock: is every hit, click and pop on the frame its action starts or stops? Name each that is off and by how
+   many frames (sound-cues.json status early/late; for unmatched ones, look at the stills near that time).
+3. Cause: does every visible action a viewer expects to hear (a landing, a grab, a release, a door) have a sound,
+   and does every sound have a visible cause? Does one kind of action sound the same each time?
+4. Restraint: no two designed sounds within 3 frames of each other on a key beat; the payoff is the loudest
+   moment, ideally after a short dip (a 0.3-0.8 s stop before it).
+5. Music, if any: a join that jumps (film-qa music-join), an ending that is not the track's own, music
+   fighting a voice line.
+6. The end: the last sound has finished before the last frame; nothing is cut off.
+
+Earlier notes for this episode (read them first; do not re-report what was fixed): {earlier}
+
+Write the result to {target}: a table (priority, time, problem, fix), then two sentences on the soundtrack.
+Every fix names the field and the amount: a cue's `at` / `at_word` (by N frames), `gain`, `sound` or
+`variant`, the shot's `snap`, `music.fit` or `music.library_track`. P0: heard on a key beat, or a sound with no
+picture; P1: noticed on a normal viewing with sound; P2: a refinement.
+"""
+CONTINUITY_PROMPT = """You are the continuity reviewer for a vertical animated Short you did not make. You look at
+frames side by side and name every difference that should not be there. Be specific and demanding.
+
+Files (in this folder): {files}
+
+cuts.png holds every hard cut as a pair: the last frame before it on the left, the first frame after it on the
+right, with the time. still-*.png are the treatment's key moments at full size. treatment.md is the plan.
+
+For every pair and every still:
+1. Contact: feet, bodies and props rest on the floor or on what holds them; nothing floats or sinks, before and
+   after a camera change. The set moves with the cast when the camera moves.
+2. Ownership: every limb, prop and accessory is attached to the character it belongs to; nothing appears next
+   to a character it does not belong to.
+3. Across the cut: the same cast in the same places, the same prop in the same hand, the same screen direction
+   of looking and moving, the same scale for one character in every shot; what changes is what the story needs.
+4. Layering: who is in front of whom; a carried prop in front of its carrier; no arm across a face.
+5. Edges: no set edge or empty corner showing, no layer cut off by the frame by accident, no caption under the
+   platform's buttons.
+6. Style: one line weight and one rendering style across cast, props and set.
+
+Earlier notes for this episode (read them first; do not re-report what was fixed): {earlier}
+
+Write the result to {target}: a table (priority, time, where in the frame, problem, fix). Every fix names the
+layer and the field (`x` / `y` / `z` keys, `parallax`, `scale`, a pose, the layer order) or the generator line.
+P0: seen at full speed on a key beat; P1: seen on a normal viewing; P2: seen only on pause.
+"""
+LENSES = ("director", "sound", "continuity")
 
 
 def _sha(path, chunk=1 << 20):
@@ -352,7 +416,120 @@ def key_stills(treatment):
     return found
 
 
-def review_pack(episode, video=None):
+def earlier_notes(where):
+    """The episode's review notes so far, as paths a reviewer can open."""
+    folder = where["folder"] / "review"
+    names = sorted(path.name for path in folder.glob("*.md")) if folder.is_dir() else []
+    return ", ".join(f"review/{name}" for name in names) or "none"
+
+
+def cue_table(timeline, report):
+    """Every sfx cue in the render's timeline, with film-qa's sync row when it measured one."""
+    if not timeline.is_file():
+        return []
+    data = json.loads(timeline.read_text(encoding="utf-8"))
+    fps = float(data.get("fps", 24))
+    rows = (report.get("metrics") or {}).get("sync") or []
+    cues = []
+    for scene in data.get("scenes", []):
+        for shot in scene.get("shots", []):
+            for cue in shot.get("sfx", []):
+                at = round(cue["start"] / fps, 3)
+                entry = {"at": at, "sound": cue.get("sound") or cue.get("cue") or Path(str(cue.get("source", ""))).stem,
+                         "shot": shot["id"], "gain": cue.get("gain")}
+                match = next((row for row in rows if abs(row.get("cue", -1) - at) < 0.002), None)
+                if match:
+                    entry.update({key: match[key] for key in ("status", "offset_ms", "picture") if key in match})
+                cues.append(entry)
+    return cues
+
+
+def sound_chart(video, cues, report, target, width=1080, height=360):
+    """The mix's level over time with cues, cuts and the picture's energy: sound for a reader who cannot hear."""
+    from PIL import Image, ImageDraw
+    from .music import RATE, decode
+    try:
+        samples = decode(video)
+    except subprocess.CalledProcessError:
+        return None
+    if not len(samples):
+        return None
+    hop = RATE // 50
+    blocks = len(samples) // hop
+    level = 20 * np.log10(np.sqrt(np.mean(samples[:blocks * hop].reshape(blocks, hop) ** 2, axis=1)) + 1e-6)
+    duration = len(samples) / RATE
+    image = Image.new("RGB", (width, height), "#FFFFFF")
+    draw = ImageDraw.Draw(image)
+    left, top, bottom = 40, 46, height - 24
+    span = width - left - 10
+
+    def x(seconds):
+        return left + span * seconds / max(duration, 1e-6)
+
+    def y(db):
+        return bottom - (bottom - top) * (max(-60.0, min(0.0, db)) + 60) / 60
+
+    energy = (report.get("metrics") or {}).get("energy") or []
+    peak = max(energy) if energy else 1.0
+    for second, value in enumerate(energy):
+        draw.rectangle((x(second), bottom - (bottom - top) * value / max(peak, 1e-6) * 0.9, x(second + 1) - 1, bottom),
+                       fill="#EEF2F6")
+    for db in (-12, -24, -36, -48):
+        draw.line((left, y(db), width - 10, y(db)), fill="#DEE2E6")
+        draw.text((4, y(db) - 6), str(db), fill="#868E96")
+    for cut in (report.get("metrics") or {}).get("cuts") or []:
+        draw.line((x(cut), top, x(cut), bottom), fill="#ADB5BD", width=1)
+    points = [(x(index * hop / RATE), y(value)) for index, value in enumerate(level)]
+    draw.line(points, fill="#1C7ED6", width=1)
+    colours = {"early": "#E03131", "late": "#E03131", "synced": "#2F9E44", "on-cut": "#2F9E44"}
+    for index, cue in enumerate(cues):
+        colour = colours.get(cue.get("status"), "#495057")
+        draw.line((x(cue["at"]), top - 4, x(cue["at"]), bottom), fill=colour, width=1)
+        draw.text((x(cue["at"]) + 2, 4 + 14 * (index % 3)), str(cue["sound"])[:12], fill=colour)
+    for second in range(0, int(duration) + 1, max(1, int(duration) // 14 or 1)):
+        draw.text((x(second) - 3, bottom + 6), str(second), fill="#495057")
+    image.save(target)
+    return target
+
+
+def cut_pairs(video, report, target, tile=270, limit=12):
+    """The last frame before and the first frame after every hard cut, side by side, one row per cut."""
+    from PIL import Image, ImageDraw
+    from .film_qa import probe
+    cuts = ((report.get("metrics") or {}).get("cuts") or [])[:limit]
+    if not cuts:
+        return None
+    fps = probe(video)["fps"]
+    rows = []
+    with tempfile.TemporaryDirectory() as temp:
+        for index, cut in enumerate(cuts):
+            frame = int(round(cut * fps))
+            pair = []
+            for side, number in (("before", frame - 1), ("after", frame)):
+                path = Path(temp) / f"{index}-{side}.png"
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-vf",
+                                f"select=eq(n\\,{max(0, number)}),scale={tile}:-2", "-frames:v", "1", str(path)],
+                               capture_output=True, check=False)
+                if not path.is_file():
+                    break
+                pair.append(Image.open(path).convert("RGB"))
+            if len(pair) == 2:
+                rows.append((cut, pair))
+    if not rows:
+        return None
+    high = rows[0][1][0].height
+    sheet = Image.new("RGB", (tile * 2 + 12, (high + 22) * len(rows)), "#FFFFFF")
+    draw = ImageDraw.Draw(sheet)
+    for row, (cut, (before, after)) in enumerate(rows):
+        top = row * (high + 22)
+        draw.text((4, top + 4), f"cut at {cut:.2f} s: before | after", fill="#212529")
+        sheet.paste(before, (0, top + 20))
+        sheet.paste(after, (tile + 12, top + 20))
+    sheet.save(target)
+    return target
+
+
+def review_pack(episode, video=None, lenses=LENSES):
     from .film_qa import run as film_qa
     where = paths(episode)
     if video:
@@ -383,9 +560,37 @@ def review_pack(episode, video=None):
                         str(pack / name)], capture_output=True, check=False)
         if (pack / name).is_file():
             files.append(name)
-    target = f"episodes/{where['slug']}/review/director-{video.parent.name}.md"
-    (pack / "prompt.md").write_text(PROMPT.format(files=", ".join(files), target=target), encoding="utf-8")
-    return {"pack": str(pack), "files": files + ["prompt.md"], "video": str(video), "write_notes_to": target}
+    unknown = [lens for lens in lenses if lens not in LENSES]
+    if unknown:
+        raise ValueError(f"Unknown lens {', '.join(unknown)}; choose from {', '.join(LENSES)}.")
+    report_data = json.loads(report.read_text(encoding="utf-8")) if report.is_file() else {}
+    earlier = earlier_notes(where)
+    stills = [name for name in files if name.startswith("still-")]
+    prompts, targets = [], {}
+    for lens in lenses:
+        lens_files = list(files)
+        if lens == "director":
+            template, prompt_name = PROMPT, "prompt.md"
+        elif lens == "sound":
+            template, prompt_name = SOUND_PROMPT, "prompt-sound.md"
+            cues = cue_table(video.parent / "timeline.json", report_data)
+            (pack / "sound-cues.json").write_text(json.dumps(cues, indent=2) + "\n", encoding="utf-8")
+            lens_files = ["sound-cues.json", "report.json"] + stills
+            if sound_chart(video, cues, report_data, pack / "sound.png"):
+                lens_files.insert(0, "sound.png")
+        else:
+            template, prompt_name = CONTINUITY_PROMPT, "prompt-continuity.md"
+            lens_files = stills + (["treatment.md"] if "treatment.md" in files else [])
+            if cut_pairs(video, report_data, pack / "cuts.png"):
+                lens_files.insert(0, "cuts.png")
+        target = f"episodes/{where['slug']}/review/{lens}-{video.parent.name}.md"
+        (pack / prompt_name).write_text(template.format(files=", ".join(lens_files), target=target, earlier=earlier),
+                                        encoding="utf-8")
+        prompts.append(prompt_name)
+        targets[lens] = target
+    extra = [name for name in ("sound.png", "sound-cues.json", "cuts.png") if (pack / name).is_file()]
+    return {"pack": str(pack), "files": files + extra + prompts, "video": str(video),
+            "write_notes_to": targets.get("director") or next(iter(targets.values())), "lenses": targets}
 
 
 def main():
@@ -399,6 +604,9 @@ def main():
             command.add_argument("--write", action="store_true", help="put the stage on NOTES.md's Status line")
         else:
             command.add_argument("--video", type=Path)
+        if name == "review-pack":
+            command.add_argument("--lens", default=",".join(LENSES),
+                                 help=f"comma-separated reviewers to prepare (default: {','.join(LENSES)})")
     check = commands.add_parser("verify")
     check.add_argument("delivery", type=Path)
     args = parser.parse_args()
@@ -417,7 +625,8 @@ def main():
         print(json.dumps(report, indent=2))
         return 0 if report["ok"] else 1
     try:
-        print(json.dumps(review_pack(args.episode, args.video), indent=2))
+        lenses = tuple(lens.strip() for lens in args.lens.split(",") if lens.strip())
+        print(json.dumps(review_pack(args.episode, args.video, lenses), indent=2))
     except ValueError as error:
         print(f"studio: {error}", file=sys.stderr)
         return 1

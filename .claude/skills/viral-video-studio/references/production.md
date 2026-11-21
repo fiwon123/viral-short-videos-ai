@@ -10,7 +10,7 @@ Hold every episode to the [direction standard](direction.md): the subject is mov
 2. **Audio locked.** Measured takes for every line (below); timing follows the takes.
 3. **Hardest shot first.** Build the shot the episode depends on (usually the payoff) at full quality, then the hook. Render both key stills and look at them at phone size.
 4. **The whole draft early.** Every shot blocked, then `make preview EPISODE=...`: a complete Short at preview size with its sound, long before polish.
-5. **Director round.** `film-qa/` on the draft, then `make review-pack EPISODE=...` for a cold reviewer, whose notes go in `episodes/<episode>/review/`. Fix the P0s, render the draft again.
+5. **Director round.** `film-qa/` on the draft, then `make review-pack EPISODE=...` for cold reviewers: the director, sound and continuity lenses, one subagent each, whose notes go in `episodes/<episode>/review/`. Fix the P0s, render the draft again.
 6. **Master.** Then finishing (motion blur, supersample, grade), the full render, and its film-qa verdict before delivery.
 7. **Deliver.** `make deliver EPISODE=...` reruns film-qa, treatment-lint and viral-check on the master, refuses a red verdict, and writes `delivery.md` beside the MP4: sealed facts the tool wrote, then your notes on each amber item. Hand the user the render only after it passes. `make deliver VERIFY=.../delivery.md` confirms nobody edited the facts or the MP4 since.
 

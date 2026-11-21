@@ -135,6 +135,13 @@ Episodes that came out well had a demanding critic. When the user gives one line
 
 `make review-pack EPISODE=...` builds the packet for that reviewer in `episodes/<episode>/review/pack-<render>/`: the contact sheet, the energy chart, the film-qa report, the treatment, a frame at each of the treatment's key stills, and a filled `prompt.md` (picture first with words covered, the frame-time questions, the three notes a demanding director would give, ranked P0/P1). Hand the reviewer only that folder. Their notes go to `review/director-<render>.md`, which `make state` and `make deliver` look for.
 
+The same pack prepares two more reviewers, each given one lens and its own evidence; run them as separate subagents so one reviewer's taste does not cover another's blind spot:
+
+- **Sound** (`prompt-sound.md`). The reviewer cannot hear, so it reads `sound.png` (the mix's level over time, every cue and cut marked, the picture's energy behind) and `sound-cues.json` (every cue with its shot and film-qa's sync status). It checks the hook's first sound, the lock of every hit, a visible cause for every sound and a sound for every expected action, stacked effects, the payoff as the loudest moment, the music's joins and the end. Notes to `review/sound-<render>.md`.
+- **Continuity** (`prompt-continuity.md`). `cuts.png` puts the last frame before and the first frame after every hard cut side by side; with the key stills it checks contact with the floor, who owns each limb and prop, the same cast, props, direction and scale across the cut, layering, set edges and one style. Notes to `review/continuity-<render>.md`.
+
+Every prompt lists the earlier review notes, so a second round checks the fixes instead of repeating them. `LENS=sound` (or `continuity`, `director`, comma-separated) prepares only those.
+
 When no independent reviewer is available, run the pass yourself from the same packet and say so in the notes. A director's note written by the maker is weaker evidence; `delivery.md` lists the file either way and never reads it.
 
 The notes that come up most: the opening is not one strong idea; the energy is the same throughout; the payoff is too small or too wide; the picture is thin (one ground, one framing); text sits over the action; the end freezes; nothing in it could only be this channel.
