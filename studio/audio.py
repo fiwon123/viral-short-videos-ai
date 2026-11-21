@@ -159,9 +159,39 @@ def effect(name):
     return env * (tone * 0.6 + np.sin(2 * np.pi * 987.77 * t) * 0.4)
 
 
+def play_segments(track, segments, fade=0.01, fade_out=0.0):
+    """Play ``[start, end]`` source spans (seconds) back to back, with an equal-power crossfade of
+    ``fade`` seconds centred on each join, so the result is exactly the sum of the spans."""
+    stereo = track if track.ndim > 1 else np.stack([track, track], axis=1)
+    edges = np.round(np.cumsum([0.0] + [end - start for start, end in segments]) * SAMPLE_RATE).astype(int)
+    out = np.zeros((int(edges[-1]), 2), dtype=np.float32)
+    half = int(fade * SAMPLE_RATE / 2)
+    for index, (start, end) in enumerate(segments):
+        lead = half if index > 0 else 0
+        tail = half if index < len(segments) - 1 else 0
+        source = int(round(start * SAMPLE_RATE))
+        first, last = edges[index] - lead, edges[index + 1] + tail
+        piece = stereo[max(0, source - lead):source - lead + (last - first)].copy()
+        if len(piece) < last - first:
+            piece = np.concatenate([piece, np.zeros((last - first - len(piece), 2), dtype=np.float32)])
+        if lead:
+            piece[:2 * lead] *= np.sin(np.linspace(0, np.pi / 2, 2 * lead))[:, None]
+        if tail:
+            piece[-2 * tail:] *= np.cos(np.linspace(0, np.pi / 2, 2 * tail))[:, None]
+        out[first:last] += piece  # the incoming span starts ``lead`` early: the fades overlap on the join
+    if fade_out:  # a shortened ring-out ends on a fade, not a cut
+        size = min(len(out), int(fade_out * SAMPLE_RATE))
+        out[len(out) - size:] *= np.linspace(1, 0, size)[:, None] ** 2
+    return out
+
+
 def music_bed(spec, base):
     if "library_file" in spec:  # Picked from the channel music library by studio.music.
-        return read_audio(Path(spec["library_file"]), channels=2)
+        track = read_audio(Path(spec["library_file"]), channels=2)
+        if spec.get("arrangement"):  # fitted to the episode on bar lines (studio.music.arrange)
+            plan = spec["arrangement"]
+            return play_segments(track, plan["segments"], fade_out=0.3 if plan.get("end_trim") else 0.0)
+        return track
     if "file" in spec:
         return read_audio(asset(base, spec["file"]), channels=2)
     notes = []
@@ -481,12 +511,16 @@ def mix_global(path, total_frames, fps, dialogue, sfx, bed, music_config, ambien
     tracks["sfx"] = glue(tracks["sfx"])
     if bed is not None and music_config.get("gain", 0):
         stereo = bed if bed.ndim > 1 else np.stack([bed, bed], axis=1)
-        absolute = np.arange(length, dtype=np.int64)
-        indices = absolute % len(stereo)
-        music = stereo[indices] * float(music_config.get("gain", 0.1))
-        if not music_config.get("loop", True):
-            music = music.copy()
-            music[absolute >= len(stereo)] = 0
+        if music_config.get("arrangement"):  # already exactly the episode's length: never wrap it
+            music = np.zeros((length, 2), dtype=np.float32)
+            music[:min(length, len(stereo))] = stereo[:length] * float(music_config.get("gain", 0.1))
+        else:
+            absolute = np.arange(length, dtype=np.int64)
+            indices = absolute % len(stereo)
+            music = stereo[indices] * float(music_config.get("gain", 0.1))
+            if not music_config.get("loop", True):
+                music = music.copy()
+                music[absolute >= len(stereo)] = 0
         music *= _duck_abs(intervals, length, music_config.get("duck"))[:, None]
         # A short dip under each hit lets SFX punch through without pumping the bed.
         hit_duck = {"amount": 0.28, "attack": 0.005, "release": 0.22, **(music_config.get("sfx_duck") or {})}
@@ -664,6 +698,8 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
         kind = "library" if "library_file" in music else "file" if "file" in music else "preset"
         source = music.get("library_track") or music.get("file", music.get("preset"))
         timeline["music"] = {"kind": kind, "source": source, "gain": music.get("gain", 0.10)}
+        if music.get("arrangement"):  # how the track was fitted: film-qa reports a loud join
+            timeline["music"]["arrangement"] = music["arrangement"]
         from .anchors import music_grid
         try:
             grid = music_grid(music, base)

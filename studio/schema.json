@@ -241,6 +241,8 @@
           }
         },
         "library_track": {"type": "string"},
+        "fit": {"description": "Arrange a library track to the episode's length on bar lines, keeping its own opening and ending (default true).", "type": "boolean"},
+        "arrangement": {"description": "Set by the music expander; do not author.", "type": "object"},
         "gain": {"$ref": "#/$defs/unit"},
         "loop": {"type": "boolean"},
         "fade_in": {"type": "number", "minimum": 0, "maximum": 30},

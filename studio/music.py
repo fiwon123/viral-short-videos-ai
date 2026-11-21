@@ -18,9 +18,16 @@ Episodes then ask for music by feel instead of by file::
 The pick is deterministic per episode and favours tracks long enough for the
 episode and close to the requested tempo (``bpm``: ``[min, max]``), so a channel
 keeps a consistent sound without repeating one track on every upload.
+
+The picked track is then fitted to the episode (``arrange``): its opening and its
+own ending stay, whole bars come out of the middle or repeat, every join sits on a
+bar line, and the arrangement is exactly the episode's length. ``fit: false`` turns
+it off. The idea comes from huashu-motion's track arrangement (MIT); the planner is
+our own.
 """
 
 import argparse
+from functools import lru_cache
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -113,6 +120,116 @@ def beat_grid(path):
     if not bpm:
         return None
     return {"bpm": bpm, "offset": first_beat(samples, bpm)}
+
+
+JOIN_STEP = 6.0  # dB: a join whose loudness changes more than this is audible as an edit
+
+
+def _audible_end(samples):
+    """Seconds to the end of the track's own ending: trailing silence trimmed, the ring-out kept."""
+    hop = RATE // 20
+    blocks = len(samples) // hop
+    if not blocks:
+        return len(samples) / RATE
+    level = 20 * np.log10(np.sqrt(np.mean(samples[:blocks * hop].reshape(blocks, hop) ** 2, axis=1)) + 1e-9)
+    loud = np.nonzero(level > level.max() - 45)[0]
+    return min(len(samples), (int(loud[-1]) + 1) * hop) / RATE if len(loud) else len(samples) / RATE
+
+
+def _ring_out(samples, end):
+    """Seconds of decay after the track's last loud moment (its final hit or chord), up to ``end``."""
+    hop = RATE // 20
+    blocks = int(end * RATE) // hop
+    if not blocks:
+        return 0.0
+    level = 20 * np.log10(np.sqrt(np.mean(samples[:blocks * hop].reshape(blocks, hop) ** 2, axis=1)) + 1e-9)
+    loud = np.nonzero(level >= level.max() - 12)[0]
+    return max(0.0, end - (int(loud[-1]) + 1) * hop / RATE) if len(loud) else 0.0
+
+
+def _level(samples, at, side):
+    """Loudness (dB) over the 0.4 s before (``side`` -1) or after (+1) ``at`` seconds."""
+    width = int(0.4 * RATE)
+    centre = int(at * RATE)
+    part = samples[max(0, centre - width):centre] if side < 0 else samples[centre:centre + width]
+    return 20 * np.log10(np.sqrt(np.mean(part ** 2)) + 1e-9) if len(part) else -180.0
+
+
+def arrange(samples, runtime, beat, loop=True):
+    """Plan how a track plays for exactly ``runtime`` seconds without losing its opening or its ending.
+
+    Whole bars come out of the middle (a long track) or repeat (a short one), joined only on bar
+    lines so the beat carries across. The part of a bar left over comes out of the ending's
+    ring-out (keeping 0.3 s of it, faded), then off the head. Returns ``{"segments": [[start, end],
+    ...], "joins": [...], "offset": film beat offset, "head_trim", "end_trim", "warning"?}`` in
+    source seconds, or None when the track has no beat grid or cannot be fitted.
+    """
+    bpm = float((beat or {}).get("bpm") or 0)
+    if bpm <= 0 or runtime <= 0:
+        return None
+    per_bar = int(beat.get("per_bar", 4))
+    period = 60.0 / bpm * per_bar
+    offset = float(beat.get("offset", 0)) % period
+    end = _audible_end(samples)
+    bars = [offset + index * period for index in range(int((end - offset) // period) + 1)]
+    if len(bars) < 3:
+        return None
+
+    def step(cut_from, cut_to):
+        return round(float(abs(_level(samples, cut_from, -1) - _level(samples, cut_to, 1))), 1)
+
+    ring = max(0.0, _ring_out(samples, end) - 0.3)
+
+    def split(spare):  # under one bar too long: shorten the ring-out first, then the head
+        cut = min(spare, ring)
+        return spare - cut, cut
+
+    if end >= runtime:
+        drop = int((end - runtime) // period)  # whole bars to take out
+        head, tail_cut = split(end - drop * period - runtime)
+        if drop == 0:
+            segments, joins = [[head, end]], []
+        else:
+            choices = [(index, index + drop) for index in range(1, len(bars))
+                       if index + drop < len(bars) - 1 and bars[index] > head]  # a full bar of ending stays
+            if not choices:
+                return None
+            # The smoothest join; among equals, the one that keeps the most of the opening.
+            first, last = min(choices, key=lambda pair: (step(bars[pair[0]], bars[pair[1]]), -pair[0]))
+            segments = [[head, bars[first]], [bars[last], end]]
+            joins = [{"from": bars[first], "to": bars[last], "step_db": step(bars[first], bars[last])}]
+    else:
+        if not loop:
+            return None
+        add = int(np.ceil((runtime - end) / period - 1e-9))  # whole bars to repeat
+        head, tail_cut = split(end + add * period - runtime)
+        # Jump back from bar b to an earlier bar; never repeat the very first bar or the ending.
+        candidates = [(back, b) for b in range(2, len(bars) - 1) for back in range(1, b)
+                      if bars[back] > head]
+        if not candidates:
+            return None
+        back, at = min(candidates, key=lambda pair: (step(bars[pair[1]], bars[pair[0]]), -(pair[1] - pair[0])))
+        span = at - back
+        segments, joins, left = [[head, bars[at]]], [], add
+        while left > 0:
+            take = min(span, left)
+            segments.append([bars[at - take], bars[at]])
+            joins.append({"from": bars[at], "to": bars[at - take], "step_db": step(bars[at], bars[at - take])})
+            left -= take
+        segments.append([bars[at], end])
+    segments[-1][1] = end - tail_cut
+    beat_period = 60.0 / bpm
+    plan = {"segments": [[round(a, 4), round(b, 4)] for a, b in segments],
+            "head_trim": round(head, 3), "end_trim": round(tail_cut, 3),
+            "joins": [{key: round(value, 4) if key != "step_db" else value for key, value in join.items()}
+                      for join in joins],
+            "offset": round((float(beat.get("offset", 0)) - head) % beat_period, 4),
+            "source_end": round(end, 3)}
+    worst = max((join["step_db"] for join in joins), default=0.0)
+    if worst > JOIN_STEP:
+        plan["warning"] = (f"The smoothest join still changes loudness by {worst:.1f} dB: listen to it, "
+                           "or pick another track (music.library_track) or set fit: false.")
+    return plan
 
 
 def analyse(path):
@@ -225,7 +342,20 @@ def expand(episode, channel, channel_dir):
                         "library_file": str((base / track["file"]).resolve()), "library_track": track["title"]}
     if track.get("bpm") and track.get("first_beat") is not None and "beat" not in music:
         episode["music"]["beat"] = {"bpm": track["bpm"], "offset": track["first_beat"]}  # for at_beat anchors
+    beat = episode["music"].get("beat")
+    if beat and music.get("fit", True) and runtime > 0:
+        path = Path(episode["music"]["library_file"])
+        plan = _plan(str(path), path.stat().st_mtime, round(runtime, 4), float(beat["bpm"]),
+                     float(beat.get("offset", 0)), int(beat.get("per_bar", 4)), bool(music.get("loop", True)))
+        if plan:
+            episode["music"]["arrangement"] = json.loads(json.dumps(plan))  # never hand out the cached dict
+            episode["music"]["beat"] = {**beat, "offset": plan["offset"]}  # the arranged track's grid
     return episode
+
+
+@lru_cache(maxsize=16)
+def _plan(path, stamp, runtime, bpm, offset, per_bar, loop):
+    return arrange(decode(path), runtime, {"bpm": bpm, "offset": offset, "per_bar": per_bar}, loop)
 
 
 def main():

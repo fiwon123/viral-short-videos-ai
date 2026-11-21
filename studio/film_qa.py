@@ -19,6 +19,8 @@ picture freezes for seconds. This tool reads the pixels instead:
                 when one framing holds for most of it)
 * pop           a single frame that jumps away and back (a glitch, not two cuts)
 * first-frame   frame 0 is a different picture from the opening (the poster is wrong)
+* music-join    the library track was fitted to length with a join that changes
+                loudness by more than 6 dB (timeline.json ``music.arrangement``)
 * off-beat      a montage whose cuts mostly miss the music's beat (when the
                 render's timeline.json carries the track's beat grid)
 * sound-early / sound-late
@@ -313,6 +315,19 @@ def sync(change, cuts, glitch, fps, cues, level, shots=(), captions=()):
     return notes, rows
 
 
+def music_notes(path):
+    """A note when the music was fitted with a join whose loudness jumps (studio.music.arrange)."""
+    if not path or not Path(path).is_file():
+        return []
+    plan = (json.loads(Path(path).read_text(encoding="utf-8")).get("music") or {}).get("arrangement") or {}
+    if not plan.get("warning"):
+        return []
+    worst = max(plan.get("joins") or [{}], key=lambda join: join.get("step_db", 0))
+    return [_note("music-join", "medium", f"The music jumps {worst.get('step_db', 0):.1f} dB where it was fitted "
+                  f"to length (source {worst.get('from', 0):.2f} s to {worst.get('to', 0):.2f} s).",
+                  plan["warning"], step_db=worst.get("step_db"))]
+
+
 def on_beat(cuts, beat, fps):
     """Share of cut times within a frame (at least 40 ms) of the track's beat grid."""
     if not cuts or not beat or not beat.get("bpm"):
@@ -551,6 +566,7 @@ def run(video, out=None, route=None, stops=(), treatment=None, timeline=None, im
                                         caption_changes(timeline))
     out = Path(out) if out else video.parent / "film-qa"
     out.mkdir(parents=True, exist_ok=True)
+    notes += music_notes(timeline)
 
     def where(path):  # relative to the video's folder, so a renamed render package stays valid
         try:
