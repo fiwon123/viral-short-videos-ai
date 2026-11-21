@@ -102,6 +102,21 @@ class AnalyseTests(unittest.TestCase):
         self.assertEqual(analyse(stack, FPS)[1]["cuts"], [1.0])
         self.assertEqual(analyse(stack.mean(axis=3), FPS)[1]["cuts"], [])
 
+    def test_a_cut_in_on_the_same_set_is_a_cut_but_a_fast_move_is_not(self):
+        from studio.film_qa import analyse
+        def framed(size, top=40):
+            frame = np.full((128, 72), 100.0, dtype=np.float32)
+            frame[top:top + size, 36 - size // 2:36 + size // 2] = 160  # one subject on a flat set
+            return frame
+        wide, medium = framed(24), framed(48, top=30)
+        self.assertLess(float(np.abs(medium - wide).mean()), 18, "under the hard-cut threshold")
+        notes, metrics, _ = analyse(np.stack(held(wide, 1) + held(medium, 1)), FPS)
+        self.assertEqual(metrics["cuts"], [1.0])
+        # The same change spread over a burst of frames is motion (a crash zoom), not a cut.
+        burst = [framed(24 + step * 3, top=40 - step) for step in range(9)]
+        _, metrics, _ = analyse(np.stack(held(wide, 1) + burst + held(burst[-1], 1)), FPS)
+        self.assertEqual(metrics["cuts"], [])
+
     def test_a_single_frame_pop_is_a_glitch_not_two_cuts(self):
         from studio.film_qa import analyse
         frames = moving(3)
