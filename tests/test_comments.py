@@ -142,6 +142,16 @@ class ServerTests(unittest.TestCase):
         status, headers, body = self.request("/video.mp4")
         self.assertEqual((status, len(body), headers["Accept-Ranges"]), (200, size, "bytes"))
 
+    def test_a_busy_port_falls_through_to_the_next(self):
+        from studio.comments import server
+        taken = self.server.server_address[1]
+        second = server(self.layout.episode, port=taken)
+        try:
+            self.assertNotEqual(second.server_address[1], taken)
+            self.assertLessEqual(second.server_address[1], taken + 10)
+        finally:
+            second.server_close()
+
     def test_the_page_and_its_script_are_served(self):
         status, _, body = self.request("/")
         self.assertEqual(status, 200)

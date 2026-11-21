@@ -262,12 +262,20 @@ class Handler(BaseHTTPRequestHandler):
         self._json(201, comment)
 
 
-def server(episode, video=None, port=8765):
-    """A review server for ``episode`` (not started)."""
+def server(episode, video=None, port=8765, tries=10):
+    """A review server for ``episode`` (not started). When ``port`` is taken (``make editor`` is running)
+    the next free one is used; ``server_address`` says which."""
     handler = type("ReviewHandler", (Handler,), {"episode": Path(episode).resolve(),
                                                  "video": Path(video).resolve() if video else newest_render(episode)})
     # The dev sandbox sets STUDIO_EDITOR_HOST=0.0.0.0 so the published port reaches the server.
-    return ThreadingHTTPServer((os.environ.get("STUDIO_EDITOR_HOST", "127.0.0.1"), port), handler)
+    host = os.environ.get("STUDIO_EDITOR_HOST", "127.0.0.1")
+    for offset in range(tries if port else 1):
+        try:
+            return ThreadingHTTPServer((host, port + offset if port else 0), handler)
+        except OSError:
+            if offset == tries - 1:
+                raise
+    raise OSError(f"No free port from {port}")
 
 
 def main():
@@ -292,8 +300,12 @@ def main():
             print(json.dumps(resolve(args.episode, args.id, args.reply), indent=2, ensure_ascii=False))
         else:
             running = server(args.episode, args.video, args.port)
-            url = f"http://127.0.0.1:{args.port}/"
+            port = running.server_address[1]
+            url = f"http://127.0.0.1:{port}/"
             print(f"review: {url} ({running.RequestHandlerClass.video.parent.name})")
+            if port != args.port:
+                print(f"review: port {args.port} is busy (make editor?), using {port}. In the dev sandbox only the "
+                      f"published port reaches the browser: stop the other server or run on the host.")
             if not args.no_browser:
                 webbrowser.open(url)
             try:
