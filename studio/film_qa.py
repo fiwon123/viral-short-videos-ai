@@ -28,8 +28,9 @@ picture freezes for seconds. This tool reads the pixels instead:
                 45 ms before or 125 ms after the picture event it lands on: the
                 frame where motion starts or stops in the same shot. Caption
                 changes are not events, a sound on a cut is on the cut, and a
-                sustained or unmatched sound is listed but not judged
-                (``metrics.sync``). Needs the render's timeline.json.
+                sustained, unmatched or repeated sound (several attacks in its
+                own sample: a rattle, a splash, chewing) is listed but not
+                judged (``metrics.sync``). Needs the render's timeline.json.
 
 Writes ``film-qa/report.json``, ``film-qa/energy.png`` (the curve, with shot
 boundaries and dead runs) and ``film-qa/sheet.png`` (a contact sheet at up to
@@ -47,6 +48,7 @@ in cinetic (all MIT). The sync tolerances follow ITU-R BT.1359 detectability.
 """
 
 import argparse
+from functools import lru_cache
 import json
 from pathlib import Path
 import re
@@ -161,16 +163,66 @@ def beat_from_timeline(path):
     return (json.loads(Path(path).read_text(encoding="utf-8")).get("music") or {}).get("beat")
 
 
+def sample_roots(render):
+    """Folders a render's cue ``source`` paths may be relative to: the channel's audio library, the
+    channel, and the episode (``workspace/<channel>/renders/<episode>-...``)."""
+    render = Path(render)
+    channel = render.parent.parent / "channel"
+    roots = []
+    if (channel / "channel.json").is_file():
+        library = json.loads((channel / "channel.json").read_text(encoding="utf-8")).get("audio_library")
+        if library:
+            roots.append((channel / library).parent)
+        roots.append(channel)
+    episodes = render.parent.parent / "episodes"
+    if episodes.is_dir():
+        names = [folder for folder in episodes.iterdir() if render.name.startswith(folder.name)]
+        if names:
+            roots.append(max(names, key=lambda folder: len(folder.name)))
+    return roots
+
+
 def cues_from_timeline(path):
-    """Sound effect cues as ``{"sound", "at", "shot"}``, ``at`` in seconds from the start."""
+    """Sound effect cues as ``{"sound", "at", "shot", "sample"?}``, ``at`` in seconds from the start;
+    ``sample`` is the cue's own audio file when it can be found."""
     if not path or not Path(path).is_file():
         return []
     timeline = json.loads(Path(path).read_text(encoding="utf-8"))
     fps = float(timeline.get("fps", 24))
-    return [{"sound": cue.get("sound") or cue.get("cue") or Path(str(cue.get("source", "sfx"))).stem,
-             "at": cue["start"] / fps, "shot": shot["id"]}
-            for scene in timeline.get("scenes", []) for shot in scene.get("shots", [])
-            for cue in shot.get("sfx", []) if "start" in cue]
+    roots = sample_roots(Path(path).parent)
+    cues = []
+    for scene in timeline.get("scenes", []):
+        for shot in scene.get("shots", []):
+            for cue in shot.get("sfx", []):
+                if "start" not in cue:
+                    continue
+                entry = {"sound": cue.get("sound") or cue.get("cue") or Path(str(cue.get("source", "sfx"))).stem,
+                         "at": cue["start"] / fps, "shot": shot["id"]}
+                source = cue.get("source")
+                found = next((root / source for root in roots if source and (root / source).is_file()), None)
+                if found:
+                    entry["sample"] = str(found)
+                cues.append(entry)
+    return cues
+
+
+@lru_cache(maxsize=256)
+def attacks(sample):
+    """Separate attacks in the first 0.3 s of a sound file: 1 for a hit, a click or a pop; 2 or more for a
+    rattle, a splash, chewing or chatter, which accompany an action instead of marking one frame."""
+    from .music import RATE, decode
+    try:
+        samples = decode(sample)
+    except subprocess.CalledProcessError:
+        return 1
+    samples = np.concatenate([np.zeros(int(0.05 * RATE)), samples])  # a file can start at full level
+    hop = int(RATE * LEVEL_HOP)
+    steps = len(samples) // hop
+    level = np.maximum(20 * np.log10(np.sqrt(np.mean(samples[:steps * hop].reshape(steps, hop) ** 2, axis=1)) + 1e-6),
+                       -60.0)
+    rises = np.nonzero(level[3:] - level[:-3] >= SYNC_RISE)[0]
+    starts = [index for position, index in enumerate(rises) if position == 0 or index - rises[position - 1] > 8]
+    return sum(1 for index in starts if (index - starts[0]) * LEVEL_HOP <= 0.3) if starts else 1
 
 
 def caption_changes(path):
@@ -260,6 +312,9 @@ def sync(change, cuts, glitch, fps, cues, level, shots=(), captions=()):
             row["status"] = "soft"  # a swell or a masked sound: no attack to judge
             continue
         row["heard"] = round(heard, 3)
+        if cue.get("sample") and attacks(cue["sample"]) >= 2:
+            row["status"] = "repeated"  # a rattle or a splash: several attacks, no single frame to sync to
+            continue
         if not impulsive(level, heard):
             row["status"] = "sustained"
             continue

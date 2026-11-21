@@ -198,8 +198,52 @@ def level_with(seconds, hits=(), swells=()):
     return level
 
 
+def write_hits(path, times, seconds=0.6, rate=22050):
+    """A WAV with a short decaying burst at each of ``times`` (seconds)."""
+    import wave
+    audio = np.zeros(int(seconds * rate))
+    for at in times:
+        start = int(at * rate)
+        burst = np.random.default_rng(7).uniform(-1, 1, rate // 20) * np.exp(-np.arange(rate // 20) / (rate * 0.008))
+        audio[start:start + len(burst)] += 0.7 * burst[:len(audio) - start]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(rate)
+        handle.writeframes((np.clip(audio, -1, 1) * 32767).astype("<i2").tobytes())
+    return path
+
+
 class SoundSyncTests(unittest.TestCase):
     """Each sound effect against the picture event it lands on (film_qa.sync)."""
+
+    def test_a_cue_finds_its_own_sample_and_a_rattle_is_not_judged(self):
+        from studio.film_qa import attacks, cues_from_timeline
+        with TemporaryDirectory() as temp:
+            root = Path(temp) / "workspace" / "demo"
+            (root / "channel").mkdir(parents=True)
+            (root / "channel" / "channel.json").write_text(json.dumps({"audio_library": "audio/cast.json"}))
+            write_hits(root / "channel" / "audio" / "sfx" / "thud-1.wav", [0.0])
+            write_hits(root / "channel" / "audio" / "sfx" / "rattle-1.wav", [0.0, 0.09, 0.18])
+            write_hits(root / "episodes" / "ep" / "audio" / "boing.wav", [0.0])
+            render = root / "renders" / "ep-v1"
+            render.mkdir(parents=True)
+            (render / "timeline.json").write_text(json.dumps({"fps": 24, "scenes": [{"id": "S", "shots": [
+                {"id": "A", "start": 0, "end": 96, "sfx": [
+                    {"start": 24, "sound": "thud", "source": "sfx/thud-1.wav"},
+                    {"start": 48, "sound": "rattle", "source": "sfx/rattle-1.wav"},
+                    {"start": 60, "kind": "file", "source": "audio/boing.wav"},
+                    {"start": 72, "sound": "gone", "source": "sfx/missing.wav"}]}]}]}))
+            cues = cues_from_timeline(render / "timeline.json")
+            self.assertEqual([Path(cue["sample"]).name if "sample" in cue else None for cue in cues],
+                             ["thud-1.wav", "rattle-1.wav", "boing.wav", None])
+            self.assertEqual(attacks(cues[0]["sample"]), 1)
+            self.assertEqual(attacks(cues[1]["sample"]), 3)
+            # Off the picture by 250 ms: a single hit is flagged, a rattle is not judged.
+            for cue, expected in ((cues[0], "late"), (cues[1], "repeated")):
+                _, rows = self.check(starts_moving(48), [{**cue, "at": 2.25}], level_with(4, hits=[2.25]))
+                self.assertEqual(rows[0]["status"], expected, cue["sound"])
 
     def check(self, stack, cues, level, captions=()):
         from studio.film_qa import analyse
