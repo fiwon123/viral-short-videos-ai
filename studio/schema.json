@@ -842,6 +842,7 @@
         "text": {"$ref": "#/$defs/text"},
         "caption": {"$ref": "#/$defs/text"},
         "spoken_text": {"$ref": "#/$defs/text"},
+        "narration": {"description": "false: leave this line out of make narration-check (a stylised voice no recogniser hears).", "type": "boolean"},
         "delivery": {"$ref": "#/$defs/text"},
         "pitch": {"description": "Shift the take in semitones (-7..7) without changing its length.", "type": "number", "minimum": -7, "maximum": 7},
         "pace": {"description": "Speak faster (>1) or slower (<1); Kokoro synthesises at that speed.", "type": "number", "minimum": 0.6, "maximum": 1.6},

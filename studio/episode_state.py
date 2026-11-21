@@ -309,7 +309,21 @@ def _viral(where, video):
         return {"error": (result.stderr or "no output").strip().splitlines()[-1][:200]}
 
 
-def deliver(episode, channel=None, video=None, *, viral=None):
+def _narration(where, folder):
+    """The narration check for a render, reusing its narration.json when it is newer than the video."""
+    from .narration import check
+    saved, video = folder / "narration.json", folder / "video.mp4"
+    if saved.is_file() and video.is_file() and saved.stat().st_mtime >= video.stat().st_mtime:
+        return json.loads(saved.read_text(encoding="utf-8"))
+    if not (folder / "timeline.json").is_file():
+        return {"verdict": "no-speech", "notes": []}
+    report = check(folder / "timeline.json", where["folder"])
+    if report["verdict"] not in ("unchecked", "no-speech"):
+        saved.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return report
+
+
+def deliver(episode, channel=None, video=None, *, viral=None, narration=None):
     """Gate and write delivery.md; returns (report, exit code)."""
     from .film_qa import run as film_qa
     where = paths(episode, channel)
@@ -329,6 +343,7 @@ def deliver(episode, channel=None, video=None, *, viral=None):
         return {"delivered": False, "video": str(video), "film_qa": film["verdict"], "treatment": lint["verdict"],
                 "reasons": reasons}, 2
     score = (viral or _viral)(where, video)
+    speech = (narration or _narration)(where, folder)
     info = _probe(video)
     qa = json.loads((folder / "qa.json").read_text(encoding="utf-8")) if (folder / "qa.json").is_file() else {}
     loudness = ((qa.get("audio") or {}).get("loudness") or {})
@@ -352,6 +367,12 @@ def deliver(episode, channel=None, video=None, *, viral=None):
     else:
         facts.append(f"- Viral check: **{score['score']}**/100")
         facts += [f"  - {note['severity']} `{note['kind']}`: {note['note']}" for note in score["notes"]]
+    if speech["verdict"] == "unchecked":
+        facts.append(f"- Narration: **not checked** ({speech.get('reason', 'no recogniser')})")
+    elif speech["verdict"] != "no-speech":
+        facts.append(f"- Narration: **{speech['verdict']}** ({len(speech.get('lines', []))} line(s) heard back with "
+                     f"faster-whisper {speech.get('model', '')})".replace(" )", ")"))
+        facts += [f"  - {note['severity']} `{note['kind']}`: {note['note']}" for note in speech["notes"]]
     facts.append(f"- Director's notes: {', '.join(f'`review/{path.name}`' for path in notes)} (listed, not read)"
                  if notes else "- Director's notes: **none** (no review/*.md; the director pass did not happen)")
     facts.append(f"- Publishing copy: {'`publishing.md`' if (folder / 'publishing.md').is_file() else 'missing'}")
@@ -360,7 +381,8 @@ def deliver(episode, channel=None, video=None, *, viral=None):
     body = "\n".join(facts) + "\n"
     seal = hashlib.sha256(body.encode()).hexdigest()
     ambers = [f"film-qa `{note['kind']}`" for note in film["notes"] if note["severity"] == "medium"] + \
-        [f"treatment `{note['kind']}`" for note in lint["notes"] if note["severity"] == "medium"]
+        [f"treatment `{note['kind']}`" for note in lint["notes"] if note["severity"] == "medium"] + \
+        [f"narration `{note['kind']}`" for note in speech["notes"] if note["severity"] in ("medium", "high")]
     maker = ["## Maker's notes", "",
              "Write below this line. Say why each amber item is acceptable, what the director's notes changed, and "
              "what to paste where (see `publishing.md`)."]
@@ -377,7 +399,8 @@ def deliver(episode, channel=None, video=None, *, viral=None):
             document = document.split("## Maker's notes", 1)[0] + "## Maker's notes" + earlier[1]
     target.write_text(document, encoding="utf-8")
     return {"delivered": True, "delivery": str(target), "video": str(video), "film_qa": film["verdict"],
-            "treatment": lint["verdict"], "viral_check": score.get("score"), "director_notes": len(notes),
+            "treatment": lint["verdict"], "viral_check": score.get("score"), "narration": speech["verdict"],
+            "director_notes": len(notes),
             "amber": ambers}, 0
 
 
