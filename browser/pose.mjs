@@ -82,6 +82,14 @@ function catmullRom(p0, p1, p2, p3, t) {
     + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
 }
 
+// Camera zoom is interpolated as log(zoom) so a push or a pull moves at an even visual rate
+// (studio/design.py LOG_KEYS).
+const LOG_KEYS = new Set(["zoom"]);
+
+function logPair(key, a, b) {
+  return LOG_KEYS.has(key) && typeof a === "number" && typeof b === "number" && a > 0 && b > 0;
+}
+
 function mixValue(a, b, t) {
   if (Array.isArray(a)) return a.map((part, index) => part + (b[index] - part) * t);
   return a + (b - a) * t;
@@ -106,9 +114,13 @@ export function poseAt(points, progress) {
         if (Array.isArray(value)) {
           result[key] = value.map((part, index) => catmullRom(p0[index] ?? part, part,
             to[key][index], p3[index] ?? to[key][index], t));
+        } else if (logPair(key, value, to[key]) && p0 > 0 && p3 > 0) {
+          result[key] = Math.exp(catmullRom(Math.log(p0), Math.log(value), Math.log(to[key]), Math.log(p3), t));
         } else {
           result[key] = catmullRom(p0, value, to[key], p3, t);
         }
+      } else if (logPair(key, value, to[key])) {
+        result[key] = Math.exp(mixValue(Math.log(value), Math.log(to[key]), easing(t, propertyMode)));
       } else {
         result[key] = mixValue(value, to[key], easing(t, propertyMode));
       }

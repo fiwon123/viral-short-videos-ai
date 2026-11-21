@@ -6,7 +6,7 @@ at load time instead of being implemented twice.
 
 import math
 
-from .easing import ease
+from .easing import LOG_KEYS, ease
 
 
 PRESETS = {
@@ -84,7 +84,11 @@ def _sample(keys, base, at):
             t = ease(t, key.get("ease", "linear"))
             for name in state:
                 if name in key:
-                    state[name] = state[name] + (float(key[name]) - state[name]) * t
+                    target = float(key[name])
+                    if name in LOG_KEYS and state[name] > 0 and target > 0:  # as design.pose_at does
+                        state[name] = math.exp(math.log(state[name]) + (math.log(target) - math.log(state[name])) * t)
+                    else:
+                        state[name] = state[name] + (target - state[name]) * t
             return state
         for name in state:
             if name in key:

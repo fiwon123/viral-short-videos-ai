@@ -8,6 +8,12 @@ value still returns a usable result.
 
 import math
 
+# Camera zoom moves at an even visual rate when it is interpolated as log(zoom): the eye reads the
+# relative change of scale, so a linear 1.3x-to-2.95x push would visibly slow as it closes. The
+# pose interpolators (design.pose_at, camera._sample, browser/pose.mjs) treat these keys that way.
+# Adapted from cinetic's rule that zooms run in log space (MIT).
+LOG_KEYS = frozenset({"zoom"})
+
 
 def cubic_bezier(t, x1, y1, x2, y2):
     """Solve a CSS-style cubic-bezier for the y value at progress ``t``."""
