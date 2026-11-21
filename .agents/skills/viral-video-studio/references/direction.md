@@ -97,6 +97,7 @@ Rules:
 - **Accents are rationed.** About one crash zoom, whip or shake per six seconds. Every one on the reveal and the payoff; none on setup lines.
 - **In comedy, hold and cut.** A locked frame, then a hard cut to the reaction close-up, lands harder than any push.
 - **A camera move has a job and lands.** Front-loaded, eased, and finished before the cut. Never a float that drifts back to where it started.
+- **Zoom is even by default.** Camera `zoom` keys interpolate in log space, so a linear key moves at a constant visual rate (1× to 4× passes 2× halfway) and the ease you write is the shape you see. Shape a push with the ease, not by adding keys to fight the interpolation.
 
 ## Acting and motion
 

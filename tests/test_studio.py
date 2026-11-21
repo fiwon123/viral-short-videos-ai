@@ -1545,6 +1545,30 @@ class BrowserPoseParityTests(unittest.TestCase):
                     else:
                         self.assertAlmostEqual(value, other, places=6, msg=f"{layer_id}.{name}@{progress}")
 
+    def test_camera_zoom_matches_python_in_log_space(self):
+        import subprocess
+        from studio.design import camera_points
+        samples = [index / 40 for index in range(41)]
+        tracks = {}
+        for mode in POSE_MODES:
+            tracks[str(mode)] = camera_points({"camera": {"keyframes": [
+                {"at": 0, "x": 0.1, "zoom": 1.0}, {"at": 0.4, "x": -0.2, "zoom": 2.95, "ease": mode},
+                {"at": 1.0, "x": 0.0, "zoom": 1.3, "ease": mode}]}})
+        script = ("import {readFileSync} from 'fs'; import {poseAt} from './browser/pose.mjs';"
+                  "const {tracks, samples} = JSON.parse(readFileSync(0, 'utf8')); const out = {};"
+                  "for (const [id, points] of Object.entries(tracks)) out[id] = samples.map((p) => poseAt(points, p));"
+                  "process.stdout.write(JSON.stringify(out));")
+        result = subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT,
+                                input=json.dumps({"tracks": tracks, "samples": samples}),
+                                capture_output=True, text=True, check=True)
+        browser = json.loads(result.stdout)
+        for mode, points in tracks.items():
+            for progress, js in zip(samples, browser[mode]):
+                py = pose_at(points, progress)
+                for name in ("x", "zoom"):
+                    self.assertAlmostEqual(py[name], js[name], places=6, msg=f"{mode}.{name}@{progress}")
+        self.assertAlmostEqual(browser["linear"][8]["zoom"], math.sqrt(2.95), places=6)  # 0.2: halfway in log
+
 
 if __name__ == "__main__":
     unittest.main()
