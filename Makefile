@@ -33,7 +33,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa treatment-lint character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
@@ -69,6 +69,7 @@ help:
 	@echo "  make character3d OUT=....glb [SPEC=...]  rigged low-poly 3D character (bones for poses and ik)"
 	@echo "  make viral-check EPISODE=... [VIDEO=...]  score hook, pacing, loop, packaging and loudness"
 	@echo "  make film-qa VIDEO=... [EPISODE=...]  energy curve, dead runs, frozen end, framing of a render (red exits 1)"
+	@echo "  make treatment-lint EPISODE=...  check the episode's treatment.md plan before building (red exits 1)"
 	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
@@ -136,6 +137,10 @@ film-qa:
 	@test -n "$(VIDEO)" || { echo "Set VIDEO=.../video.mp4 [EPISODE=.../episode.json] [ROUTE=continuous|montage|hybrid] [STOP=8.0-8.6]"; exit 1; }
 	@$(PYTHON) -m studio.film_qa $(VIDEO) $(if $(EPISODE),--episode $(EPISODE),) $(if $(ROUTE),--route $(ROUTE),) \
 		$(if $(STOP),--stop $(STOP),)
+
+treatment-lint:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json (or its treatment.md)"; exit 1; }
+	@$(PYTHON) -m studio.treatment $(EPISODE)
 
 channel-memory:
 	@test -n "$(SLUG)" || { echo "Set SLUG=<channel slug> (workspace/<slug>/)"; exit 1; }

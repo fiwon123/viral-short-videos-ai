@@ -89,12 +89,10 @@ def parse_stops(values):
     return stops
 
 
-def read_meta(path):
-    """Route and stops declared in a treatment.md (``Route: hybrid``, ``Stop: 8.0-8.6``)."""
+def meta_from_text(text):
+    """Route and stops declared in treatment text (``Route: hybrid``, ``Stop: 8.0-8.6``)."""
     meta = {"route": None, "stops": []}
-    if not path or not Path(path).is_file():
-        return meta
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         match = re.match(r"\s*[-*]?\s*\**(route|stops?)\**\s*:\**\s*(.+)", line, re.I)
         if not match:
             continue
@@ -104,6 +102,12 @@ def read_meta(path):
         else:
             meta["stops"] += parse_stops([match.group(2)])
     return meta
+
+
+def read_meta(path):
+    if not path or not Path(path).is_file():
+        return {"route": None, "stops": []}
+    return meta_from_text(Path(path).read_text(encoding="utf-8"))
 
 
 def runs(mask):
