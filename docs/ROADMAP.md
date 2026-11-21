@@ -93,7 +93,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~Music~~ Done: `make music-import`, `music: {mood, energy, bpm}` | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | ~~Voices~~ Done: `command` engine, per-line `pitch`/`pace`/`intensity`, free options documented in the audio reference | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 214 tests.
+Tests: `make test` passes, 217 tests.
 
 ## Log
 

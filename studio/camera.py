@@ -78,7 +78,9 @@ def _sample(keys, base, at):
         end = float(key["at"])
         if at <= end:
             span = max(1e-6, end - previous)
-            t = max(0.0, min(1.0, (at - previous) / span))
+            # On or past the key (a key at 0 included) the pose is the key's: frame 0 of a shot that
+            # opens on a camera key is that key, not the default camera.
+            t = 1.0 if at >= end else max(0.0, min(1.0, (at - previous) / span))
             t = ease(t, key.get("ease", "linear"))
             for name in state:
                 if name in key:

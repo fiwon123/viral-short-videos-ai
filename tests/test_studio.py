@@ -1663,3 +1663,10 @@ class CameraShakeBakeTests(unittest.TestCase):
             after = abs(at(0.5 + 0.5 / seconds)["x"])
             self.assertGreater(max(during), 0.005, f"{seconds}s shot: the shake is felt")
             self.assertEqual(after, 0.0, f"{seconds}s shot: a 0.4 s shake is over 0.5 s later")
+
+    def test_frame_zero_is_the_first_camera_key(self):
+        camera = {"keyframes": [{"at": 0, "zoom": 2.8, "x": -0.1}, {"at": 1, "zoom": 3.0}],
+                  "shakes": [{"at": 0.5, "duration": 0.2, "amplitude": 0.01}]}
+        first = self.track(camera, 14.0)(0.0)
+        self.assertAlmostEqual(first["zoom"], 2.8)
+        self.assertAlmostEqual(first["x"], -0.1)
