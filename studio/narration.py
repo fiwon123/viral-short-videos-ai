@@ -83,6 +83,7 @@ CONTRACTIONS = {
     "en": {"gonna": "going to", "wanna": "want to", "gotta": "got to", "ok": "okay"},
 }
 CHARACTERS = ("ja", "zh")
+JOINERS = {"en": "and", "pt": "e", "es": "y", "fr": "et", "it": "e"}  # "vinte e um", "trente et un"
 
 
 def language_code(language):
@@ -108,6 +109,36 @@ def tokens(text, language="en"):
             out.append(str(sum(table[part] for part in word.split("-"))))
         else:
             out.extend(part for part in word.split("-") if part)
+    return merge_numbers(out, lang)
+
+
+def merge_numbers(words, lang):
+    """One number from one spoken in several words: "twenty one", "vinte e um" -> 21, "two hundred" -> 200,
+    "two hundred and five" -> 205. Only a value ending in zero takes a smaller one after it, so "dois e
+    três" stays two numbers, and the joining word stays when nothing is merged."""
+    joiner = JOINERS.get(lang)
+    out, index = [], 0
+    while index < len(words):
+        if not words[index].isdigit():
+            out.append(words[index])
+            index += 1
+            continue
+        value, index = int(words[index]), index + 1
+        if index < len(words) and words[index] in ("100", "1000") and 0 < value < 10:
+            value, index = value * int(words[index]), index + 1  # two hundred
+        while index < len(words):
+            at = index + 1 if words[index] == joiner and index + 1 < len(words) else index
+            if not words[at].isdigit():
+                break
+            following = int(words[at])
+            if value >= 100 and value % 100 == 0 and 0 < following < 100:
+                value += following
+            elif value >= 20 and value % 10 == 0 and value % 100 and 0 < following < 10:
+                value += following
+            else:
+                break
+            index = at + 1
+        out.append(str(value))
     return out
 
 

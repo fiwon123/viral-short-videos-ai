@@ -32,6 +32,15 @@ class TokenTests(unittest.TestCase):
         self.assertEqual(tokens("Carry-on rabbit", "en-us"), tokens("Carry on rabbit", "en-us"))
         self.assertEqual(tokens("猫が来た。", "ja"), ["猫", "が", "来", "た"])
 
+    def test_numbers_spoken_as_several_words_become_one(self):
+        from studio.narration import tokens
+        for spoken, digits, lang in (("vinte e um gatos", "21 gatos", "pt-br"), ("twenty one dogs", "21 dogs", "en-us"),
+                                     ("two hundred and five", "205", "en-us"), ("trente et un", "31", "fr-fr"),
+                                     ("treinta y cinco", "35", "es"), ("cem e vinte", "120", "pt-br")):
+            self.assertEqual(tokens(spoken, lang), tokens(digits, lang), spoken)
+        self.assertEqual(tokens("dois e três", "pt-br"), ["2", "e", "3"], "only a round value takes a smaller one")
+        self.assertEqual(tokens("o gato e o cão", "pt-br"), ["o", "gato", "e", "o", "cão"])
+
 
 class JudgeTests(unittest.TestCase):
     line = {"speaker": "N", "at": 1.0, "language": "en-us", "text": "The duck lifts the heavy barbell now."}
