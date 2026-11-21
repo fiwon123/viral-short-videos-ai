@@ -44,10 +44,10 @@ Write the rules that hold for every episode here: tone, story rules, visual and 
 
 ## `workspace/<slug>/channel/episode-ledger.md`
 
-| # | Episode | Status | Published | Topic and angle | Hook (first 2 s) | Series and arc | Format and length | Results (24 h / 7 d) | Lessons |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| # | Episode | Status | Published | Topic and angle | Hook (first 2 s) | Series and arc | Format and length | Grammar | Film QA | Results (24 h / 7 d) | Lessons |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
-Status: planned, in progress, delivered, published. Leave results empty until the user shares them.
+Status: planned, in progress, delivered, published. Leave results empty until the user shares them. Grammar is how the episode was told, as `opening: <device> · payoff: <device> · camera: <moves>` (copied from its treatment); `make treatment-lint` warns when a new episode repeats an opening or payoff from the last three rows. Film QA is the render's verdict and mean energy from `film-qa/report.json`, e.g. `green · 3.4`.
 
 ## `workspace/<slug>/channel/ideas.md` (idea bank)
 
@@ -91,6 +91,48 @@ Status: planned, in progress, delivered, published. Leave results empty until th
 ## Next episode setup
 - 
 ```
+
+## `workspace/<slug>/episodes/<episode>/treatment.md` (episode plan)
+
+```markdown
+# <Episode>: treatment
+
+Idea: <one sentence: the visible change the viewer waits for, and why it lands>
+Look: <the locked style in one line; one look for every shot>
+Route: hybrid
+Runtime: <seconds>
+Music: <track or mood, bpm>
+Opening: <device, e.g. insert on the prop already falling>
+Payoff: <device, e.g. close-up reaction after a crash zoom>
+Stop: <optional planned silence, e.g. 8.0-8.5; delete the line if none>
+
+## Energy
+
+| Stretch | Time | Energy | What carries it |
+| --- | --- | --- | --- |
+| hook | <0-2> | <0-10> | <what is moving, what we hear> |
+| build | <2-7> | <5→7> | <what each step adds> |
+| stop | <7-7.5> | <1> | <the held breath before the payoff> |
+| payoff | <7.5-11> | <9> | <the landing> |
+| exit | <11-13> | <4> | <reaction, tag or loop back to frame one> |
+
+## Shots
+
+| # | Time | Subject | Action | Size | Camera | On screen | Sound |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A | <0-2> | <the thing on screen> | <what it does> | <close> | <push-in> | <2-6 words or -> | <hit on frame one> |
+
+## Key stills
+- Hook: <shot at progress>
+- Hero: 
+- Densest: 
+- End: 
+
+## Director notes
+- 
+```
+
+Sizes: extreme-close, close, medium, wide, extreme-wide, insert, card (a text card). Camera: hold, drift, push-in, pull-out, pan, track, tilt, orbit, dolly, follow, crash-zoom, whip, shake. Route: continuous (one world, a travelling camera, few cuts), montage (cuts on the beat), hybrid (a continuous spine broken by a burst). Check it with `make treatment-lint EPISODE=...` before building shots; `make film-qa` reads its `Route:` and `Stop:` lines.
 
 ## `workspace/<slug>/episodes/<episode>/NOTES.md` (episode)
 

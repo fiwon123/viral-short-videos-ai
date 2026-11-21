@@ -140,6 +140,7 @@ make preview EPISODE=... HOOK=20           # only the opening 20 seconds
 make still EPISODE=... SHOT=A PROGRESS=0.5 # one review frame (SHEET=6 for a contact sheet)
 make viral-check EPISODE=... [VIDEO=...]   # hook, pacing, loop, loudness and packaging score
 make film-qa VIDEO=... [EPISODE=...]      # energy curve, dead runs, frozen ending, framing (red exits 1)
+make treatment-lint EPISODE=...           # the plan in treatment.md, before any shot is built
 make art CHANNEL=... SPEC=... [IMAGE=...]  # a cast member, rigged
 make hero EPISODE=... SHOT=A KEEP=title    # moving hook shot
 make support                               # renderer support matrix
