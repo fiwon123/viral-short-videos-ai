@@ -131,6 +131,18 @@ Compare uploads at the same age, not raw lifetime views. Look at:
 | Loud music | Duck harder under dialogue |
 | Unclear character | Increase silhouette, contrast and size |
 | Too long | Cut the setup, not the payoff |
+| One wide framing with the cast in a row | Wide only to set up; cut to a close-up for the reaction and an insert for the prop |
+| The picture freezes after the payoff | End on a reaction, a settle, or a move back into frame one |
+| Every shot pushes in | Go in, then come back out; keep crash zooms for the payoff |
+
+## Direct before you animate
+
+Most weak Shorts are not missing features; they are missing a plan and a hard look at the render. The studio's assistant works in this order (the full standard is in the skill's `references/direction.md`):
+
+1. **Treatment.** `episodes/<episode>/treatment.md` holds the idea in one sentence, the route (continuous, montage or hybrid), an energy curve rated 0–10 per stretch, and a shot table where every row names a subject and an action, with its shot size and camera move. `make treatment-lint EPISODE=...` fails a plan that opens on a title card, keeps one shot size throughout, pushes in three times in a row, has a flat energy curve, or repeats the last three episodes' opening or payoff.
+2. **Stills, then a whole draft.** The hardest shot and the hook as stills first, then the complete Short as a preview.
+3. **Measure and review.** Every render writes `film-qa/`: the energy per second, the stretches where nothing moves, and a contact sheet. A reviewer that did not build the episode gives the three notes a demanding director would give. The P0s are fixed before the master.
+4. **Learn.** The ledger records each episode's grammar and film-qa verdict, so the next one varies.
 
 ## Do not chase virality by copying
 

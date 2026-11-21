@@ -4,6 +4,15 @@
 
 Use the saved brand and reference research. Start vector-led 2D or 2.5D episodes with HyperFrames and GSAP-driven SVG layers. Choose where 3D adds useful perspective or motion. Open the approved character references and load recurring sets before drafting shots. Use the [staging and visual QA guide](visual-qa.md) to lock layer order, object contacts, and lighting. Follow the [renderer guide](renderers.md) for layer order and asset reuse. Define format, target length, audience, language, and voice. Select a platform-appropriate canvas and keep graphics, captions, and character actions clear of platform overlays. Establish the hook quickly, build a visual sequence that changes with each beat, and pay off the title and thumbnail promise. Check any factual claims with authoritative sources. Use original visuals and licensed or authorized assets.
 
+Hold every episode to the [direction standard](direction.md): the subject is moving on frame one, the energy has a shape, and no stretch is a slide. Work in this order, so the expensive steps come after the cheap ones have been looked at:
+
+1. **Treatment.** `treatment.md` passes `make treatment-lint EPISODE=...` (idea, route, energy curve, shot table, key stills).
+2. **Audio locked.** Measured takes for every line (below); timing follows the takes.
+3. **Hardest shot first.** Build the shot the episode depends on (usually the payoff) at full quality, then the hook. Render both key stills and look at them at phone size.
+4. **The whole draft early.** Every shot blocked, then `make preview EPISODE=...`: a complete Short at preview size with its sound, long before polish.
+5. **Director round.** `film-qa/` on the draft, the contact sheet, and a cold reviewer's notes in `episodes/<episode>/review/director.md`. Fix the P0s, render the draft again.
+6. **Master.** Then finishing (motion blur, supersample, grade), the full render, and its film-qa verdict before delivery.
+
 For original Shorts, use the [Shorts animatic and shot planning guide](shorts.md) before full production. Use the chosen story beats to set the runtime, verify the opening and payoff in a rough phone-size playback, and resolve any shot that depends on mixing 2D with 3D.
 
 Write the episode under `workspace/<channel>/episodes/<episode>/episode.json` (or `episodes/<slug>/episode.json` for a legacy project) using the `episode` definition in the [schema](../../../../studio/schema.json). Set `max_seconds` when the user's or platform's hard limit is below 720 seconds. Store imported assets alongside the manifest. Use small storyboard previews when they help resolve composition. Use the `direction` field to describe character action, expression, camera framing, environment, and sound or transition intentions. Translate each instruction into visible layers, keyframes, audio cues, or imported graphics. Use distinct scene, shot, and layer IDs so the rendered timeline can be compared to the source. Apply a `style.preset` for a coherent first pass, then override only what the story needs.
