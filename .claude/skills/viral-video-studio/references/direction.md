@@ -129,22 +129,11 @@ When a channel's look is chosen, a series changes format, or a punch-up would ch
 Episodes that came out well had a demanding critic. When the user gives one line and no notes, be that critic yourself.
 
 1. **Stills round.** The four key stills and a `make still SHEET=6` per busy shot. Fix composition, subject size, captions and contrast here, where fixes are cheap.
-2. **Draft round.** Render a full preview. Read `film-qa/report.json`, `energy.png` and `sheet.png`, then run the **director pass** with a reviewer that did not build the episode (a subagent, given only the files below). Fix every P0, as many P1s as time allows, re-render, and rerun film-qa. Only then render the master.
+2. **Draft round.** Render a full preview. Read `film-qa/report.json`, `energy.png` and `sheet.png`, then run the **director pass** with a reviewer that did not build the episode (a subagent, given only the review pack below). Fix every P0, as many P1s as time allows, re-render, and rerun film-qa. Only then render the master.
 
-The director pass prompt, filled in:
+`make review-pack EPISODE=...` builds the packet for that reviewer in `episodes/<episode>/review/pack-<render>/`: the contact sheet, the energy chart, the film-qa report, the treatment, a frame at each of the treatment's key stills, and a filled `prompt.md` (picture first with words covered, the frame-time questions, the three notes a demanding director would give, ranked P0/P1). Hand the reviewer only that folder. Their notes go to `review/director-<render>.md`, which `make state` and `make deliver` look for.
 
-```text
-You are reviewing a vertical animated Short you did not make. Be specific and demanding.
-Files: <sheet.png>, <energy.png>, <film-qa/report.json>, <the four key stills>, <treatment.md>.
-1. Picture first: cover the captions. For each row of the sheet, one line: what happens.
-   Any "nothing happens" is a P0.
-2. Answer with frame times: Is something moving on frame one? Is the subject big enough
-   to read at phone size when it changes? Is any stretch one framing with captions changing?
-   Does the payoff get its own shot size or move? Does the end move?
-   Is the cast one style with the set? Would this look the same in another channel?
-3. Give the three notes a demanding director would give, ranked P0/P1, each with the fix.
-Write the result to episodes/<episode>/review/director.md.
-```
+When no independent reviewer is available, run the pass yourself from the same packet and say so in the notes. A director's note written by the maker is weaker evidence; `delivery.md` lists the file either way and never reads it.
 
 The notes that come up most: the opening is not one strong idea; the energy is the same throughout; the payoff is too small or too wide; the picture is thin (one ground, one framing); text sits over the action; the end freezes; nothing in it could only be this channel.
 

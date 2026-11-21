@@ -10,8 +10,11 @@ Hold every episode to the [direction standard](direction.md): the subject is mov
 2. **Audio locked.** Measured takes for every line (below); timing follows the takes.
 3. **Hardest shot first.** Build the shot the episode depends on (usually the payoff) at full quality, then the hook. Render both key stills and look at them at phone size.
 4. **The whole draft early.** Every shot blocked, then `make preview EPISODE=...`: a complete Short at preview size with its sound, long before polish.
-5. **Director round.** `film-qa/` on the draft, the contact sheet, and a cold reviewer's notes in `episodes/<episode>/review/director.md`. Fix the P0s, render the draft again.
+5. **Director round.** `film-qa/` on the draft, then `make review-pack EPISODE=...` for a cold reviewer, whose notes go in `episodes/<episode>/review/`. Fix the P0s, render the draft again.
 6. **Master.** Then finishing (motion blur, supersample, grade), the full render, and its film-qa verdict before delivery.
+7. **Deliver.** `make deliver EPISODE=...` reruns film-qa, treatment-lint and viral-check on the master, refuses a red verdict, and writes `delivery.md` beside the MP4: sealed facts the tool wrote, then your notes on each amber item. Hand the user the render only after it passes. `make deliver VERIFY=.../delivery.md` confirms nobody edited the facts or the MP4 since.
+
+At any point, `make state EPISODE=...` reports the furthest stage the files on disk prove (planned, built, stills, previewed, reviewed, mastered, delivered, published), what the next stage is missing, and the exact next command. Use it to resume an episode instead of trusting a status line; `WRITE=1` puts the stage in `NOTES.md`.
 
 For original Shorts, use the [Shorts animatic and shot planning guide](shorts.md) before full production. Use the chosen story beats to set the runtime, verify the opening and payoff in a rough phone-size playback, and resolve any shot that depends on mixing 2D with 3D.
 

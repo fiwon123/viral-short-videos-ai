@@ -41,7 +41,7 @@ Create any missing file from the templates before planning. Keep entries short a
 
 ## After each episode
 
-- **Ledger:** mark the row delivered with the date, topic, hook, arc, and format. Fill **Grammar** from the treatment (`opening: … · payoff: … · camera: …`) and **Film QA** from the master's `film-qa/report.json` (verdict and mean energy).
+- **Ledger:** mark the row delivered with the date, topic, hook, arc, and format. Fill **Grammar** from the treatment (`opening: … · payoff: … · camera: …`) and **Film QA** from the master's `delivery.md` (verdict and mean energy). An episode is delivered when `make state` says so, not when a note does.
 - **Notes from the user:** quote them in `MEMORY.md` as a preference, an observation or a verified lesson (see the [direction standard](direction.md)). When a tool could have caught the problem, open a studio issue for a new check rather than only writing a rule.
 - **Series bible:** record what changed (character state, new facts, new running gag, threads opened or closed) and the setup for the next episode.
 - **Ideas:** mark the idea used, and add follow-ups the episode suggested.

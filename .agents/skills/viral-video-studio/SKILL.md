@@ -26,7 +26,8 @@ Quality comes from direction, not from the number of features in a shot. Read th
 
 - **Plan on paper first.** `episodes/<episode>/treatment.md`: the idea in one sentence, the route, the energy curve, a shot table where every row has a subject and an action, and four key stills. `make treatment-lint EPISODE=...` must pass before shots are built.
 - **Frame the change.** The thing that changes fills a third of the frame when it changes; shot sizes vary; the camera moves to punctuate, in and then out, with accents saved for the payoff. Stage in depth, not in a row facing the lens.
-- **Look before the user does.** The hardest shot and the hook as stills first, then the whole Short as a preview, then `film-qa/` and a director pass by a reviewer that did not build it. Fix the P0s before the master. A red film-qa verdict is never delivered.
+- **Prove the stage.** `make state EPISODE=...` says how far the evidence on disk goes and what to run next; `make deliver EPISODE=...` is the only way a master is handed over (it refuses red and writes sealed facts into `delivery.md`).
+- **Look before the user does.** The hardest shot and the hook as stills first, then the whole Short as a preview, then `film-qa/` and a director pass by a reviewer that did not build it (`make review-pack` builds their packet). Fix the P0s before the master. A red film-qa verdict is never delivered.
 - **Choose looks from pictures.** A new channel look or series format gets three directions as real key frames that differ in staging and technique, not palette.
 - **Learn.** Record each episode's grammar and film-qa verdict in the ledger, quote the user's notes in the channel memory, and turn a lesson a tool could catch into a studio check.
 
