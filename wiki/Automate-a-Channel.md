@@ -7,7 +7,7 @@ The goal is not “one button makes a video”. The goal is a repeatable loop wh
 | Day | Job | Output |
 | --- | --- | --- |
 | Monday | Research and idea generation | 10–15 scored ideas |
-| Tuesday | Choose 2–3 and write beat sheets | Timed beats |
+| Tuesday | Choose 2–3 and write treatments | `make treatment-lint` passes |
 | Wednesday | Build manifests and audio | Validated episodes + mix |
 | Thursday | Preview and fix | Approved previews |
 | Friday | Master, thumbnail and publish | Packages + posts |
@@ -37,7 +37,7 @@ Store these in `channel/channel.json`, `channel/brief.md`, `channel/audio/`, `ch
 Read the channel brief, the last 5 episodes and this week's analytics.
 Propose 12 ideas that fit the promise but use a new situation.
 Score each on hook, visual, payoff, loop, effort and repeatability.
-Wait for me to choose three. Then write beat sheets only, not manifests.
+Wait for me to choose three. Then write treatments only (make treatment-lint), not manifests.
 ```
 
 After approval:
@@ -69,7 +69,7 @@ If a gate fails twice, stop the batch and fix the format, not just the episode.
 
 - Research summaries
 - Idea lists and scoring
-- Beat sheets
+- Treatments (`treatment.md`)
 - Manifests and keyframes
 - Foley generation and mix
 - Caption timing

@@ -139,7 +139,7 @@ Sizes: extreme-close, close, medium, wide, extreme-wide, insert, card (a text ca
 ```markdown
 # <Episode>: notes
 
-Status: concept | script | audio locked | animating | preview | master delivered | published
+Status: concept | treatment | script | audio locked | animating | preview | reviewed | master delivered | published
 Updated: YYYY-MM-DD
 
 ## Research
@@ -149,7 +149,11 @@ Updated: YYYY-MM-DD
 - Series continuity used:
 
 ## Next step
-<exact command, e.g. make still EPISODE=... SHOT=... --sheet 5>
+<exact command, e.g. make treatment-lint EPISODE=... or make still EPISODE=... SHOT=... SHEET=5>
+
+## Review
+- Film QA (verdict, mean energy, notes left):
+- Director notes: review/director.md (P0s fixed?)
 
 ## Open issues
 - 

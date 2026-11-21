@@ -25,8 +25,9 @@ Create any missing file from the templates before planning. Keep entries short a
 5. **Respect the format.**
    - **Standalone:** prefer a timely angle (season, event, trend) that still fits the channel promise, and keep one or two evergreen ideas in reserve.
    - **Series:** continue the open threads in `series.md`. Pay off earlier setups, escalate stakes or relationships, keep continuity facts (names, injuries, objects, locations, running gags) exact, and end on a hook for the next episode. A timely topic can enter a series as the episode's situation, not as a break in the story.
-6. **Offer concepts.** Give two to four concepts with a hook, payoff, length, and visual approach, saying which is timely (and until when) and which is evergreen, and which trend or ledger lesson each draws on.
+6. **Offer concepts.** Give two to four concepts with a hook, payoff, length, and visual approach, saying which is timely (and until when) and which is evergreen, and which trend or ledger lesson each draws on. Give each an opening and a payoff device that differs from the ledger's last three Grammar entries.
 7. **Stay recognisable.** Ideas and references can evolve, but the channel's look, characters, voice, caption style, and format change only when the user decides. Prefer small, deliberate variations, such as a new location, a guest character, or a new recurring segment, over drastic shifts.
+8. **Write the treatment.** For the chosen concept, write `treatment.md` and pass `make treatment-lint` before building shots (see the [direction standard](direction.md)). When the concept introduces a new look or format, show three directions as key frames first.
 
 ## Push the odds before publishing
 
@@ -40,7 +41,8 @@ Create any missing file from the templates before planning. Keep entries short a
 
 ## After each episode
 
-- **Ledger:** mark the row delivered with the date, topic, hook, arc, and format.
+- **Ledger:** mark the row delivered with the date, topic, hook, arc, and format. Fill **Grammar** from the treatment (`opening: … · payoff: … · camera: …`) and **Film QA** from the master's `film-qa/report.json` (verdict and mean energy).
+- **Notes from the user:** quote them in `MEMORY.md` as a preference, an observation or a verified lesson (see the [direction standard](direction.md)). When a tool could have caught the problem, open a studio issue for a new check rather than only writing a rule.
 - **Series bible:** record what changed (character state, new facts, new running gag, threads opened or closed) and the setup for the next episode.
 - **Ideas:** mark the idea used, and add follow-ups the episode suggested.
 - **Results:** when the user shares numbers (views at 24 hours and 7 days, retention, comments), log them in the ledger with a one-line lesson. Prefer the patterns of episodes that outperformed the channel's median.
