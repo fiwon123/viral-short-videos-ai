@@ -56,4 +56,4 @@ The studio runs in one of two places. Both use the same Makefile targets and the
 
 ## CI
 
-`.github/workflows/ci.yml` runs on release PRs (`dev` → `main`) and by hand: the studio tests on the host toolchain (a skipped test fails the run), and the sandbox image build with the tests inside it. Feature branches are gated by `make test` locally. `branch-gate.yml` checks branch names on every PR. **Skipped is not passed**: a run that did not happen, or a job gated out, verified nothing — say the change is unverified instead.
+`.github/workflows/ci.yml` runs on release PRs (`dev` → `main`) and by hand: the studio tests on the host toolchain (a skipped test fails the run), and the sandbox image build with the tests inside it. Feature branches are gated by `make test` locally. `branch-gate.yml` checks branch names on every PR (Dependabot's own `dependabot/...` update branches to `dev` excepted, only when Dependabot opened them). **Skipped is not passed**: a run that did not happen, or a job gated out, verified nothing — say the change is unverified instead.
