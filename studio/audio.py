@@ -748,7 +748,7 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
                 absolute_start = cursor + start
                 entry = {"speaker": line["speaker"], "text": line["text"], "source": source,
                          "start": absolute_start, "end": cursor + end, **detail}
-                for key in ("spoken_text", "delivery", "pan", "reverb", "gain", "lead"):
+                for key in ("spoken_text", "caption", "narration", "delivery", "pan", "reverb", "gain", "lead"):
                     if key in line:
                         entry[key] = line[key]
                 timing["speech"].append(entry)

@@ -79,6 +79,7 @@ Run from the repository root, on the host or in the sandbox (`make shell`):
 | `make validate EPISODE=...` | The manifest against the schema, the style lock and the lint rules |
 | `make check EPISODE=...` | Visual QA notes: captions, contrast, sound density, contacts |
 | `make deliver EPISODE=...` | The delivery gate: film-qa, treatment and viral-check on the master; refuses red; writes sealed `delivery.md` (`VERIFY=` checks it) |
+| `make narration-check EPISODE=...` | Each spoken line heard back (faster-whisper, optional) against the script: unheard, misread, number, repeat (red exits 1; `unchecked` without a recogniser) |
 | `make film-qa VIDEO=...` | The render's pixels: energy per second, dead runs, frozen ending, blank frames, longest framing, sound effects against their picture events (red exits 1) |
 | `make parity` | The renderers still agree on the shared fixture (non-zero past the threshold). Renderer changes. |
 | `make doctor` | ffmpeg, the h264 encoder, the node renderers and Kokoro are usable |
