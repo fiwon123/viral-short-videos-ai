@@ -71,7 +71,7 @@ Consistency is how a viewer becomes a subscriber.
 - **`"punchline": true`** on a speech line holds 0.3 s of silence before the next line, and `pause_after` sets any length. Captions, lip sync and sound effects follow.
 - **`make hero SHOT=A KEEP=<title id>`** gives the opening shot motion: an AI video clip on a GPU, or a 2.5D depth push anywhere else. See [AI Characters and Hook Clips](AI-Characters-and-Hook-Clips).
 - **`make viral-check`** notes a slow first line, no motion or words in the first second, no sound hit at t=0, long holds, a weak loop and loudness.
-- **`make film-qa`** (run by every render into `film-qa/`) reads the pixels: motion per second, stretches where nothing moves, a frozen ending, blank frames and one framing held too long. A shot can have a camera move on paper and still stand still on screen.
+- **`make film-qa`** (run by every render into `film-qa/`) reads the pixels: motion per second, stretches where nothing moves, a frozen ending, blank frames, one framing held too long, single-frame pops, and a first frame that is not the opening picture (the poster feeds show). A shot can have a camera move on paper and still stand still on screen.
 
 ## Pacing template
 
