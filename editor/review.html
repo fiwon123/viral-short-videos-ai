@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frame Review</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="review">
+  <header>
+    <strong>Frame review</strong>
+    <span id="title">Loading…</span>
+    <span id="status"></span>
+  </header>
+  <main class="review-main">
+    <section class="review-stage">
+      <div id="frame">
+        <video id="video" src="/video.mp4" preload="auto" playsinline></video>
+        <div id="pins"></div>
+        <form id="note" class="hidden">
+          <textarea id="note-text" rows="3" placeholder="What should change here?"></textarea>
+          <div class="note-actions">
+            <button type="button" id="note-cancel">Cancel</button>
+            <button type="submit" class="primary">Save note</button>
+          </div>
+        </form>
+      </div>
+      <div class="transport">
+        <button id="play" title="Space">Play</button>
+        <button id="back" title="Left arrow">-1 frame</button>
+        <button id="forward" title="Right arrow">+1 frame</button>
+        <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position">
+        <span id="clock">0.00 s</span>
+      </div>
+      <p class="hint">Pause on the moment, click the spot, write what should change. Space plays, arrows step a frame.</p>
+    </section>
+    <aside id="comments" aria-label="Comments"></aside>
+  </main>
+  <script src="/review.js"></script>
+</body>
+</html>

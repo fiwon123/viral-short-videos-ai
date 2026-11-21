@@ -34,7 +34,7 @@ VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
 .PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa treatment-lint state deliver narration-check review-pack character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
-        still presets templates schema batch test support parity safearea editor \
+        still presets templates schema batch test support parity safearea editor review comments \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -91,6 +91,8 @@ help:
 	@echo "  make parity                 render the shared renderer parity fixture"
 	@echo "  make safearea               write a platform safe-area guide"
 	@echo "  make editor                 open the local shot inspector"
+	@echo "  make review EPISODE=...     play the newest render and leave notes on a frame"
+	@echo "  make comments EPISODE=... [DONE=c1 REPLY=...]  open notes with their frame and close-up, or resolve one"
 	@echo "  make doctor                 check ffmpeg, node, Chrome, Kokoro"
 	@echo "  make list                   channel folders and episodes"
 	@echo
@@ -307,6 +309,14 @@ parity:
 
 safearea:
 	@$(PYTHON) video.py safearea --platform $(or $(PLATFORM),youtube-shorts) --out $(or $(OUT),docs/assets/safearea.png)
+
+review:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
+	@$(PYTHON) -m studio.comments serve $(EPISODE) $(if $(VIDEO),--video $(VIDEO),)
+
+comments:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [DONE=c1 REPLY=...]"; exit 1; }
+	@$(PYTHON) -m studio.comments $(if $(DONE),done $(EPISODE) $(DONE) --reply "$(REPLY)",list $(EPISODE))
 
 editor:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
