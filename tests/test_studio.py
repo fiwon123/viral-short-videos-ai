@@ -1633,3 +1633,40 @@ class StyleLockTests(unittest.TestCase):
             self.assertEqual(text.count(START), 1)
             self.assertIn("Style lock v2", text)
             self.assertLess(text.index(START), text.index(END))
+
+
+class CameraShakeBakeTests(unittest.TestCase):
+    """Shakes are baked into the camera keys without smearing authored cuts or zoom timing."""
+
+    def track(self, camera, seconds):
+        from studio.camera import _sample, resolve_camera
+        resolved = resolve_camera({"duration": seconds, "camera": camera})
+        return lambda at: _sample(resolved["keyframes"], {"x": 0, "y": 0, "zoom": 1, "rotate": 0, "z": 0, "fov": 50}, at)
+
+    def test_a_hold_cut_survives_a_shake(self):
+        fps, seconds = 24, 14.0
+        cut = (100 + 0.5) / (seconds * fps)
+        camera = {"keyframes": [{"at": 0, "zoom": 3.0}, {"at": cut, "zoom": 1.5, "ease": "hold"},
+                                {"at": 1, "zoom": 1.5}],
+                  "shakes": [{"at": 0.9, "duration": 0.3, "amplitude": 0.01}]}
+        at = self.track(camera, seconds)
+        before, after = at(100 / (seconds * fps)), at(101 / (seconds * fps))
+        self.assertAlmostEqual(before["zoom"], 3.0, places=4)
+        self.assertAlmostEqual(after["zoom"], 1.5, places=4)
+
+    def test_shake_duration_is_seconds(self):
+        camera = {"keyframes": [{"at": 0, "x": 0}, {"at": 1, "x": 0}],
+                  "shakes": [{"at": 0.5, "duration": 0.4, "amplitude": 0.02, "frequency": 14, "decay": 0}]}
+        for seconds in (2.0, 14.0):
+            at = self.track(camera, seconds)
+            during = [abs(at(0.5 + k / (seconds * 48))["x"]) for k in range(1, 18)]
+            after = abs(at(0.5 + 0.5 / seconds)["x"])
+            self.assertGreater(max(during), 0.005, f"{seconds}s shot: the shake is felt")
+            self.assertEqual(after, 0.0, f"{seconds}s shot: a 0.4 s shake is over 0.5 s later")
+
+    def test_frame_zero_is_the_first_camera_key(self):
+        camera = {"keyframes": [{"at": 0, "zoom": 2.8, "x": -0.1}, {"at": 1, "zoom": 3.0}],
+                  "shakes": [{"at": 0.5, "duration": 0.2, "amplitude": 0.01}]}
+        first = self.track(camera, 14.0)(0.0)
+        self.assertAlmostEqual(first["zoom"], 2.8)
+        self.assertAlmostEqual(first["x"], -0.1)

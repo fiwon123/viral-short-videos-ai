@@ -134,7 +134,7 @@ def stage_visuals(episode, channel, timeline, levels, canvas, font, base, channe
             prepared = {"start": start, "end": end, "duration": duration,
                         "transition": transition,
                         "background": shot.get("background", channel["palette"]["background"]),
-                        "camera": resolve_camera(shot) if shot.get("camera") else None,
+                        "camera": resolve_camera(shot, seconds=duration) if shot.get("camera") else None,
                         "post": _post_with_lut({**(channel.get("post") or {}), **(episode.get("post") or {}),
                                                 **(shot.get("post") or {})}),
                         "motion_blur": shot.get("motion_blur",

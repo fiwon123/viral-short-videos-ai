@@ -168,7 +168,8 @@ def write_frames(pipe, episode, timeline, levels, canvas, channel, font, base, o
             composition = Composition(shot, render_canvas, channel, font, base,
                                       episode_post=episode.get("post"),
                                       motion_blur=config.get("motion_blur", 0),
-                                      channel_base=channel_base)
+                                      channel_base=channel_base,
+                                      seconds=(timing["end"] - timing["start"]) / timeline["fps"])
             frames = timing["end"] - timing["start"]
             transition = timing.get("transition")
             count = transition["end"] - transition["start"] if transition else 0

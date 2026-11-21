@@ -78,7 +78,9 @@ def _sample(keys, base, at):
         end = float(key["at"])
         if at <= end:
             span = max(1e-6, end - previous)
-            t = max(0.0, min(1.0, (at - previous) / span))
+            # On or past the key (a key at 0 included) the pose is the key's: frame 0 of a shot that
+            # opens on a camera key is that key, not the default camera.
+            t = 1.0 if at >= end else max(0.0, min(1.0, (at - previous) / span))
             t = ease(t, key.get("ease", "linear"))
             for name in state:
                 if name in key:
@@ -98,9 +100,18 @@ def _jitter(t, *, amplitude, frequency, phase):
     )
 
 
-def resolve_camera(shot, samples=None):
-    """Return a camera object with a concrete ``keyframes`` list."""
+SHAKE_RATE = 48  # camera samples per second while shakes are baked in (two per frame at 24 fps)
+
+
+def resolve_camera(shot, samples=None, seconds=None):
+    """Return a camera object with a concrete ``keyframes`` list.
+
+    Shakes are baked into the keys: ``at`` is a fraction of the shot, ``duration`` is seconds and
+    ``frequency`` is Hz, measured against ``seconds`` (the resolved shot length; the authored
+    ``duration`` when omitted).
+    """
     source = dict(shot.get("camera") or {})
+    seconds = max(1e-3, float(seconds if seconds is not None else shot.get("duration", 1)))
     if samples is None:
         samples = int(source.get("samples", 60))
     samples = max(2, min(240, samples))
@@ -130,13 +141,24 @@ def resolve_camera(shot, samples=None):
     if shakes:
         base = _base(source)
         generated = []
-        for index in range(samples + 1):
-            at = index / samples
+        # A dense grid (at least two samples a frame), every authored key time, and a point just
+        # before each hold key, so cuts, crash zooms and the jitter itself survive the bake.
+        count = max(samples, min(20000, math.ceil(seconds * SHAKE_RATE)))
+        grid = {index / count for index in range(count + 1)}
+        for key in keyframes:
+            at = float(key["at"])
+            grid.add(at)
+            if key.get("ease") == "hold":
+                grid.add(max(0.0, at - 1e-6))
+        for item in shakes:
+            start = float(item.get("at", 0))
+            grid.update((start, min(1.0, start + float(item.get("duration", 1)) / seconds)))
+        for at in sorted(value for value in grid if 0 <= value <= 1):
             state = _sample(keyframes, base, at)
             for item in shakes:
                 start = float(item.get("at", 0))
-                duration = max(1e-4, float(item.get("duration", 1)))
-                local = at - start
+                duration = max(1e-4, float(item.get("duration", 1)))  # seconds
+                local = (at - start) * seconds
                 if local < 0 or local > duration:
                     continue
                 phase = local / duration
@@ -152,6 +174,6 @@ def resolve_camera(shot, samples=None):
                 state["rotate"] = state.get("rotate", 0) + _jitter(
                     local, amplitude=amplitude * 180 * envelope, frequency=frequency * 0.73,
                     phase=seed + 2.4)
-            generated.append({"at": round(at, 6), **{key: round(value, 6) for key, value in state.items()}})
+            generated.append({"at": round(at, 9), **{key: round(value, 6) for key, value in state.items()}})
         keyframes = generated
     return {**source, "keyframes": keyframes}

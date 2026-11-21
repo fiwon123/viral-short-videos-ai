@@ -109,7 +109,7 @@ def render_still(episode, channel, episode_dir, channel_dir, target, *, shot_id=
         if renderer == "python":
             composition = Composition(shot, canvas, channel, font, episode_dir,
                                       episode_post=episode.get("post"),
-                                      channel_base=channel_dir)
+                                      channel_base=channel_dir, seconds=frames / timeline["fps"])
             image = composition.frame(local / max(1, frames - 1), speaking, post=False,
                                       seed=absolute, visemes=visemes)
             image = apply_post(image, composition.post, seed=absolute, palette=channel["palette"])

@@ -74,6 +74,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Word and beat anchors | Done | `studio/anchors.py`: `at_word` / `at_beat` on keyframes, camera keys, `motion` recipes and sfx cues; shot `snap: beat|bar`; `music.beat` grid. Resolved first in `prepare_episode` (estimate from text), and by `pipeline.prepare_measured` on the measured takes for render/still/audio/check-visual (one extra audio pass, only for anchored episodes). Source-reading tools (motion-report, viral-check, spot) get `resolve_source`. `music.beat_grid`/`first_beat` measure tempo and phase; imports record `first_beat`; the expander sets `music.beat`. Fixed a `tempo()` octave error (non-integer beat period in hops halved the tempo): 3-tap smoothing, half-lag check, parabolic peak. Timeline `music.beat`; film-qa `cuts_on_beat` and `off-beat`. Real-track beat accuracy untested here (no music library locally); synthetic tracks within ±25 ms. |
 | Film QA pops | Done | `film_qa` reports `pop` (a frame that jumps away from both neighbours while they match; huashu-motion's single-frame pops) and `first-frame` (frame 0 is a different picture from the opening: the poster is wrong). Both high; neither counts as a cut or as motion. Caught the frame-0 camera bug (#46) on a real render; no false positives across 40 channel renders. |
 | Episode state, delivery gate, review pack | Done | `studio/episode_state.py`. `make state EPISODE= [WRITE=1]`: furthest stage proven by files (planned: treatment not red · built: `video.py validate` · stills: `renders/<ep>-stills/*.png` · previewed: fresh preview with film-qa · reviewed: `review/*.md` · mastered: fresh `-vN` not red · delivered: verified `delivery.md` · published: `published.json`), renders older than `episode.json` are stale, next command printed (lanshu's evidence state machine). `make deliver EPISODE= [VIDEO=]`: reruns film-qa, treatment-lint, viral-check; red exits 2; writes `delivery.md` with a sha256-sealed facts section (mp4 sha256, probe, loudness, film-qa, treatment, viral, review files listed not read, studio commit) and keeps the maker's notes across re-delivery; `VERIFY=` detects edited facts or a changed MP4 (huashu-art-motion's deliver.py). `make review-pack`: sheet, energy, report, treatment, key-still frames and a filled director prompt in `review/pack-<render>/` (cinetic critic files). |
+| Bug fix: camera shakes smeared the camera | Done | `resolve_camera` baked shakes on 60 samples per shot with linear interpolation, so `hold` cuts became 0.25 s slides in a 14 s shot, crash zooms drifted and the jitter aliased; `duration`/`frequency` ran in shot fractions. Now 48 samples a second plus every key time and a point before each `hold` key, `duration` in seconds and `frequency` in Hz against the resolved shot length (`seconds`, passed by render, still and browser). Shakes in long shots are now short and sharp, as documented, instead of multi-second wobbles. |
 | Still pending | Pending | Nothing from the original plan or the 2026-11-15 audit. |
 
 ## Professional gaps (next work, from the 2026-11-15 audit)
@@ -92,7 +93,7 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | ~~Music~~ Done: `make music-import`, `music: {mood, energy, bpm}` | Audio | Preset beds are synthetic; channels need real tracks | Index a local royalty-free/CC0 music folder like `sfx-import`, with mood tags and auto-duck |
 | ~~Voices~~ Done: `command` engine, per-line `pitch`/`pace`/`intensity`, free options documented in the audio reference | Audio | Kokoro is good but limited in acting range and languages | Keep the `recorded` engine path; document free voice options per language |
 
-Tests: `make test` passes, 214 tests.
+Tests: `make test` passes, 217 tests.
 
 ## Log
 
@@ -101,6 +102,7 @@ Tests: `make test` passes, 214 tests.
 - 2026-11-21: Word and beat anchors landed (#41).
 - 2026-11-21: Direction standard landed (#38).
 - 2026-11-21: Film QA landed (#39): the render's pixels gate delivery. Started the direction work from a study of four MIT agent video skills: treatment lint (#40), direction standard (#38), word and beat anchoring (#41).
+- 2026-11-21: Camera shake bake fixed (#46).
 - 2026-11-15: Channel style lock landed so any assistant keeps a channel's approved look.
 - 2026-11-15: Contact check and colliders tuned on a real 3D channel (113 warnings to 10 real ones on an existing episode).
 - 2026-11-15: Layering and contact audit across 2D, 2.5D and 3D (see the status row).
