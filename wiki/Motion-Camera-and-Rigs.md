@@ -138,6 +138,8 @@ same result.
 `exit`. Combine recipes that animate different properties with
 `studio.motion.merge`.
 
+Recipes, keyframes and camera keys can be timed to a spoken word or to the music's beat with `at_word` / `at_beat` instead of `t` / `at` (see Anchors in the [Manifest Reference](Manifest-Reference)): `{"recipe": "impact", "at_word": "crash"}` lands the impact on the word however the take is re-recorded.
+
 `studio.physics.to_layer_keys()` and `to_object_keys()` convert sampled physics
 tracks into manifest keyframes, including 2D squash.
 

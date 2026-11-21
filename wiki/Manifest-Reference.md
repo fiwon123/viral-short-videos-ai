@@ -95,6 +95,20 @@ An episode without `path` defaults to `episodes/<id>/episode.json`.
 | `motion_blur` | 0–1 | Shot motion blur |
 | `checks` | object | Visual QA rules |
 | `background` | color | Shot background |
+| `snap` | `beat` / `bar` | Stretch the shot to end on the music's next beat or downbeat |
+
+### ⏱️ Anchors: time to a word or a beat
+
+Any keyframe, camera key, `motion` recipe or sound cue can take `at_word` or `at_beat` instead of its number. The studio turns it into the number at load time: from the measured takes when the command has an audio pass (`render`, `still`, `audio`, `check-visual`), from a text estimate otherwise.
+
+```json
+{"at_word": "barbell", "scale": 1.2}
+{"at_word": {"line": 1, "word": "two GB", "edge": "end", "offset": 0.05}, "opacity": 1}
+{"at_beat": 12}
+{"at_beat": {"bar": 4, "beat": 3}}
+```
+
+Words are matched in the line's caption text, ignoring case, punctuation and `*emphasis*`; `occurrence` picks a repeat and `line` limits the search to one line. Beats come from `music.beat` (`{"bpm", "offset", "per_bar"}`), which the music library fills for imported tracks; other files are measured, and the `pulse` preset is 120 bpm. Re-recording a take or swapping the track moves every anchored key with it.
 
 ## 🧱 Layer
 

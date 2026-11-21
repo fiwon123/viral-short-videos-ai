@@ -296,7 +296,7 @@ def chart(charts, fps, target, width=900, row=120):
 
 def main():
     from .core import load, validate_channel
-    from .pipeline import prepare_episode
+    from .pipeline import prepare_episode, resolve_source
     from .project import resolve_channel
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -310,6 +310,7 @@ def main():
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
     expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
+    source = resolve_source(source, channel, channel_path.parent, args.episode.parent)
     data, charts = report(source, expanded, args.hold, channel.get("palette"))
     target = args.out or args.episode.parent / "motion-report.png"
     data["chart"] = str(chart(charts, data["fps"], target))

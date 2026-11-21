@@ -369,6 +369,15 @@ def execute(args):
 
     source_episode = load(args.episode, "episode")
     episode = prepare_episode(source_episode, channel, args.channel.parent, episode_dir=args.episode.parent)
+    if args.command in {"still", "audio", "render", "check-visual"}:
+        from studio.anchors import present as has_anchors
+
+        if has_anchors(source_episode):  # word anchors land on the measured takes, not the estimate
+            from studio.audio_library import load_audio_library as _load_audio
+            from studio.pipeline import prepare_measured
+
+            episode = prepare_measured(source_episode, channel, args.channel.parent, args.episode.parent,
+                                       _load_audio(channel, args.channel.parent))
     from studio.lint import lint
 
     from studio.scenes import load_library as _load_scenes

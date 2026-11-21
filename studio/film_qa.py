@@ -17,6 +17,8 @@ picture freezes for seconds. This tool reads the pixels instead:
 * blank         a run of empty frames (flat colour, no edges)
 * one-framing   the longest stretch without a hard cut (a Short reads as a slide
                 when one framing holds for most of it)
+* off-beat      a montage whose cuts mostly miss the music's beat (when the
+                render's timeline.json carries the track's beat grid)
 
 Writes ``film-qa/report.json``, ``film-qa/energy.png`` (the curve, with shot
 boundaries and dead runs) and ``film-qa/sheet.png`` (a contact sheet at up to
@@ -131,6 +133,22 @@ def shots_from_timeline(path):
             for scene in timeline.get("scenes", []) for shot in scene.get("shots", [])]
 
 
+def beat_from_timeline(path):
+    if not path or not Path(path).is_file():
+        return None
+    return (json.loads(Path(path).read_text(encoding="utf-8")).get("music") or {}).get("beat")
+
+
+def on_beat(cuts, beat, fps):
+    """Share of cut times within a frame (at least 40 ms) of the track's beat grid."""
+    if not cuts or not beat or not beat.get("bpm"):
+        return None
+    period, offset = 60.0 / float(beat["bpm"]), float(beat.get("offset", 0))
+    tolerance = max(1.0 / fps, 0.04)
+    near = [abs((cut - offset + period / 2) % period - period / 2) <= tolerance for cut in cuts]
+    return round(sum(near) / len(near), 2)
+
+
 def _shot_at(shots, seconds):
     for shot in shots:
         if shot["start"] <= seconds < shot["end"]:
@@ -138,7 +156,7 @@ def _shot_at(shots, seconds):
     return None
 
 
-def analyse(stack, fps, route=None, stops=(), shots=()):
+def analyse(stack, fps, route=None, stops=(), shots=(), beat=None):
     """Notes and metrics from a stack of frames (grey ``n,h,w`` or colour ``n,h,w,3``) sampled at ``fps``."""
     count = len(stack)
     duration = count / fps
@@ -225,6 +243,11 @@ def analyse(stack, fps, route=None, stops=(), shots=()):
                            "Change shot size at the turn, or declare Route: continuous in treatment.md if one "
                            "travelling camera carries the film."))
 
+    cut_times = [index / fps for index in cuts]
+    beat_share = on_beat(cut_times, beat, fps)
+    if beat_share is not None and route == "montage" and len(cuts) >= 3 and beat_share < 0.5:
+        notes.append(_note("off-beat", "low", f"Only {beat_share:.0%} of the cuts land on the beat.",
+                           "In a montage, cut on the beat: give the shots snap: beat, or time keys with at_beat."))
     per_shot = []
     for shot in shots:
         first, last = round(shot["start"] * fps), min(count, round(shot["end"] * fps))
@@ -242,6 +265,7 @@ def analyse(stack, fps, route=None, stops=(), shots=()):
         "cuts": [round(index / fps, 2) for index in cuts], "cuts_per_minute": round(len(cuts) / duration * 60, 1)
         if duration else 0, "median_framing": round(float(np.median(lengths)), 2) if lengths else 0,
         "longest_framing": round(longest, 2), "route": route, "stops": [list(stop) for stop in stops],
+        "cuts_on_beat": beat_share, "bpm": (beat or {}).get("bpm"),
         "shots": per_shot,
     }
     return notes, metrics, dead_runs
@@ -312,7 +336,8 @@ def run(video, out=None, route=None, stops=(), treatment=None, timeline=None, im
     fps = min(30.0, round(info["fps"], 3))
     if timeline is None and (video.parent / "timeline.json").is_file():
         timeline = video.parent / "timeline.json"
-    notes, metrics, dead_runs = analyse(frames(video, info, fps), fps, route, stops, shots_from_timeline(timeline))
+    notes, metrics, dead_runs = analyse(frames(video, info, fps), fps, route, stops, shots_from_timeline(timeline),
+                                        beat_from_timeline(timeline))
     out = Path(out) if out else video.parent / "film-qa"
     out.mkdir(parents=True, exist_ok=True)
 

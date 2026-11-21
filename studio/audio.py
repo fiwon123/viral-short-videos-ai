@@ -664,6 +664,13 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
         kind = "library" if "library_file" in music else "file" if "file" in music else "preset"
         source = music.get("library_track") or music.get("file", music.get("preset"))
         timeline["music"] = {"kind": kind, "source": source, "gain": music.get("gain", 0.10)}
+        from .anchors import music_grid
+        try:
+            grid = music_grid(music, base)
+        except (OSError, ValueError, subprocess.CalledProcessError):
+            grid = None
+        if grid:
+            timeline["music"]["beat"] = grid  # film-qa measures cuts against it
     library = audio_library[0] if audio_library else {}
     if audio_library:
         timeline["audio_library"] = {"file": audio_library[1].name, "version": library["version"]}
