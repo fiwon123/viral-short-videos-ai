@@ -21,6 +21,13 @@ picture freezes for seconds. This tool reads the pixels instead:
 * first-frame   frame 0 is a different picture from the opening (the poster is wrong)
 * off-beat      a montage whose cuts mostly miss the music's beat (when the
                 render's timeline.json carries the track's beat grid)
+* sound-early / sound-late
+                an impulsive sound effect (a hit, a click, a pop) heard more than
+                45 ms before or 125 ms after the picture event it lands on: the
+                frame where motion starts or stops in the same shot. Caption
+                changes are not events, a sound on a cut is on the cut, and a
+                sustained or unmatched sound is listed but not judged
+                (``metrics.sync``). Needs the render's timeline.json.
 
 Writes ``film-qa/report.json``, ``film-qa/energy.png`` (the curve, with shot
 boundaries and dead runs) and ``film-qa/sheet.png`` (a contact sheet at up to
@@ -33,7 +40,8 @@ inside it are not reported. The ``continuous`` route (one world, a camera
 travelling through it) relaxes the one-framing rule.
 
 Method adapted from the motion-per-second and stillness gates in huashu-motion,
-huashu-art-motion and lanshu-create-ai-presenter-video (all MIT).
+huashu-art-motion and lanshu-create-ai-presenter-video, and the per-cue sync gate
+in cinetic (all MIT). The sync tolerances follow ITU-R BT.1359 detectability.
 """
 
 import argparse
@@ -56,6 +64,15 @@ BLANK_RUN = 0.3
 FRAMING = (6.0, 12.0)
 ROUTES = ("continuous", "montage", "hybrid")
 WIDTH = 90
+# Sound against picture. Viewers notice sound that leads its picture by about 45 ms and sound that
+# trails it by about 125 ms (ITU-R BT.1359); each limit is widened by half a frame because the
+# picture event is only known to the frame.
+SYNC_EARLY, SYNC_LATE = 0.045, 0.125
+SYNC_SEARCH = 0.33   # seconds either side of the sound to look for its picture event
+SYNC_EVENT = 1.0     # a picture event changes the frame-to-frame motion by at least this much...
+SYNC_CLEAR = 5.0     # ...and by this many times the usual change around it
+SYNC_RISE = 10.0     # dB in 15 ms: a sound that does not rise this sharply has no attack to sync
+LEVEL_HOP = 0.005    # seconds per audio level step
 
 
 def _note(kind, severity, note, fix, **extra):
@@ -142,6 +159,160 @@ def beat_from_timeline(path):
     return (json.loads(Path(path).read_text(encoding="utf-8")).get("music") or {}).get("beat")
 
 
+def cues_from_timeline(path):
+    """Sound effect cues as ``{"sound", "at", "shot"}``, ``at`` in seconds from the start."""
+    if not path or not Path(path).is_file():
+        return []
+    timeline = json.loads(Path(path).read_text(encoding="utf-8"))
+    fps = float(timeline.get("fps", 24))
+    return [{"sound": cue.get("sound") or cue.get("cue") or Path(str(cue.get("source", "sfx"))).stem,
+             "at": cue["start"] / fps, "shot": shot["id"]}
+            for scene in timeline.get("scenes", []) for shot in scene.get("shots", [])
+            for cue in shot.get("sfx", []) if "start" in cue]
+
+
+def caption_changes(path):
+    """Seconds at which a caption line or a highlighted word appears or leaves (not picture events)."""
+    if not path or not Path(path).is_file():
+        return []
+    timeline = json.loads(Path(path).read_text(encoding="utf-8"))
+    fps = float(timeline.get("fps", 24))
+    times = set()
+    for caption in timeline.get("captions", []):
+        times.update((caption["start"], caption["end"]))
+        for word in caption.get("words") or []:
+            times.update((word["start"], word["end"]))
+    return sorted(value / fps for value in times)
+
+
+def audio_level(video):
+    """The video's audio as a dB level every LEVEL_HOP seconds, or None when it has no audio."""
+    from .music import RATE, decode  # ffmpeg decode, mono
+    try:
+        samples = decode(video)
+    except subprocess.CalledProcessError:
+        return None
+    hop = int(RATE * LEVEL_HOP)
+    steps = len(samples) // hop
+    if steps < 4:
+        return None
+    rms = np.sqrt(np.mean(samples[:steps * hop].reshape(steps, hop) ** 2, axis=1))
+    return np.maximum(20 * np.log10(rms + 1e-6), -60.0)  # digital silence would dwarf every real attack
+
+
+def sound_onset(level, at):
+    """(seconds, dB) of the first strong 15 ms rise in ``level`` from just before ``at`` to 0.25 s after.
+
+    A cue cannot sound before its own start; the 20 ms before it only absorb frame rounding.
+    """
+    span = 3
+    first = max(0, int((at - 0.02) / LEVEL_HOP))
+    last = min(len(level), int((at + 0.25) / LEVEL_HOP))
+    if last - first <= span:
+        return None, 0.0
+    rise = level[first + span:last] - level[first:last - span]
+    if rise.max() < SYNC_RISE:
+        return None, float(rise.max())
+    # The first strong rise, not the steepest: the next cue can fall inside the window and climb harder.
+    index = int(np.argmax(rise >= SYNC_RISE))
+    while index + 1 < len(rise) and rise[index + 1] > rise[index]:
+        index += 1  # to the top of that rise
+    return (first + index + span) * LEVEL_HOP, float(rise[index])
+
+
+def impulsive(level, at):
+    """True when the sound starting at ``at`` falls by 6 dB within 0.1-0.2 s (a hit, a click, a pop),
+    False for a sustained sound (a creak, a rattle, a swish), which has no single moment to sync to."""
+    top = int(at / LEVEL_HOP)
+    peak = float(level[top:top + 6].max()) if top < len(level) else -60.0
+    tail = level[top + int(0.1 / LEVEL_HOP):top + int(0.2 / LEVEL_HOP)]
+    return len(tail) > 0 and peak - float(tail.mean()) >= 6.0
+
+
+def sync(change, cuts, glitch, fps, cues, level, shots=(), captions=()):
+    """Match each sound cue to the picture event it lands on.
+
+    The picture event is the frame where motion changes most sharply (a move starting or stopping),
+    in the same stretch between hard cuts; a sound within tolerance of a cut is on the cut.
+    Returns notes and one row per cue, with a status: synced, early, late, on-cut, unmatched (no clear
+    picture event of its own), sustained (no attack to sync), soft (no sharp rise) or edge (first/last frames).
+    """
+    count = len(change)
+    event = np.zeros(count, dtype=np.float32)
+    if count > 1:
+        event[1:] = np.abs(np.diff(change))
+    candidates = event.copy()
+    for index in list(cuts) + sorted(glitch) + [int(round(seconds * fps)) for seconds in captions]:
+        candidates[max(0, index - 1):index + 2] = 0  # cuts, glitches and caption changes are not actions
+    early, late = SYNC_EARLY + 0.5 / fps, SYNC_LATE + 0.5 / fps
+    notes, rows = [], []
+    onsets = [sound_onset(level, cue["at"]) for cue in cues]
+    heard_all = [heard for heard, _ in onsets if heard is not None]
+    for cue, (heard, _) in zip(cues, onsets):
+        row = {"sound": cue["sound"], "cue": round(cue["at"], 3), "shot": cue.get("shot")}
+        rows.append(row)
+        if cue["at"] < 2 / fps or cue["at"] > (count - 2) / fps:
+            row["status"] = "edge"
+            continue
+        if heard is None:
+            row["status"] = "soft"  # a swell or a masked sound: no attack to judge
+            continue
+        row["heard"] = round(heard, 3)
+        if not impulsive(level, heard):
+            row["status"] = "sustained"
+            continue
+        frame = int(round(heard * fps))
+        cut = min(cuts, key=lambda index: abs(index / fps - heard), default=None)
+        if cut is not None and -early <= heard - cut / fps <= late:
+            row.update(status="on-cut", picture=round(cut / fps, 3), offset_ms=round(1000 * (heard - cut / fps)))
+            continue
+        before = max([index for index in cuts if index <= frame], default=0)
+        after = min([index for index in cuts if index > frame], default=count)
+        first = max(before + 2, 1, frame - int(SYNC_SEARCH * fps))
+        last = min(after - 1, count, frame + int(SYNC_SEARCH * fps) + 1)
+        if last <= first:
+            row["status"] = "unmatched"
+            continue
+        around = event[max(1, frame - int(fps)):min(count, frame + int(fps))]
+        floor = float(np.median(around)) + 1e-3 if len(around) else float("inf")
+        # Clear peaks only, and the one nearest the sound: the strongest event in the window is
+        # often the next beat (a reaction after a landing), which would flag a synced cue.
+        peaks = [index for index in range(first, last)
+                 if candidates[index] >= SYNC_EVENT and candidates[index] / floor >= SYNC_CLEAR
+                 and candidates[index] >= candidates[index - 1]
+                 and (index + 1 >= count or candidates[index] >= candidates[index + 1])]
+        if not peaks:
+            row["status"] = "unmatched"  # nothing on screen starts or stops sharply near it
+            continue
+        peak = min(peaks, key=lambda index: (abs(index / fps - heard), -candidates[index]))
+        start = peak  # a landing under a shake spreads over frames: sync to where the change begins
+        while start - 1 >= first and candidates[start - 1] >= 0.5 * candidates[peak]:
+            start -= 1
+        seen = start / fps
+        if any(abs(other - seen) < abs(heard - seen) for other in heard_all if other != heard):
+            row.update(status="unmatched", picture=round(seen, 3))  # that event belongs to another cue
+            continue
+        offset = heard - seen
+        row.update(picture=round(seen, 3), offset_ms=round(1000 * offset))
+        if -early <= offset <= late:
+            row["status"] = "synced"
+            continue
+        row["status"] = "early" if offset < 0 else "late"
+        shot = cue.get("shot") or _shot_at(shots, heard)
+        where = f" in shot {shot}" if shot else ""
+        frames_off = abs(offset) * fps
+        if offset < 0:
+            text = f"The {cue['sound']} at {heard:.2f} s plays {-offset * 1000:.0f} ms before its picture{where}."
+        else:
+            text = f"The {cue['sound']} at {heard:.2f} s plays {offset * 1000:.0f} ms after its picture{where}."
+        notes.append(_note(f"sound-{row['status']}", "medium", text,
+                           f"The nearest picture event is at {seen:.2f} s (a move starting or stopping). Move the "
+                           f"cue {frames_off:.0f} frame(s) {'later' if offset < 0 else 'earlier'}, or anchor it to "
+                           "the key that makes the contact. If the sound belongs to something else, ignore this.",
+                           at=round(heard, 3), picture=round(seen, 3), offset_ms=round(1000 * offset), shot=shot))
+    return notes, rows
+
+
 def on_beat(cuts, beat, fps):
     """Share of cut times within a frame (at least 40 ms) of the track's beat grid."""
     if not cuts or not beat or not beat.get("bpm"):
@@ -159,7 +330,7 @@ def _shot_at(shots, seconds):
     return None
 
 
-def analyse(stack, fps, route=None, stops=(), shots=(), beat=None):
+def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), level=None, captions=()):
     """Notes and metrics from a stack of frames (grey ``n,h,w`` or colour ``n,h,w,3``) sampled at ``fps``."""
     count = len(stack)
     duration = count / fps
@@ -276,6 +447,10 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None):
                            "Change shot size at the turn, or declare Route: continuous in treatment.md if one "
                            "travelling camera carries the film."))
 
+    sync_rows = []
+    if cues and level is not None:
+        sync_notes, sync_rows = sync(change, cuts, glitch, fps, cues, level, shots, captions)
+        notes.extend(sync_notes)
     cut_times = [index / fps for index in cuts]
     beat_share = on_beat(cut_times, beat, fps)
     if beat_share is not None and route == "montage" and len(cuts) >= 3 and beat_share < 0.5:
@@ -300,7 +475,7 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None):
         "longest_framing": round(longest, 2), "route": route, "stops": [list(stop) for stop in stops],
         "cuts_on_beat": beat_share, "bpm": (beat or {}).get("bpm"),
         "pops": [round(index / fps, 3) for index in pops], "first_frame_jump": first_jump,
-        "shots": per_shot,
+        "shots": per_shot, "sync": sync_rows,
     }
     return notes, metrics, dead_runs
 
@@ -370,8 +545,10 @@ def run(video, out=None, route=None, stops=(), treatment=None, timeline=None, im
     fps = min(30.0, round(info["fps"], 3))
     if timeline is None and (video.parent / "timeline.json").is_file():
         timeline = video.parent / "timeline.json"
+    cues = cues_from_timeline(timeline)
     notes, metrics, dead_runs = analyse(frames(video, info, fps), fps, route, stops, shots_from_timeline(timeline),
-                                        beat_from_timeline(timeline))
+                                        beat_from_timeline(timeline), cues, audio_level(video) if cues else None,
+                                        caption_changes(timeline))
     out = Path(out) if out else video.parent / "film-qa"
     out.mkdir(parents=True, exist_ok=True)
 

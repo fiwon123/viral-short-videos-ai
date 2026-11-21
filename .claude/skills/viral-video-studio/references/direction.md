@@ -27,6 +27,7 @@ These come from measured channel renders, not theory. Each has a number that cat
 | **Captions carry the film** | The words change, the picture does not | `text-led`, `flat` | Cover the captions and read the contact sheet. Every beat must still say what is happening. |
 | **Mush** | A dark, low-contrast grade; the subject melts into the set at feed size | Hook still at feed size, `first-frame` (viral-check) | One key light, a value step between subject and ground, a rim on the silhouette. Check the hook still at 270 px wide. |
 | **The sticker cast** | Characters in a different style from the set, generic bean faces, faces drawn on every prop | The character bar (below) | Rig and improve the approved art. Props act through shape and motion, not faces. |
+| **The late hit** | The thud lands a few frames after the contact, the pop before the bubble bursts | `sound-late`, `sound-early` (film-qa) | Put an impulsive cue on the frame where the motion starts or stops: `at` on that key's time, or anchor it. Check `metrics.sync` in the film-qa report. |
 | **Same grammar again** | The new episode opens and pays off exactly like the last three | `repeat` (treatment) | Change the opening device or the payoff device; the ledger's Grammar column remembers them. |
 
 ## Plan: the treatment

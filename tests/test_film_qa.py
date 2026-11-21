@@ -173,6 +173,118 @@ class EncodedClipTests(unittest.TestCase):
             self.assertEqual(result["report"], "film-qa/report.json")
 
 
+def starts_moving(at_frame, total=96, seed=3):
+    """A still textured frame where a bright square starts sliding at ``at_frame``."""
+    base = scene(seed)
+    frames = []
+    for index in range(total):
+        frame = base.copy()
+        top = 10 + max(0, index - at_frame + 1) * 4  # frame ``at_frame`` is the first that differs
+        frame[top:top + 20, 20:44] = 250
+        frames.append(frame)
+    return np.stack(frames)
+
+
+def level_with(seconds, hits=(), swells=()):
+    """A dB level track (5 ms steps) at the silence floor, with decaying hits and held swells."""
+    from studio.film_qa import LEVEL_HOP
+    level = np.full(round(seconds / LEVEL_HOP), -60.0)
+    for at in hits:
+        start = round(at / LEVEL_HOP)
+        decay = np.arange(len(level) - start) * LEVEL_HOP
+        level[start:] = np.maximum(level[start:], -8.0 - decay * 300)  # -38 dB 0.1 s later
+    for at in swells:
+        level[round(at / LEVEL_HOP):] = np.maximum(level[round(at / LEVEL_HOP):], -12.0)
+    return level
+
+
+class SoundSyncTests(unittest.TestCase):
+    """Each sound effect against the picture event it lands on (film_qa.sync)."""
+
+    def check(self, stack, cues, level, captions=()):
+        from studio.film_qa import analyse
+        notes, metrics, _ = analyse(stack, FPS, route="hybrid", cues=cues, level=level, captions=captions)
+        return [note for note in notes if note["kind"].startswith("sound-")], metrics["sync"]
+
+    def test_a_hit_on_the_frame_that_starts_moving_is_synced(self):
+        notes, rows = self.check(starts_moving(48), [{"sound": "thud", "at": 2.0}], level_with(4, hits=[2.0]))
+        self.assertEqual(notes, [])
+        self.assertEqual(rows[0]["status"], "synced")
+        self.assertAlmostEqual(rows[0]["picture"], 2.0, places=2)
+
+    def test_late_and_early_hits_are_flagged_with_the_offset(self):
+        late, rows = self.check(starts_moving(48), [{"sound": "thud", "at": 2.25}], level_with(4, hits=[2.25]))
+        self.assertEqual([note["kind"] for note in late], ["sound-late"])
+        self.assertEqual(late[0]["severity"], "medium")
+        self.assertEqual(rows[0]["offset_ms"], 250)
+        early, rows = self.check(starts_moving(48), [{"sound": "thud", "at": 1.875}], level_with(4, hits=[1.875]))
+        self.assertEqual([note["kind"] for note in early], ["sound-early"])
+        self.assertEqual(rows[0]["offset_ms"], -125)
+
+    def test_within_tolerance_is_synced(self):
+        # Two frames late (83 ms) is inside the 125 ms window; one frame early (42 ms) inside 45 ms.
+        for at in (2.0 + 2 / FPS, 2.0 - 1 / FPS):
+            notes, rows = self.check(starts_moving(48), [{"sound": "tap", "at": at}], level_with(4, hits=[at]))
+            self.assertEqual(notes, [], at)
+            self.assertEqual(rows[0]["status"], "synced", at)
+
+    def test_a_hit_on_a_cut_is_on_the_cut(self):
+        stack = np.stack(held(scene(1), 2) + held(scene(2), 2))
+        notes, rows = self.check(stack, [{"sound": "hit", "at": 2.0}], level_with(4, hits=[2.0]))
+        self.assertEqual(notes, [])
+        self.assertEqual(rows[0]["status"], "on-cut")
+
+    def test_a_sustained_sound_is_not_judged(self):
+        notes, rows = self.check(starts_moving(48), [{"sound": "creak", "at": 2.3}], level_with(4, swells=[2.3]))
+        self.assertEqual(notes, [])
+        self.assertEqual(rows[0]["status"], "sustained")
+
+    def test_a_caption_change_is_not_a_picture_event(self):
+        notes, rows = self.check(starts_moving(48), [{"sound": "click", "at": 2.3}], level_with(4, hits=[2.3]),
+                                 captions=[2.0])
+        self.assertEqual(notes, [])
+        self.assertEqual(rows[0]["status"], "unmatched")
+
+    def test_an_event_belongs_to_the_nearest_cue(self):
+        cues = [{"sound": "click", "at": 1.75}, {"sound": "pop", "at": 2.0}]
+        notes, rows = self.check(starts_moving(48), cues, level_with(4, hits=[1.75, 2.0]))
+        self.assertEqual(notes, [])
+        self.assertEqual([row["status"] for row in rows], ["unmatched", "synced"])
+
+    def test_cli_measures_the_rendered_audio_against_the_timeline(self):
+        import wave
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            rate, seconds, hit = 22050, 4, 2.25  # the square starts moving at 2.0 s; the thud is 250 ms late
+            audio = np.zeros(rate * seconds)
+            start = int(hit * rate)
+            burst = np.random.default_rng(5).uniform(-1, 1, rate // 5) * np.exp(-np.arange(rate // 5) / (rate * 0.02))
+            audio[start:start + len(burst)] = 0.8 * burst
+            with wave.open(str(folder / "hit.wav"), "wb") as handle:
+                handle.setnchannels(1)
+                handle.setsampwidth(2)
+                handle.setframerate(rate)
+                handle.writeframes((audio * 32767).astype("<i2").tobytes())
+            frames = starts_moving(48, total=FPS * seconds)
+            rgb = np.repeat(np.repeat(np.repeat(frames[..., None], 3, axis=3), 2, axis=1), 2, axis=2)
+            subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s",
+                            f"{rgb.shape[2]}x{rgb.shape[1]}", "-r", str(FPS), "-i", "-", "-i", str(folder / "hit.wav"),
+                            "-c:v", "libx264", "-crf", "10", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest",
+                            str(folder / "video.mp4")], input=rgb.clip(0, 255).astype(np.uint8).tobytes(), check=True)
+            timeline = {"fps": FPS, "captions": [], "scenes": [{"id": "S", "shots": [
+                {"id": "A", "start": 0, "end": FPS * seconds,
+                 "sfx": [{"start": round(hit * FPS), "sound": "thud", "source": "sfx/thud-1.wav"}]}]}]}
+            (folder / "timeline.json").write_text(json.dumps(timeline), encoding="utf-8")
+            result = subprocess.run([sys.executable, "-m", "studio.film_qa", str(folder / "video.mp4")], cwd=ROOT,
+                                    capture_output=True, text=True)
+            report = json.loads(result.stdout)
+            notes = [note for note in report["notes"] if note["kind"].startswith("sound-")]
+            self.assertEqual([note["kind"] for note in notes], ["sound-late"], report["metrics"]["sync"])
+            self.assertEqual(notes[0]["shot"], "A")
+            self.assertAlmostEqual(report["metrics"]["sync"][0]["picture"], 2.0, places=2)
+            self.assertGreater(report["metrics"]["sync"][0]["offset_ms"], 200)
+
+
 class ViralPacingTests(unittest.TestCase):
     def test_a_long_camera_or_3d_shot_is_no_longer_exempt(self):
         from studio.viral_check import check
