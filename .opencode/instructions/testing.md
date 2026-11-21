@@ -75,6 +75,7 @@ Run from the repository root, on the host or in the sandbox (`make shell`):
 | Command | What it proves |
 |---|---|
 | `make test` | The `unittest` suite in `tests/` (Python; the browser pose-parity tests run `node`). Every change. |
+| `make treatment-lint EPISODE=...` | The episode's plan: hook, shot sizes, camera grammar, energy curve, variety against the ledger (red exits 1) |
 | `make validate EPISODE=...` | The manifest against the schema, the style lock and the lint rules |
 | `make check EPISODE=...` | Visual QA notes: captions, contrast, sound density, contacts |
 | `make film-qa VIDEO=...` | The render's pixels: energy per second, dead runs, frozen ending, blank frames, longest framing (red exits 1) |

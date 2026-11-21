@@ -1335,7 +1335,8 @@ class ChannelMemoryTests(unittest.TestCase):
             names = sorted(Path(path).relative_to(Path(root) / "demo").as_posix() for path in created)
             self.assertEqual(names, ["MEMORY.md", "channel/AGENTS.md", "channel/episode-ledger.md",
                                      "channel/ideas.md", "channel/series.md", "episodes/_old/README.md",
-                                     "episodes/ep01/NOTES.md", "renders/_old/README.md"])
+                                     "episodes/ep01/NOTES.md", "episodes/ep01/treatment.md",
+                                 "renders/_old/README.md"])
             memory = (Path(root) / "demo" / "MEMORY.md").read_text()
             self.assertIn("Updated: 2026-01-02", memory)
             self.assertIn("## Direction history", memory)
