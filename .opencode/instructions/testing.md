@@ -78,6 +78,7 @@ Run from the repository root, on the host or in the sandbox (`make shell`):
 | `make treatment-lint EPISODE=...` | The episode's plan: hook, shot sizes, camera grammar, energy curve, variety against the ledger (red exits 1) |
 | `make validate EPISODE=...` | The manifest against the schema, the style lock and the lint rules |
 | `make check EPISODE=...` | Visual QA notes: captions, contrast, sound density, contacts |
+| `make deliver EPISODE=...` | The delivery gate: film-qa, treatment and viral-check on the master; refuses red; writes sealed `delivery.md` (`VERIFY=` checks it) |
 | `make film-qa VIDEO=...` | The render's pixels: energy per second, dead runs, frozen ending, blank frames, longest framing (red exits 1) |
 | `make parity` | The renderers still agree on the shared fixture (non-zero past the threshold). Renderer changes. |
 | `make doctor` | ffmpeg, the h264 encoder, the node renderers and Kokoro are usable |

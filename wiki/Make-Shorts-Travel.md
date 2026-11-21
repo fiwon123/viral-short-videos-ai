@@ -142,7 +142,8 @@ Most weak Shorts are not missing features; they are missing a plan and a hard lo
 1. **Treatment.** `episodes/<episode>/treatment.md` holds the idea in one sentence, the route (continuous, montage or hybrid), an energy curve rated 0–10 per stretch, and a shot table where every row names a subject and an action, with its shot size and camera move. `make treatment-lint EPISODE=...` fails a plan that opens on a title card, keeps one shot size throughout, pushes in three times in a row, has a flat energy curve, or repeats the last three episodes' opening or payoff.
 2. **Stills, then a whole draft.** The hardest shot and the hook as stills first, then the complete Short as a preview.
 3. **Measure and review.** Every render writes `film-qa/`: the energy per second, the stretches where nothing moves, and a contact sheet. A reviewer that did not build the episode gives the three notes a demanding director would give. The P0s are fixed before the master.
-4. **Learn.** The ledger records each episode's grammar and film-qa verdict, so the next one varies.
+4. **Deliver through the gate.** `make deliver` refuses a red film-qa or treatment verdict and writes `delivery.md` with facts the tool wrote and sealed. `make state` tells anyone resuming the episode how far the evidence goes.
+5. **Learn.** The ledger records each episode's grammar and film-qa verdict, so the next one varies.
 
 ## Do not chase virality by copying
 
