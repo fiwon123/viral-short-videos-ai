@@ -145,7 +145,7 @@ def sound_candidates(path, words):
 
 
 def display(value):
-    return escape(" ".join(str(value or "").split())).replace("|", "&#124;").replace("[", "&#91;").replace("]", "&#93;")
+    return escape(" ".join(str(value or "").split()), quote=False).replace("|", "&#124;").replace("[", "&#91;").replace("]", "&#93;")
 
 
 def timestamp(value):

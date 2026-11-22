@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import unittest
 
 from studio.core import ffmpeg
-from studio.reference_study import source_url, study, top_shorts
+from studio.reference_study import display, source_url, study, top_shorts
 
 FIRST = "ABCDEFGHIJK"
 SECOND = "XYZXYZXYZ12"
@@ -37,6 +37,12 @@ class ReferenceSelectionTests(unittest.TestCase):
 
 
 @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg and ffprobe are required")
+class BreakdownTextTests(unittest.TestCase):
+    def test_apostrophes_stay_readable_and_table_syntax_stays_escaped(self):
+        self.assertEqual(display("And that's \"cool\""), "And that's \"cool\"")
+        self.assertEqual(display("a|b [x](y) <i> & c"), "a&#124;b &#91;x&#93;(y) &lt;i&gt; &amp; c")
+
+
 class ReferenceStudyTests(unittest.TestCase):
     def test_local_media_evidence_and_notes_survive_a_rerun(self):
         with TemporaryDirectory() as tmp:
