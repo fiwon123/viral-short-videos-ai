@@ -297,7 +297,9 @@ Issues #100 and #101 share the voice-recognition and reference workflow changes 
 
 Merged in #102. Live voice check (#103): real faster-whisper `base` on a pt-br recording of seven Kokoro takes from a 3-speaker respelled script imported only 2 found, 1 partial, 4 missing: the recognizer writes "S .S .D."/"GTA VI" where the script says "ésse ésse dê", and one misheard edge word ("Vai" as "pois") dropped a line. Now each line matches its best form (respelled, `text`, `caption`; `matched_text`), spelled letters are joined, a missing edge is placed at the recording's pause, and take edges snap to pauses. Same recording: 2 found, 5 partial, 0 missing; every clip holds its whole line (60-70 ms lead, nothing cut, no neighbour audio); SPEAKER=SSD placed 3 of 3. Unverified: a human-voiced recording with room noise, English.
 
-Next: verify `make reference` against live YouTube.
+Live reference check (#105): `make reference` on one public video (19 s, speech) and on `@YouTube` with `TOP=1` (1,511 Shorts indexed, 1,502 with view counts, top pick 57M views, about 1 min) downloaded media, captions and metadata, timed the speech with Whisper, and wrote breakdowns, contact sheets and the comparison. Fixed: apostrophes were written as `&#x27;`. Noted, not fixed: the pulse candidate read a music Short at 83.5 BPM where the song is about 125 (a 2:3 error); the breakdown already asks for the beat to be confirmed by ear.
+
+Next: nothing open from #100/#101. Remaining unverified: voice-import on a human-voiced recording with room noise, and in English.
 
 ### Restricted host baseline (2026-11-22)
 
