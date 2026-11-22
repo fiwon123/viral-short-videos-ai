@@ -747,7 +747,15 @@
     "cast_voice": {
       "type": "object", "required": ["engine", "direction"], "additionalProperties": false,
       "properties": {
-        "engine": {"enum": ["kokoro", "recorded", "command"]},
+        "engine": {"enum": ["kokoro", "recorded", "command", "elevenlabs"]},
+        "voice_id": {"description": "ElevenLabs voice ID.", "type": "string", "pattern": "^[A-Za-z0-9]{8,40}$"},
+        "model": {"description": "ElevenLabs model ID.", "type": "string", "pattern": "^[a-z0-9_]{3,60}$"},
+        "voice_settings": {"type": "object", "additionalProperties": false, "properties": {
+          "stability": {"type": "number", "minimum": 0, "maximum": 1},
+          "similarity_boost": {"type": "number", "minimum": 0, "maximum": 1},
+          "style": {"type": "number", "minimum": 0, "maximum": 1},
+          "use_speaker_boost": {"type": "boolean"},
+          "speed": {"type": "number", "minimum": 0.7, "maximum": 1.2}}},
         "command": {"description": "Local TTS command; {out} is the WAV to write, {text} the line (with input arg).",
                     "type": "array", "minItems": 1, "items": {"type": "string"}},
         "input": {"enum": ["stdin", "arg"]},
@@ -774,9 +782,13 @@
       "then": {"required": ["blend", "language"]},
       "else": {"if": {"properties": {"engine": {"const": "command"}}},
                "then": {"required": ["command"], "not": {"anyOf": [{"required": ["blend"]}, {"required": ["language"]}]}},
-               "else": {"required": ["identity"], "not": {"anyOf": [
-                 {"required": ["blend"]}, {"required": ["language"]}, {"required": ["speed"]}, {"required": ["command"]}
-               ]}}}
+               "else": {"if": {"properties": {"engine": {"const": "elevenlabs"}}},
+                        "then": {"required": ["voice_id"], "not": {"anyOf": [
+                          {"required": ["blend"]}, {"required": ["command"]}, {"required": ["speed"]}]}},
+                        "else": {"required": ["identity"], "not": {"anyOf": [
+                          {"required": ["blend"]}, {"required": ["language"]}, {"required": ["speed"]}, {"required": ["command"]},
+                          {"required": ["voice_id"]}, {"required": ["model"]}, {"required": ["voice_settings"]}
+                        ]}}}}
     },
     "audio_library": {
       "type": "object", "required": ["version"], "additionalProperties": false,
