@@ -20,6 +20,9 @@ picture freezes for seconds. This tool reads the pixels instead:
 * pop           a single frame that jumps away and back (a glitch, not two cuts)
 * ghost-cut     a frame beside a hard cut that blends both shots (a motion-blur
                 shutter straddling the cut key)
+* nothing-new   things move but nothing new happens for over 4 s (8 s on the
+                continuous route): no cut, sound cue, caption change or clear
+                motion start or stop, outside declared stops
 * first-frame   frame 0 is a different picture from the opening (the poster is wrong)
 * music-join    the library track was fitted to length with a join that changes
                 loudness by more than 6 dB (timeline.json ``music.arrangement``)
@@ -70,6 +73,7 @@ DEAD = (0.8, 1.5)   # seconds of stillness: medium, high
 FROZEN_END = 1.0
 BLANK_RUN = 0.3
 FRAMING = (6.0, 12.0)
+QUIET = (4.0, 8.0)  # seconds without anything new: the usual limit, and the continuous route's
 ROUTES = ("continuous", "montage", "hybrid")
 WIDTH = 90
 # Sound against picture. Viewers notice sound that leads its picture by about 45 ms and sound that
@@ -557,6 +561,34 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), leve
     if cues and level is not None:
         sync_notes, sync_rows = sync(change, cuts, glitch, fps, cues, level, shots, captions)
         notes.extend(sync_notes)
+    # Something new: a cut, a sound cue, a caption or word change, or a clear motion start or stop.
+    event = np.zeros(count, dtype=np.float32)
+    if count > 1:
+        event[1:] = np.abs(np.diff(change))
+    starts = []
+    for index in range(1, count - 1):
+        around = event[max(1, index - int(fps)):min(count, index + int(fps))]
+        if event[index] >= SYNC_EVENT and event[index] >= SYNC_CLEAR * (float(np.median(around)) + 1e-3) \
+                and event[index] >= event[index - 1] and event[index] >= event[index + 1]:
+            starts.append(index / fps)
+    news = sorted({0.0, *[index / fps for index in cuts], *starts, *[cue["at"] for cue in cues or ()],
+                   *[float(seconds) for seconds in captions or ()]})
+    quiet_limit = QUIET[1] if route == "continuous" else QUIET[0]
+    quiet = []
+    for begin, end in zip(news, news[1:] + [duration]):
+        planned = sum(max(0.0, min(b, end) - max(a, begin)) for a, b in stops)
+        if end - begin - planned > quiet_limit:
+            quiet.append((begin, end))
+    longest_quiet = max((b - a for a, b in zip(news, news[1:] + [duration])), default=duration)
+    for begin, end in quiet:
+        shot = _shot_at(shots, begin)
+        where = f" in shot {shot}" if shot else ""
+        notes.append(_note("nothing-new", "medium", f"Nothing new happens for {end - begin:.1f} s at "
+                           f"{begin:.1f}-{end:.1f} s{where}: things move, but no cut, sound, caption or action lands.",
+                           "Give the stretch a beat every two seconds or so: a reaction, a prop landing, a camera move "
+                           "that starts or stops, a sound with its cause; or cut it shorter. Declare a Stop only if "
+                           "the wait is the joke.", at=round(begin, 2), seconds=round(end - begin, 2), shot=shot))
+
     cut_times = [index / fps for index in cuts]
     beat_share = on_beat(cut_times, beat, fps)
     if beat_share is not None and route == "montage" and len(cuts) >= 3 and beat_share < 0.5:
@@ -582,6 +614,7 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), leve
         "cuts_on_beat": beat_share, "bpm": (beat or {}).get("bpm"),
         "pops": [round(index / fps, 3) for index in pops], "first_frame_jump": first_jump,
         "ghost_frames": [round(index / fps, 3) for index in ghosts],
+        "longest_quiet": round(longest_quiet, 2),
         "shots": per_shot, "sync": sync_rows,
     }
     return notes, metrics, dead_runs
