@@ -824,50 +824,54 @@ def _run_ffmpeg(args):
 
 
 def master_audio(path, config):
-    """Loudness-normalise and limit the mix without crushing dialogue dynamics."""
+    """Bring the mix to the loudness target under the true-peak ceiling without crushing dialogue.
+
+    The loudness is measured after the pre-chain (high-pass, compressor, width, gain), so the gain fits
+    the signal it is applied to; the peaks are then limited just under the ceiling. A sparse mix (short
+    hits, creature sounds) reaches the ceiling long before the programme reaches the target, so plain
+    linear normalisation used to stop several LU short.
+    """
     config = config or {}
     if config.get("enabled", True) is False:
         return
     gain = float(config.get("gain", 1.0))
     target = float(config.get("loudness", -14))
     true_peak = float(config.get("true_peak", -1.5))
-    filters = ["highpass=f=24"]
+    pre = ["highpass=f=24"]
+    if gain != 1:
+        pre.insert(0, f"volume={gain}")
     if config.get("compress", True):
-        filters.append("acompressor=threshold=-20dB:ratio=2.5:attack=8:release=180:makeup=1.4")
+        pre.append("acompressor=threshold=-20dB:ratio=2.5:attack=8:release=180:makeup=1.4")
     width = float(config.get("stereo_width", 1.0))
     if abs(width - 1.0) > 1e-3:
-        filters.append(f"extrastereo=m={max(0.0, min(4.0, width))}")
-    code, stdout, stderr = _run_ffmpeg([
-        "-i", str(path), "-af",
-        f"loudnorm=I={target}:TP={true_peak}:LRA=11:print_format=json",
-        "-f", "null", "-",
-    ])
-    measured = {}
-    if code == 0:
-        for line in stderr.splitlines():
-            line = line.strip()
-            if line.startswith("{"):
-                try:
-                    measured = json.loads(line)
-                except json.JSONDecodeError:
-                    pass
-        if not measured:
-            start, end = stderr.rfind("{"), stderr.rfind("}")
-            if start >= 0 and end > start:
-                try:
-                    measured = json.loads(stderr[start:end + 1])
-                except json.JSONDecodeError:
-                    measured = {}
-    if measured.get("input_i") not in (None, "-inf"):
-        filters.append(
-            f"loudnorm=I={target}:TP={true_peak}:LRA=11:"
-            f"measured_I={measured.get('input_i')}:measured_LRA={measured.get('input_lra')}:"
-            f"measured_TP={measured.get('input_tp')}:measured_thresh={measured.get('input_thresh')}:"
-            f"offset={measured.get('target_offset', 0)}:linear=true:print_format=summary"
-        )
-    filters.append("alimiter=limit=0.84:level=false")
-    if gain != 1:
-        filters.insert(0, f"volume={gain}")
+        pre.append(f"extrastereo=m={max(0.0, min(4.0, width))}")
+    ceiling = 10 ** ((true_peak - 0.3) / 20)  # sample-peak limit with room for inter-sample peaks
+
+    def loudness(chain):
+        code, _, stderr = _run_ffmpeg(["-i", str(path), "-af", ",".join(chain + ["loudnorm=print_format=json"]),
+                                       "-f", "null", "-"])
+        start, end = stderr.rfind("{"), stderr.rfind("}")
+        if code or start < 0 or end <= start:
+            return None
+        try:
+            value = json.loads(stderr[start:end + 1]).get("input_i")
+            return float(value) if value not in (None, "-inf") else None
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return None
+
+    measured = loudness(pre)
+    if measured is None:
+        return
+    lift = max(-20.0, min(12.0, target - measured))
+    for _ in range(3):  # the limiter takes back some loudness: correct for it
+        # Limiting at 4x the rate also catches the peaks between samples, which a fast transient
+        # overshoots by more than a dB; the true-peak trim below would otherwise take the loudness back.
+        filters = pre + [f"volume={lift:.2f}dB", f"aresample={SAMPLE_RATE * 4}",
+                         f"alimiter=limit={ceiling:.4f}:attack=5:release=60:level=false", f"aresample={SAMPLE_RATE}"]
+        reached = loudness(filters)
+        if reached is None or abs(target - reached) <= 0.5:
+            break
+        lift = max(-20.0, min(12.0, lift + (target - reached)))
     staged = path.with_suffix(".master.wav")
     code, _, stderr = _run_ffmpeg([
         "-y", "-i", str(path), "-af", ",".join(filters),

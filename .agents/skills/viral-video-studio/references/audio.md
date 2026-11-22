@@ -121,7 +121,7 @@ For a cue the bank does not have, write a Sound Lab JSON recipe and synthesize i
 
 ## Master for the platform
 
-The mixer writes stereo and then masters the episode by default: a high-pass, gentle bus compression, a two-pass loudness normalisation to −14 LUFS, and a true-peak limiter at −1.5 dBTP. Override it when a platform or a musical delivery needs a different target:
+The mixer writes stereo and then masters the episode by default: a high-pass and gentle bus compression, then the loudness is measured on that and the gain raised to −14 LUFS into a peak limiter run at four times the sample rate (so the peaks between samples are caught) just under −1.5 dBTP, re-measured and corrected for what the limiter took. A sparse wordless mix of short hits reaches the target too; a plain two-pass normalisation used to stop several LU short when its peaks hit the ceiling first. Override it when a platform or a musical delivery needs a different target:
 
 ```json
 {
