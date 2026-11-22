@@ -129,6 +129,24 @@ class AnalyseTests(unittest.TestCase):
         self.assertAlmostEqual(metrics["ghost_frames"][0], 1.0, delta=1.5 / FPS)
         self.assertEqual(kinds(notes)["ghost-cut"], "high")
 
+    def test_idle_motion_with_nothing_new_is_flagged(self):
+        from studio.film_qa import analyse
+        base = scene(4)
+        idle = [base + 3.0 * np.sin(index / 3.0) for index in range(6 * FPS)]  # breathing: always moving
+        notes, metrics, _ = analyse(np.stack(idle), FPS)
+        self.assertEqual(kinds(notes).get("nothing-new"), "medium")
+        self.assertGreater(metrics["longest_quiet"], 4)
+        for extra in ({"cues": [{"sound": "pop", "at": 3.0}]}, {"captions": [3.0]}):
+            notes, _, _ = analyse(np.stack(idle), FPS, **extra)
+            self.assertNotIn("nothing-new", kinds(notes), extra)
+        landing = [frame.copy() for frame in idle]  # a block slides in at 3 s and stops: a move starts and lands
+        for index in range(3 * FPS, len(landing)):
+            top = 10 + min(index - 3 * FPS, 6) * 8
+            landing[index][top:top + 24, 20:52] = 245
+        self.assertNotIn("nothing-new", kinds(analyse(np.stack(landing), FPS)[0]))
+        self.assertNotIn("nothing-new", kinds(analyse(np.stack(idle), FPS, route="continuous")[0]))
+        self.assertNotIn("nothing-new", kinds(analyse(np.stack(idle), FPS, stops=[(1.0, 4.0)])[0]))
+
     def test_a_single_frame_pop_is_a_glitch_not_two_cuts(self):
         from studio.film_qa import analyse
         frames = moving(3)
