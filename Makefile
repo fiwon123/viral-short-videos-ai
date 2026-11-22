@@ -312,7 +312,7 @@ safearea:
 
 review:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
-	@$(PYTHON) -m studio.comments serve $(EPISODE) $(if $(VIDEO),--video $(VIDEO),)
+	@$(PYTHON) -m studio.comments serve $(EPISODE) $(if $(VIDEO),--video $(VIDEO),) $(if $(PORT),--port $(PORT),)
 
 comments:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [DONE=c1 REPLY=...]"; exit 1; }
@@ -320,7 +320,7 @@ comments:
 
 editor:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
-	@$(PYTHON) video.py editor $(EPISODE) $(CHANNEL_ARG)
+	@$(PYTHON) video.py editor $(EPISODE) $(CHANNEL_ARG) $(if $(PORT),--port $(PORT),)
 
 doctor:
 	@$(PYTHON) video.py doctor
