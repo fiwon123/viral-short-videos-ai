@@ -25,6 +25,7 @@ from .reference import reference
 VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{11}")
 CHANNEL_PATH = re.compile(r"/(?:@[^/]+|(?:channel|c|user)/[^/]+)(?:/shorts)?/?")
 DEFAULT_SUBS = r".*-orig,en,pt,pt-BR"
+CAPTION_TYPES = {".vtt", ".srt", ".ttml", ".srv1", ".srv2", ".srv3", ".json3"}
 PUBLIC_METADATA = ("title", "description", "channel", "channel_id", "upload_date", "duration",
                    "view_count", "like_count", "tags", "language")
 
@@ -83,8 +84,9 @@ def top_shorts(url, limit, fetch=ytdlp):
 def download(ident, folder, subtitles, fetch):
     if not folder.exists():
         with new_package(folder) as staging:
-            fetch("--no-playlist", "--no-mtime", "--write-info-json", "--write-subs", "--write-auto-subs",
-                  "--sub-langs", subtitles, "--sub-format", "vtt/best",
+            # Media and metadata first, captions on their own: a refused caption track (YouTube answers
+            # 429 to auto-translated ones at times) must not cost the video.
+            fetch("--no-playlist", "--no-mtime", "--write-info-json",
                   "--match-filter", f"duration <= {MAX_SECONDS} & !is_live", "-f",
                   "bv*[height<=1080]+ba/b[height<=1080]/b", "--merge-output-format", "mp4",
                   "-o", str(staging / "source.%(ext)s"), "--", watch(ident))
@@ -93,15 +95,21 @@ def download(ident, folder, subtitles, fetch):
                 raise ValueError(f"No public metadata downloaded for {watch(ident)}.")
             raw = json.loads(info.read_text(encoding="utf-8"))
             info.unlink()
-            tracks = set((raw.get("requested_subtitles") or {}).keys())
-            captions = [path.name for path in sorted(staging.glob("source.*.*"))
-                        if path.name.split(".", 2)[1] in tracks]
             media = [path for path in staging.glob("source.*") if path.name.count(".") == 1]
             if len(media) != 1:
                 raise ValueError(f"Expected one video for {watch(ident)}.")
+            caption_error = None
+            try:
+                fetch("--no-playlist", "--skip-download", "--write-subs", "--write-auto-subs", "--sub-langs",
+                      subtitles, "--sub-format", "vtt/best", "-o", str(staging / "source.%(ext)s"), "--", watch(ident))
+            except ValueError as error:
+                caption_error = str(error).strip().splitlines()[-1][:300]
+            captions = [path.name for path in sorted(staging.glob("source.*.*"))
+                        if path.suffix in CAPTION_TYPES and path.name.count(".") == 2]
             write_json(staging / "metadata.json", {
                 **{key: raw.get(key) for key in PUBLIC_METADATA}, "url": watch(ident),
                 "retrieved_at": datetime.now(timezone.utc).isoformat(), "file": media[0].name, "captions": captions,
+                **({"captions_error": caption_error} if caption_error else {}),
             })
     return json.loads((folder / "metadata.json").read_text(encoding="utf-8"))
 
@@ -189,7 +197,10 @@ def breakdown(metadata, evidence, media_link, report, phrases):
     rows.append(f"- Mixed-audio pulse candidate {grid['bpm']:.1f} BPM, first beat {timestamp(grid['first_beat'])}." if grid else
                 "- No reliable regular pulse measured in the mixed audio.")
     rows.extend(["- Music presence and sound labels need listening. Sudden rises can come from music, effects or untimed speech.",
-                 f"- Transcript status {report['transcript_status']}. Platform caption files are in the local media folder.",
+                 f"- Transcript status {report['transcript_status']}. " + (
+                     "Platform caption files are in the local media folder." if metadata.get("captions") else
+                     "No platform caption files" + (f" (download refused: {display(metadata['captions_error'])})."
+                                                    if metadata.get("captions_error") else ".")),
                  "", "## Timecoded evidence", "",
                  "| Time | Phrase and timed words | Shot sample | Candidate event | Editorial observation and original application |",
                  "| --- | --- | --- | --- | --- |"])

@@ -50,10 +50,13 @@ class ReferenceStudyTests(unittest.TestCase):
 
             def fetch(*args):
                 video = Path(args[args.index("-o") + 1]).parent
+                if "--skip-download" in args:
+                    (video / "source.en.vtt").write_text("WEBVTT\n\n")
+                    return b""
+                self.assertNotIn("--write-subs", args, "captions must not ride on the media download")
                 ffmpeg("-f", "lavfi", "-i", "color=black:s=160x256:r=24:d=2", "-f", "lavfi", "-i",
                        "sine=frequency=440:duration=2", "-vf", "drawbox=color=white:t=fill:enable='gte(t,1)'",
                        "-c:v", "mpeg4", "-c:a", "aac", str(video / "source.mp4"))
-                (video / "source.en.vtt").write_text("WEBVTT\n\n")
                 (video / "source.info.json").write_text(json.dumps({
                     "title": "An example | title", "view_count": 70, "like_count": 3,
                     "upload_date": "20261121", "description": "description", "tags": ["original"],
@@ -87,3 +90,25 @@ class ReferenceStudyTests(unittest.TestCase):
                   recognizer=lambda **_: self.fail("unexpected recognizer"))
             self.assertEqual(breakdown.read_text(), "Editorial notes")
             self.assertEqual(patterns.read_text(), "A verified pattern")
+
+    def test_a_refused_caption_track_keeps_the_video(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            def fetch(*args):
+                video = Path(args[args.index("-o") + 1]).parent
+                if "--skip-download" in args:
+                    (video / "source.pt-orig.vtt").write_text("WEBVTT\n\n")
+                    raise ValueError("python failed\nERROR: Unable to download video subtitles for 'en': "
+                                     "HTTP Error 429: Too Many Requests")
+                ffmpeg("-f", "lavfi", "-i", "color=black:s=160x256:r=24:d=2", "-f", "lavfi", "-i",
+                       "sine=frequency=440:duration=2", "-c:v", "mpeg4", "-c:a", "aac", str(video / "source.mp4"))
+                (video / "source.info.json").write_text(json.dumps({"title": "Refused captions"}))
+                return b""
+
+            (folder,) = study(root, "my-channel", [f"https://www.youtube.com/shorts/{FIRST}"], fetch=fetch,
+                              recognizer=lambda **_: None)
+            metadata = json.loads((folder / "metadata.json").read_text())
+            self.assertEqual(metadata["captions"], ["source.pt-orig.vtt"])
+            self.assertIn("429", metadata["captions_error"])
+            self.assertIn("Platform caption files", (folder / "breakdown.md").read_text())

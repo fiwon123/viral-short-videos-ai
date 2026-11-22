@@ -301,7 +301,11 @@ Live reference check (#105): `make reference` on one public video (19 s, speech)
 
 Live English check (#107): real Whisper on a two-speaker English recording (Kokoro, room noise near -40 dB, light reverb, 0.35-0.9 s pauses) gave 4 found, 2 partial, 1 missing, and three clips lost 0.11-0.18 s of their ending. Causes: the multilingual `base` was used for English (it heard "Too late" as "to lay"); the pause threshold sat inside the noise, so no pause was found and snapping never ran; "40 thousand" never matched "40,000". Now: `base.en` for a known English recording, pauses 6 dB over the floor, digit groups and spoken multipliers normalised (narration check too), several-word numbers aligned as one. Same recording: 6 found, 1 partial ("nas" heard as "NASA"), 0 missing, no clip loses speech; pt-br recording unchanged (0 missing, no speech cut).
 
-Next: nothing open. Still unverified: a human-voiced recording (only synthetic voices tested, with added noise). Known weak spot: the reference pulse candidate read a music Short at 2:3 of its tempo.
+Real voice-app recording (2026-11-22): the first 62 s of a user's ElevenLabs narration (pt-br) against an 11-line script written from an independent `small` transcript; the recording runs on past the script. `base` import: 10 found, 1 partial ("começasse" heard as "começar se"), 0 missing. Each clip transcribed again by `small` matched its line exactly; every clip edge is 55-65 dB under speech, no speech between clips, and the trailing unscripted speech was left out.
+
+Reference captions (#109): a live pt-BR Short failed whole when YouTube answered 429 to its auto-translated `en` caption track. Media and metadata now download first, captions in a separate best-effort call; a refusal is kept as `captions_error` and named in the breakdown. Same Short, same 429: study complete (140 s, three caption tracks).
+
+Next: nothing open. Known weak spot: `music.tempo` read a syncopated 125 bpm music Short as 83.5 (a 3:2 lag); comb, tempo prior and grid-fit fixes were tried on a 20-case synthetic set plus the real track and none held without breaking other cases, so nothing changed. Options: report the 3:2 alternative in the breakdown, or a beat tracker dependency.
 
 ### Restricted host baseline (2026-11-22)
 
