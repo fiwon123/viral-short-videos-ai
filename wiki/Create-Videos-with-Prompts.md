@@ -109,6 +109,8 @@ python video.py render workspace/<channel>/episodes/<episode>/episode.json \
 | Last frame | Does it lead back to the first? |
 | Captions | Do they land on the spoken words? |
 
+Most of these have a measurement behind them: film QA reports a wrong first frame, a slow open, a frozen ending and sounds off their frames; `make narration-check` hears the voice back. Watch for what the numbers cannot judge: whether it is funny, clear and worth sharing. To point at a moment, open `make review`, click the spot and write the note; the assistant answers each one. See [QA, Export and Publishing](QA-Export-and-Publishing).
+
 ## Fix prompts
 
 **Weak hook**
