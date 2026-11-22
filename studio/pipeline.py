@@ -41,7 +41,7 @@ def prepare_episode(episode, channel, channel_dir, *, style=True, episode_dir=No
     episode = expand_rig3d(expand_physics3d(episode, library), library)
     if style:
         episode = apply_style(episode, channel, channel_dir)
-    episode = expand_light(expand_music(episode, channel, channel_dir), channel)
+    episode = expand_light(expand_music(episode, channel, channel_dir, episode_dir), channel)
     episode = expand_markers(episode, channel_dir)
     episode = expand_trails(episode)
     episode = expand_particles(episode)
@@ -62,7 +62,7 @@ def beat_grid(episode, channel, channel_dir, style=True, episode_dir=None):
     probe = {key: copy.deepcopy(value) for key, value in episode.items() if key != "defs"}
     if style:
         probe = apply_style(probe, channel, channel_dir)
-    probe = expand_music(probe, channel, channel_dir)
+    probe = expand_music(probe, channel, channel_dir, episode_dir)
     return music_grid(probe.get("music"), episode_dir)
 
 

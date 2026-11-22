@@ -21,8 +21,9 @@ keeps a consistent sound without repeating one track on every upload.
 
 The picked track is then fitted to the episode (``arrange``): its opening and its
 own ending stay, whole bars come out of the middle or repeat, every join sits on a
-bar line, and the arrangement is exactly the episode's length. ``fit: false`` turns
-it off. The idea comes from huashu-motion's track arrangement (MIT); the planner is
+bar line, and the arrangement is exactly the episode's length. A ``music.file`` is
+fitted the same way, on its authored ``beat`` or one measured from the file when it
+has a clear pulse (``pulse_clarity``). ``fit: false`` turns it off. The idea comes from huashu-motion's track arrangement (MIT); the planner is
 our own.
 """
 
@@ -113,11 +114,31 @@ def first_beat(samples, bpm):
     return round(float((phase + 1) * HOP / RATE), 3)
 
 
+PULSE = 0.35  # clarity under which a "tempo" is the detector reading a drone or a texture, not a beat
+
+
+def pulse_clarity(samples, bpm):
+    """How clearly the onsets repeat at ``bpm``: the onset autocorrelation at one beat minus its value half a
+    beat away, over its value at zero lag. A click track scores about 0.9, music with a beat well above
+    0.35; a drone, a pad or rain scores under 0.2, however confidently ``tempo`` names a number."""
+    onset = onsets(samples)
+    if onset is None or not bpm:
+        return 0.0
+    onset = np.convolve(onset, [0.25, 0.5, 0.25], mode="same")
+    onset = onset - onset.mean()
+    corr = np.correlate(onset, onset, mode="full")[len(onset) - 1:]
+    if corr[0] <= 0:
+        return 0.0
+    lag = 60 * (RATE / HOP) / bpm
+    peak = corr[max(1, int(lag) - 1):int(lag) + 2].max()
+    return float((peak - corr[int(round(lag / 2))]) / corr[0])
+
+
 def beat_grid(path):
     """{"bpm", "offset"} measured from an audio file, or None when it has no steady pulse."""
     samples = decode(path, seconds=120)
     bpm = tempo(samples)
-    if not bpm:
+    if not bpm or pulse_clarity(samples, bpm) < PULSE:
         return None
     return {"bpm": bpm, "offset": first_beat(samples, bpm)}
 
@@ -325,9 +346,38 @@ def pick(tracks, request, runtime, seed_text=""):
     return shortlist[salt % len(shortlist)]
 
 
-def expand(episode, channel, channel_dir):
-    """Turn ``music: {mood, energy, bpm}`` into a concrete library track file."""
+def _runtime(episode):
+    return sum(float(shot.get("duration", 0)) for scene in episode.get("scenes", []) for shot in scene.get("shots", []))
+
+
+def _fit(episode, path, wanted):
+    """Add the arrangement for ``path`` to ``episode["music"]`` (``wanted`` is the authored music spec)."""
+    beat = episode["music"].get("beat")
+    runtime = _runtime(episode)
+    if not beat or not wanted.get("fit", True) or runtime <= 0:
+        return episode
+    plan = _plan(str(path), path.stat().st_mtime, round(runtime, 4), float(beat["bpm"]),
+                 float(beat.get("offset", 0)), int(beat.get("per_bar", 4)), bool(wanted.get("loop", True)))
+    if plan:
+        episode["music"]["arrangement"] = json.loads(json.dumps(plan))  # never hand out the cached dict
+        episode["music"]["beat"] = {**beat, "offset": plan["offset"]}  # the arranged track's grid
+    return episode
+
+
+def expand(episode, channel, channel_dir, episode_dir=None):
+    """Turn ``music: {mood, energy, bpm}`` into a concrete library track file, and fit the track (a library
+    pick, or ``music.file`` when ``episode_dir`` is known) to the episode's length."""
     music = episode.get("music")
+    if music and "file" in music and episode_dir is not None and "arrangement" not in music:
+        from .core import asset
+        path = Path(asset(Path(episode_dir), music["file"]))
+        if path.is_file() and music.get("fit", True):
+            if not music.get("beat"):
+                measured = _grid(str(path), path.stat().st_mtime)  # a file with a steady pulse
+                if measured:
+                    episode["music"] = {**music, "beat": measured}
+            return _fit(episode, path, music)
+        return episode
     if not music or "mood" not in music and "energy" not in music and "bpm" not in music:
         return episode
     library = (channel or {}).get("music_library")
@@ -336,21 +386,18 @@ def expand(episode, channel, channel_dir):
                          "python -m studio.music import <channel> --source <folder>.")
     base = Path(channel_dir)
     index = json.loads((base / library).read_text(encoding="utf-8"))
-    runtime = sum(float(shot.get("duration", 0)) for scene in episode.get("scenes", []) for shot in scene.get("shots", []))
+    runtime = _runtime(episode)
     track = pick(index["tracks"], music, runtime, episode.get("title", ""))
     episode["music"] = {**{key: value for key, value in music.items() if key not in ("mood", "energy", "bpm")},
                         "library_file": str((base / track["file"]).resolve()), "library_track": track["title"]}
     if track.get("bpm") and track.get("first_beat") is not None and "beat" not in music:
         episode["music"]["beat"] = {"bpm": track["bpm"], "offset": track["first_beat"]}  # for at_beat anchors
-    beat = episode["music"].get("beat")
-    if beat and music.get("fit", True) and runtime > 0:
-        path = Path(episode["music"]["library_file"])
-        plan = _plan(str(path), path.stat().st_mtime, round(runtime, 4), float(beat["bpm"]),
-                     float(beat.get("offset", 0)), int(beat.get("per_bar", 4)), bool(music.get("loop", True)))
-        if plan:
-            episode["music"]["arrangement"] = json.loads(json.dumps(plan))  # never hand out the cached dict
-            episode["music"]["beat"] = {**beat, "offset": plan["offset"]}  # the arranged track's grid
-    return episode
+    return _fit(episode, Path(episode["music"]["library_file"]), music)
+
+
+@lru_cache(maxsize=16)
+def _grid(path, stamp):
+    return beat_grid(Path(path))
 
 
 @lru_cache(maxsize=16)
