@@ -30,6 +30,7 @@ These come from measured channel renders, not theory. Each has a number that cat
 | **The late hit** | The thud lands a few frames after the contact, the pop before the bubble bursts | `sound-late`, `sound-early` (film-qa) | Put an impulsive cue on the frame where the motion starts or stops: `at` on that key's time, or anchor it. Check `metrics.sync` in the film-qa report. |
 | **The set runs out** | A pull-out or pan shows empty canvas past the set's edge; or the set is pinned (`parallax: 0`) and the cast slides off its floor while the camera zooms | camera coverage (`make validate`), the floor contact in the stills | Keep the set on the camera and give it bleed (draw it past the frame, or larger `width`/`height`), or keep the camera inside it. |
 | **The double exposure** | One frame at a cut shows both shots: motion blur's shutter straddles the cut key | `ghost-cut` (film-qa) | Put the cut key half a frame in (`hold` at (frame + 0.5) / frames). |
+| **The float** | Inside one setup the camera pushes in and eases back out, or pans across and back, within a second | camera wander (`make validate`) | Let the move land and hold, or cut to the new framing with a `hold` key. |
 | **Same grammar again** | The new episode opens and pays off exactly like the last three | `repeat` (treatment) | Change the opening device or the payoff device; the ledger's Grammar column remembers them. |
 
 ## Plan: the treatment
