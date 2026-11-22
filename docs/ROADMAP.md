@@ -56,6 +56,8 @@ This is the tracked memory for studio work: the renderer, schema, tools, presets
 | Music library | Done | `studio/music.py`, `make music-import DIR=... [DRY=1]`, `make music-list`. Hash-deduplicated import with mood tags from names, measured tempo/loudness/energy, `channel.music_library`. Episode or style `music: {mood, energy, bpm}` resolves to a deterministic track after the style merge. Voice and SFX ducking unchanged. |
 | Voice acting and engines | Done | `command` cast engine runs any local TTS (Piper, XTTS, F5, Chatterbox), cached per line. Per-line `pitch`, `pace` (native Kokoro speed) and `intensity` on every engine (`audio.act`). |
 | Production script | Done | `make script` writes `script.md` (voices; per shot time, picture, sounds, lines with ID/time/delivery, a visual-AI prompt from the style lock) and `voice-script.txt` (paste-ready per speaker, `[delivery]` tags, IDs and times). Estimated times until an audio pass newer than the manifest, then measured (`studio/script.py`, `tests/test_script.py`). |
+| Recorded voice import | Implemented | `make voice-import` matches an ordered recording to the script, writes separate takes and timing sidecars, and records partial, inferred, and missing lines in `voice-import.json`. The audio pass consumes complete timing sidecars for captions and mouth shapes. |
+| YouTube reference study | Implemented | `make reference` saves media, metadata and available captions locally and generates a timecoded breakdown and comparison. Platform ranking, downloads and the rebuilt image need live verification. |
 | Provider word timings | Done | A take may carry `<take>.words.json`: a `command` writes it to `{words}`, the `elevenlabs` engine stores the API's character alignment as words. Captions (`word_timing: provider`) and lip sync use it, shifted for the trim and scaled for `pace`; key only from `ELEVENLABS_API_KEY`, takes cached so keyless renders reuse them (`tests/test_provider_voices.py`). |
 | Lip sync | Done | `studio/lipsync.py`: eSpeak NG IPA (spelling fallback) to 9 visemes, spread over measured words, closed on silences, 2-frame hold with closure priority, 1-frame lead. Auto for any speaker with `viseme_for` layers, resolved to the mouths a character has (fallback chain, Rhubarb letters). Active viseme overrides keyed/variant visibility in both renderers. Generator adds `mbp`/`e`/`u`/`fv`/`l`/`etc` mouths; `alive.talk` lip-syncs when a rig has them. |
 | Lighting on 2D layers | Done | `studio/light2d.py` and `lightTile` in `painter.mjs`: episode/shot `light` (angle, colour, intensity, shadow, rim, softness, depth, elevation), layer `lit` inherited by children. Dome normals from a wide alpha blur plus rim from a narrow one, in layer space via world rotation and flips, cached per tile and 5° bucket. Parity fixture shot A lights the ball. |
@@ -288,6 +290,16 @@ Extra checks for the priority tracks:
 - `make still --sheet` shows the per-word caption pop, emphasis and safe-area placement.
 - Index a small CC0 pack, render an episode, then compare the before/after mix and LUFS.
 - `make character` produces a rig. A test shot shows blink, breathe, talk and pose changes in an onion still and the render.
+
+### Recorded voices and reference studies (2026-11-22)
+
+Issues #100 and #101 share the voice-recognition and reference workflow changes on `feat/100-voice-import`. Both commands are implemented; the skill's audio and reference guides describe their outputs, uncertainty and review steps, with mirrored Claude copies. The voice importer now has a Make/CLI integration test with an injected recognizer: paths with spaces, speaker filtering, saved timing sidecars, success and a nonzero result after a partial import. Host testing of the original combined implementation ran 313 tests and reproduced the same 11 baseline failures below; the expanded voice suite runs nine tests successfully. `make dev-build` completed successfully. In the rebuilt sandbox image `make test` ran 314 tests, all passing, none skipped (the 11 restricted-host baseline failures do not occur there). Live YouTube ranking/downloads and recognition with actual model weights remain unverified.
+
+Next: PR to `dev` linking #100 and #101 is open; merge only on the user's request. Then verify `make reference` against live YouTube and `make voice-import` with real Whisper weights on a real recording.
+
+### Restricted host baseline (2026-11-22)
+
+Run from `dev` at `e6f239e`: `make test` ran 302 tests with one failure and ten errors. The local system refused loopback sockets in the ComfyUI and review server tests, and its FFmpeg lacked `libx264` for the media fixture tests. The encoded frozen-ending assertion also failed (expected exit 1, got 0). The voice and combined reference changes reproduced the same 11 test cases.
 
 ## Execution order
 Track A (captions) → Track B (SFX) → Phase 1 foundations → Track C (art/characters) → Phases 2, 5, 3, 4. Each item is its own commit series with tests.
