@@ -240,13 +240,13 @@ def hold_captions(captions, total, fps, seconds):
         cue["end"] = max(cue["end"], min(cue["end"] + hold, limit))
 
 
-def measured_words(line, caption_text, clip, base):
+def measured_words(line, caption_text, clip, base, language=None):
     """Word timings measured from the take, retargeted to the caption words."""
     from .wordtiming import measure
 
     spoken = line.get("spoken_text", line["text"]).replace("*", "")
     try:
-        timed, method = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes")
+        timed, method = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes", language=language)
     except Exception:  # Timing is a polish step; never block a render on it.
         return None
     if not timed:
@@ -757,7 +757,7 @@ def prepare_audio(episode, base, path, temp, audio_library=None, channel=None):
                         entry[key] = line[key]
                 timing["speech"].append(entry)
                 text = line.get("caption", line["text"])
-                words = line.get("words") or measured_words(line, text, clip, base)
+                words = line.get("words") or measured_words(line, text, clip, base, detail.get("language"))
                 if words and not line.get("words"):
                     entry["word_timing"] = words[0].get("method", "energy")
                 timeline["captions"].append({

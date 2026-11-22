@@ -283,7 +283,7 @@ batch:
 		$(if $(OUT_ROOT),--out-root "$(OUT_ROOT)",)
 
 test:
-	@$(PYTHON) -m unittest discover -s tests -v
+	@STUDIO_WORD_TIMING=energy STUDIO_ASR=off $(PYTHON) -m unittest discover -s tests -v  # never load a speech model
 
 style-lock:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
