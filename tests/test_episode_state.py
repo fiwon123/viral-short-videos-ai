@@ -170,6 +170,69 @@ class DeliverTests(unittest.TestCase):
             self.assertFalse(json.loads(result.stdout)["ok"])
 
 
+def sounding(path, *, audio="sine=frequency=440:duration=3", filters="afade=t=out:st=2.2:d=0.8", silent=False):
+    """A 3 s clip with a tone (faded out by default) or no audio at all."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    command = ["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=90x160:rate=24:duration=3"]
+    if not silent:
+        command += ["-f", "lavfi", "-i", audio, "-af", filters, "-c:a", "aac", "-shortest"]
+    subprocess.run(command + ["-pix_fmt", "yuv420p", str(path)], check=True)
+    return path
+
+
+class AudioGateTests(unittest.TestCase):
+    """The delivered file's sound, through deliver() the way make deliver runs it."""
+
+    def deliver(self, layout, video):
+        from studio.episode_state import deliver
+
+        def no_speech(where, folder):
+            return {"verdict": "no-speech", "notes": []}
+        return deliver(layout.episode, video=video, viral=viral_stub, narration=no_speech)
+
+    def test_a_faded_tone_passes_and_the_facts_record_it(self):
+        from studio.episode_state import audio_gate
+        with TemporaryDirectory() as temp:
+            video = sounding(Path(temp) / "v.mp4", filters="volume=0.3,afade=t=out:st=2.2:d=0.8")
+            facts, notes = audio_gate(video, target=-14)
+            self.assertTrue(facts["decodes"])
+            self.assertGreater(facts["tail_under_loudest_db"], 12)
+            self.assertNotIn("audio-cut", [note["kind"] for note in notes])
+            self.assertNotIn("true-peak", [note["kind"] for note in notes])
+            _, notes = audio_gate(video, target=facts["integrated_lufs"] + 5)
+            self.assertIn("loudness", [note["kind"] for note in notes])
+
+    def test_cut_clipping_and_silence_are_amber_in_delivery(self):
+        with TemporaryDirectory() as temp:
+            layout = Layout(temp)
+            (layout.folder / "treatment.md").write_text(GOOD, encoding="utf-8")
+            layout.age_episode()
+            cases = (("ep-v1", dict(filters="volume=0.3"), "audio `audio-cut`"),
+                     ("ep-v2", dict(audio="sine=frequency=440:duration=3", filters="volume=8,afade=t=out:st=2.2:d=0.8"),  # lavfi sine is 1/8 scale
+                      "audio `true-peak`"),
+                     ("ep-v3", dict(silent=True), "audio `silent`"))
+            for name, options, expected in cases:
+                video = sounding(layout.renders / name / "video.mp4", **options)
+                report, code = self.deliver(layout, video)
+                self.assertEqual(code, 0, report)
+                self.assertIn(expected, report["amber"], name)
+                self.assertIn("- Delivered sound:", (video.parent / "delivery.md").read_text(encoding="utf-8"))
+
+    def test_a_damaged_file_is_refused(self):
+        with TemporaryDirectory() as temp:
+            layout = Layout(temp)
+            (layout.folder / "treatment.md").write_text(GOOD, encoding="utf-8")
+            layout.age_episode()
+            video = sounding(layout.renders / "ep-v1" / "video.mp4")
+            data = bytearray(video.read_bytes())
+            data[len(data) // 3:len(data) // 3 + 3000] = b"\x00" * 1500 + b"\xff" * 1500
+            video.write_bytes(bytes(data))
+            report, code = self.deliver(layout, video)
+            self.assertEqual(code, 2, report)
+            self.assertTrue(any("does not decode cleanly" in reason for reason in report["reasons"]))
+            self.assertFalse((video.parent / "delivery.md").exists())
+
+
 class ReviewPackTests(unittest.TestCase):
     def test_pack_holds_what_a_cold_reviewer_needs(self):
         from studio.episode_state import key_stills, review_pack

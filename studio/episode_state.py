@@ -298,6 +298,67 @@ def _probe(video):
             "audio": any(item.get("codec_type") == "audio" for item in data["streams"])}
 
 
+PEAK_LIMIT = -1.0    # dBTP: above this a platform's transcode can clip
+LOUDNESS_SPAN = 1.0  # LU either side of the channel's master target
+CUT_TAIL = 12.0      # dB: the last 0.25 s should sit at least this far under the loudest 2 s
+
+
+def audio_gate(video, target=-14.0):
+    """The delivered file's sound: (facts dict, notes). A decode error is ``decode`` (high), the rest medium."""
+    from .audio import measure_loudness
+    from .music import RATE, decode
+    notes = []
+    errors = subprocess.run(["ffmpeg", "-v", "error", "-i", str(video), "-f", "null", "-"],
+                            capture_output=True, text=True).stderr.strip()
+    facts = {"decodes": not errors, "target_lufs": target}
+    if errors:
+        notes.append({"kind": "decode", "severity": "high", "note": f"The file does not decode cleanly: "
+                      f"{errors.splitlines()[0][:160]}", "fix": "Render it again; do not upload a damaged file."})
+    if not _probe(video)["audio"]:
+        notes.append({"kind": "silent", "severity": "medium", "note": "The file has no sound.",
+                      "fix": "A Short without sound reads as a draft: render with the episode's audio."})
+        return facts, notes
+    loudness = measure_loudness(video)
+    level, peak = loudness.get("integrated_lufs"), loudness.get("true_peak_db")
+    level = float(level) if level not in (None, "-inf") else None
+    peak = float(peak) if peak not in (None, "-inf") else None
+    facts.update(integrated_lufs=level, true_peak_db=peak)
+    if level is None or level < -45:
+        notes.append({"kind": "silent", "severity": "medium", "note": "The sound track is (almost) silent.",
+                      "fix": "Check the mix: the music and the effects are missing or muted."})
+        return facts, notes
+    if abs(level - target) > LOUDNESS_SPAN:
+        held = level < target and peak is not None and peak > PEAK_LIMIT - 1.0
+        notes.append({"kind": "loudness", "severity": "medium",
+                      "note": f"Loudness is {level:.1f} LUFS against the channel's {target:g}"
+                              + (f", with the true peak already at {peak:.1f} dBTP." if held else "."),
+                      "fix": ("A few short hits set the peak ceiling, so the master cannot raise the rest: lower "
+                              "the loudest cues' gain or punch, or raise the bed (music, ambience) under them."
+                              if held else "Re-render with the master on (audio.master.loudness), or check a cue "
+                              "that dominates the mix.")})
+    if peak is not None and peak > PEAK_LIMIT:
+        notes.append({"kind": "true-peak", "severity": "medium",
+                      "note": f"True peak is {peak:.1f} dBTP (limit {PEAK_LIMIT:g}).",
+                      "fix": "Lower the loudest cue or the master's true-peak ceiling; platforms clip it on transcode."})
+    samples = decode(video)
+    if len(samples) > RATE * 2.5:
+        hop = RATE // 20
+        steps = len(samples) // hop
+        level_db = 10 * np.log10(np.mean(samples[:steps * hop].reshape(steps, hop) ** 2, axis=1) + 1e-12)
+        power = 10 ** (level_db / 10)
+        window = 40  # 2 s of 50 ms steps
+        loudest = 10 * np.log10(np.convolve(power, np.ones(window) / window, mode="valid").max() + 1e-12)
+        tail = 10 * np.log10(power[-5:].mean() + 1e-12)
+        facts["tail_under_loudest_db"] = round(float(loudest - tail), 1)
+        if loudest - tail < CUT_TAIL:
+            notes.append({"kind": "audio-cut", "severity": "medium",
+                          "note": f"The sound is still loud on the last frame ({loudest - tail:.0f} dB under the "
+                                  "loudest 2 s): it is cut, not ended.",
+                          "fix": "End the last cue (and the music's ring-out) before the last frame, or fade the "
+                                 "master's tail. A loop that is meant to run on may keep it; say so in the notes."})
+    return facts, notes
+
+
 def _viral(where, video):
     command = [sys.executable, "-m", "studio.viral_check", str(where["episode"]), "--video", str(video)]
     if where["channel"]:
@@ -343,6 +404,14 @@ def deliver(episode, channel=None, video=None, *, viral=None, narration=None):
         return {"delivered": False, "video": str(video), "film_qa": film["verdict"], "treatment": lint["verdict"],
                 "reasons": reasons}, 2
     score = (viral or _viral)(where, video)
+    target = -14.0
+    if (folder / "timeline.json").is_file():
+        master = (json.loads((folder / "timeline.json").read_text(encoding="utf-8")).get("audio") or {}).get("master")
+        target = float((master or {}).get("loudness", target))
+    sound, sound_notes = audio_gate(video, target)
+    if not sound["decodes"]:
+        return {"delivered": False, "video": str(video), "film_qa": film["verdict"], "treatment": lint["verdict"],
+                "reasons": [f"audio: {note['note']}" for note in sound_notes if note["severity"] == "high"]}, 2
     speech = (narration or _narration)(where, folder)
     info = _probe(video)
     qa = json.loads((folder / "qa.json").read_text(encoding="utf-8")) if (folder / "qa.json").is_file() else {}
@@ -367,6 +436,10 @@ def deliver(episode, channel=None, video=None, *, viral=None, narration=None):
     else:
         facts.append(f"- Viral check: **{score['score']}**/100")
         facts += [f"  - {note['severity']} `{note['kind']}`: {note['note']}" for note in score["notes"]]
+    facts.append(f"- Delivered sound: {sound.get('integrated_lufs', 'no')} LUFS (target {target:g}), true peak "
+                 f"{sound.get('true_peak_db', '-')} dBTP, last 0.25 s {sound.get('tail_under_loudest_db', '-')} dB under "
+                 f"the loudest 2 s; decodes cleanly")
+    facts += [f"  - {note['severity']} `{note['kind']}`: {note['note']}" for note in sound_notes]
     if speech["verdict"] == "unchecked":
         facts.append(f"- Narration: **not checked** ({speech.get('reason', 'no recogniser')})")
     elif speech["verdict"] != "no-speech":
@@ -382,7 +455,8 @@ def deliver(episode, channel=None, video=None, *, viral=None, narration=None):
     seal = hashlib.sha256(body.encode()).hexdigest()
     ambers = [f"film-qa `{note['kind']}`" for note in film["notes"] if note["severity"] == "medium"] + \
         [f"treatment `{note['kind']}`" for note in lint["notes"] if note["severity"] == "medium"] + \
-        [f"narration `{note['kind']}`" for note in speech["notes"] if note["severity"] in ("medium", "high")]
+        [f"narration `{note['kind']}`" for note in speech["notes"] if note["severity"] in ("medium", "high")] + \
+        [f"audio `{note['kind']}`" for note in sound_notes]
     maker = ["## Maker's notes", "",
              "Write below this line. Say why each amber item is acceptable, what the director's notes changed, and "
              "what to paste where (see `publishing.md`)."]
