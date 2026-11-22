@@ -10,7 +10,7 @@ from .core import ffmpeg, new_package, probe, require, run, write_json
 from .design import get_font
 
 
-def reference(path, target, threshold, *, focus_shorts=False):
+def reference(path, target, threshold, *, focus_shorts=False, all_cuts=False):
     require("ffmpeg")
     require("ffprobe")
     data = probe(path)
@@ -38,11 +38,15 @@ def reference(path, target, threshold, *, focus_shorts=False):
                 samples.extend((offset, duration - offset))
         method += " Extra samples within the opening and closing two seconds."
     method += " Seek times and scene changes are candidates for review."
-    times = sorted({round(time, 3) for time in samples})
+    sheet_times = sorted({round(time, 3) for time in samples})
+    times = sorted(set(sheet_times) | ({round(time, 3) for time in cuts} if all_cuts else set()))
+    if all_cuts:
+        method += " Individual frames are also saved for every cut candidate."
     with new_package(target) as out:
         frames = out / "frames"
         frames.mkdir()
-        sheet = Image.new("RGB", (960, math.ceil(len(times) / 4) * 170), "#101828")
+        sheet_indices = {seconds: index for index, seconds in enumerate(sheet_times)}
+        sheet = Image.new("RGB", (960, math.ceil(len(sheet_times) / 4) * 170), "#101828")
         draw = ImageDraw.Draw(sheet)
         thumbs = []
         for index, seconds in enumerate(times):
@@ -52,11 +56,14 @@ def reference(path, target, threshold, *, focus_shorts=False):
                 continue
             filename = f"{index + 1:02d}.jpg"
             (frames / filename).write_bytes(raw)
-            with Image.open(BytesIO(raw)) as image:
-                image.thumbnail((232, 142), Image.Resampling.LANCZOS)
-                x, y = index % 4 * 240, index // 4 * 170
-                sheet.paste(image, (x + (240 - image.width) // 2, y + (142 - image.height) // 2))
-            draw.text((x + 8, y + 145), f"{filename[:2]}  {seconds:.3f}s", font=get_font(None, 14), fill="white")
+            if seconds in sheet_indices:
+                cell = sheet_indices[seconds]
+                with Image.open(BytesIO(raw)) as image:
+                    image.thumbnail((232, 142), Image.Resampling.LANCZOS)
+                    x, y = cell % 4 * 240, cell // 4 * 170
+                    sheet.paste(image, (x + (240 - image.width) // 2, y + (142 - image.height) // 2))
+                draw.text((x + 8, y + 145), f"{filename[:-4]}  {seconds:.3f}s",
+                          font=get_font(None, 14), fill="white")
             thumbs.append({"file": f"frames/{filename}", "seek_seconds": seconds})
         sheet.save(out / "contact-sheet.jpg", quality=90)
         has_audio = any(stream["codec_type"] == "audio" for stream in data["streams"])
