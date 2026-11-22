@@ -18,6 +18,8 @@ picture freezes for seconds. This tool reads the pixels instead:
 * one-framing   the longest stretch without a hard cut (a Short reads as a slide
                 when one framing holds for most of it)
 * pop           a single frame that jumps away and back (a glitch, not two cuts)
+* ghost-cut     a frame beside a hard cut that blends both shots (a motion-blur
+                shutter straddling the cut key)
 * first-frame   frame 0 is a different picture from the opening (the poster is wrong)
 * music-join    the library track was fitted to length with a join that changes
                 loudness by more than 6 dB (timeline.json ``music.arrangement``)
@@ -136,6 +138,21 @@ def read_meta(path):
     if not path or not Path(path).is_file():
         return {"route": None, "stops": []}
     return meta_from_text(Path(path).read_text(encoding="utf-8"))
+
+
+def ghost(stack, index, cut):
+    """True when frame ``index`` (beside ``cut``) is a mix of the frames on either side of it."""
+    if index < 1 or index + 1 >= len(stack):
+        return False
+    a, m, b = stack[index - 1], stack[index], stack[index + 1]
+    span = float(np.abs(a - b).mean())
+    if span < 8:
+        return False
+    d = (a - b).ravel()
+    alpha = float(np.clip(np.dot((m - b).ravel(), d) / max(np.dot(d, d), 1e-6), 0, 1))
+    residual = float(np.abs(m - (alpha * a + (1 - alpha) * b)).mean())
+    return 0.15 < alpha < 0.85 and residual < 0.35 * span and \
+        float(np.abs(m - a).mean()) > 0.25 * span and float(np.abs(m - b).mean()) > 0.25 * span
 
 
 def runs(mask):
@@ -439,6 +456,10 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), leve
             moved = moved.mean(axis=-1) if moved.ndim == 3 else moved
             if float((moved > 20).mean()) >= SOFT_CUT[2]:
                 cuts.append(index)  # a lone spike over much of the frame: a cut-in on the same set
+    pictures = stack.astype(np.float32)
+    # A blended frame sits between two half-size cuts, so both can point at it: count it once.
+    ghosts = sorted({next(index for index in (cut - 1, cut) if ghost(pictures, index, cut))
+                     for cut in cuts if any(ghost(pictures, index, cut) for index in (cut - 1, cut))})
     moving = change.copy()
     moving[cuts] = 0  # a cut is a change of picture, not motion
     moving[sorted(glitch)] = 0
@@ -449,6 +470,14 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), leve
         notes.append(_note("first-frame", "high", "Frame 0 is a different picture from the rest of the opening.",
                            "Frame 0 is the poster feeds show: make it the opening shot. Usually a camera or layer "
                            "key that is not applied at t=0, or a transition starting on the wrong frame.", at=0.0))
+    for index in ghosts:
+        shot = _shot_at(shots, index / fps)
+        where = f" in shot {shot}" if shot else ""
+        notes.append(_note("ghost-cut", "high", f"The frame at {index / fps:.2f} s (frame {index}) blends the shots "
+                           f"on both sides of a cut{where}.",
+                           "A motion-blur shutter straddles the cut. Put the cut key half a frame in (a `hold` key "
+                           "at (frame + 0.5) / frames), or turn motion blur off for that frame.",
+                           at=round(index / fps, 3), shot=shot))
     for index in pops:
         shot = _shot_at(shots, index / fps)
         where = f" in shot {shot}" if shot else ""
@@ -552,6 +581,7 @@ def analyse(stack, fps, route=None, stops=(), shots=(), beat=None, cues=(), leve
         "longest_framing": round(longest, 2), "route": route, "stops": [list(stop) for stop in stops],
         "cuts_on_beat": beat_share, "bpm": (beat or {}).get("bpm"),
         "pops": [round(index / fps, 3) for index in pops], "first_frame_jump": first_jump,
+        "ghost_frames": [round(index / fps, 3) for index in ghosts],
         "shots": per_shot, "sync": sync_rows,
     }
     return notes, metrics, dead_runs

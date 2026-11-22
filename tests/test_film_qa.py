@@ -117,6 +117,18 @@ class AnalyseTests(unittest.TestCase):
         _, metrics, _ = analyse(np.stack(held(wide, 1) + burst + held(burst[-1], 1)), FPS)
         self.assertEqual(metrics["cuts"], [])
 
+    def test_a_frame_blending_both_shots_at_a_cut_is_a_ghost(self):
+        from studio.film_qa import analyse
+        first, second = scene(1), scene(2)
+        clean = np.stack(held(first, 1) + held(second, 1))
+        _, metrics, _ = analyse(clean, FPS)
+        self.assertEqual((metrics["cuts"], metrics["ghost_frames"]), ([1.0], []))
+        blended = held(first, 1) + [0.5 * first + 0.5 * second] + held(second, 1)
+        notes, metrics, _ = analyse(np.stack(blended), FPS)
+        self.assertEqual(len(metrics["ghost_frames"]), 1)
+        self.assertAlmostEqual(metrics["ghost_frames"][0], 1.0, delta=1.5 / FPS)
+        self.assertEqual(kinds(notes)["ghost-cut"], "high")
+
     def test_a_single_frame_pop_is_a_glitch_not_two_cuts(self):
         from studio.film_qa import analyse
         frames = moving(3)
