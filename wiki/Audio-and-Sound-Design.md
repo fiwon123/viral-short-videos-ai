@@ -28,6 +28,9 @@ Create a channel audio library and point `channel.json` at it:
 
 Use `recorded` profiles with approved WAVs when you need a specific performance. Audition the cast together on a neutral line, a reaction and a quiet beat before locking a series.
 
+> [!TIP]
+> Before animating to a take, run `make narration-check EPISODE=...`. It hears every line back and flags dropped, repeated or misread words and numbers, so you re-voice while it is still cheap. See [QA, Export and Publishing](QA-Export-and-Publishing).
+
 ## 🎼 Music
 
 ```json
@@ -35,7 +38,18 @@ Use `recorded` profiles with approved WAVs when you need a specific performance.
            "duck": {"amount": 0.58, "attack": 0.04, "release": 0.16}}}
 ```
 
-Use `file` for licensed or original music. The mixer ducks under speech and applies fades.
+Use `file` for licensed or original music, or ask the channel's music library for a mood (`"music": {"mood": "funny", "energy": "high"}`). The mixer ducks under speech and applies fades.
+
+### Fitted to the episode
+
+A track is not simply cut at the last frame. When it has a beat (a library track, a `file` with a `beat`, or a file whose pulse the studio can measure), it is arranged to the episode's exact length:
+
+- the track's own opening plays, and its own ending lands on the last frame;
+- whole bars come out of the middle (or repeat, for a track shorter than the episode), joined only on bar lines so the beat carries across;
+- the join with the smallest loudness step is chosen, and film QA reports `music-join` if even that one jumps;
+- `music.beat` follows the arrangement, so `at_beat` anchors and `snap` still land.
+
+The plan is in the render's `timeline.json` (`music.arrangement`). Set `"fit": false` to play from the start and cut, and `"loop": false` to never repeat bars. A drone, a pad or an ambience has no beat to cut on and plays as before.
 
 ## 🔊 Foley and layers
 
@@ -68,7 +82,7 @@ Use `file` for licensed or original music. The mixer ducks under speech and appl
 }
 ```
 
-The mixer writes stereo, then applies a high-pass, gentle bus compression, two-pass loudness normalisation, a limiter, and a true-peak correction. Read the measured report in `audio-qa.json` or `timeline.json`.
+The mixer writes stereo, then masters it: a high-pass and gentle bus compression, then the loudness is measured on that result and raised to the target into a peak limiter that works at four times the sample rate, so the peaks between samples are caught too. It re-measures and corrects for what the limiter took. A sparse mix of short hits and creature sounds reaches the target like a dense one. Read the measured report in `audio-qa.json` or `timeline.json`; `make deliver` checks the delivered file again and flags loudness off target, a true peak over −1 dBTP or a sound cut off on the last frame.
 
 > [!TIP]
 > Review on headphones and a phone speaker. Keep dialogue forward and leave a little room around impacts.

@@ -67,13 +67,31 @@ Camera keyframe `at` values must increase. A `preset` is ignored when explicit `
 
 ## Audio too quiet or too loud
 
-Read `audio-qa.json`. Set:
+Read `audio-qa.json`, or the "Delivered sound" line in `delivery.md` after `make deliver`. The master reaches the target on sparse and dense mixes alike; set another one with:
 
 ```json
 {"audio": {"master": {"loudness": -14, "true_peak": -1.5}}}
 ```
 
-Use `master.enabled: false` only for a deliberate raw master.
+If delivery still reports `loudness` with the true peak at the ceiling, a few very loud hits hold the mix down: lower their `gain` or `punch`, or raise the music or ambience under them. Use `master.enabled: false` only for a deliberate raw master.
+
+## `make deliver` refuses the master
+
+- **A red film-QA or treatment verdict:** read `film-qa/report.json` or run `make treatment-lint`; each note says how to fix it.
+- **The file does not decode cleanly:** the MP4 is damaged. Render it again; never upload it.
+- Amber items do not block delivery. Answer each one under "Maker's notes" in `delivery.md`.
+
+## Narration check says `unchecked`
+
+The speech recogniser is not available: faster-whisper is not installed (it ships in the studio image; on the host, `pip install -r requirements-voice.txt`) or `STUDIO_ASR=off` is set. An unchecked narration is not a pass.
+
+## `make validate` warns that the camera leaves the backdrop
+
+A pan or pull-out goes past the edge of a frame-size set, so empty canvas shows. Draw the set larger than the frame or keep the camera inside it. Do not pin the set with `parallax: 0` instead: the cast then slides off its floor when the camera zooms.
+
+## `make review` opens on another port
+
+Another studio page (usually `make editor`) holds port 8765, so the review page takes the next free one and prints it. Inside the Docker sandbox only 8765 reaches your browser: stop the other page, or pass `PORT=`.
 
 ## Captions missing
 
@@ -92,7 +110,7 @@ The inventory path now supports channels without 3D. If you see this on an old c
 
 ## Wiki page is missing
 
-The GitHub Wiki is edited in the repository's Wiki tab. The `wiki/` folder is a versioned mirror; copy the page there when the live wiki changes.
+The repository's `wiki/` folder is the source of the GitHub Wiki and is synced to it with each release. Edit the page there, in a pull request.
 
 ## 🔗 Related guides
 

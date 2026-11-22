@@ -38,7 +38,7 @@ Characters that talk and blink, hooks that move, captions that pop, all rendered
     </td>
     <td width="33%" valign="top">
       <h3>💬 Voices and captions</h3>
-      Local text-to-speech voices, word-by-word captions, sound effects placed on the right words, and music that ducks under the voice.
+      Local voices, captions timed to every spoken word, sound effects on the right words and beats, and music cut to fit the episode on its bar lines.
     </td>
   </tr>
   <tr>
@@ -52,7 +52,7 @@ Characters that talk and blink, hooks that move, captions that pop, all rendered
     </td>
     <td width="33%" valign="top">
       <h3>📦 Ready to upload</h3>
-      A 1080×1920 MP4, thumbnail, captions file, and titles, descriptions and tags for YouTube and TikTok.
+      A checked 1080×1920 MP4, thumbnail, captions file, and titles, descriptions and tags for YouTube and TikTok.
     </td>
   </tr>
 </table>
@@ -76,7 +76,22 @@ Give it a picture, from an AI image generator, your own drawing or an import, an
 
 - **Approve the hook first:** `make preview HOOK=20` renders only the opening 20 seconds, with sound.
 - **Let jokes land:** mark a line `"punchline": true` for a beat of silence.
-- **Check before you post:** `make viral-check` scores the hook, pacing, loop, loudness and packaging, and every render measures its own energy curve (`film-qa/`): frozen endings, dead holds and one-framing films are caught from the pixels.
+- **Check before you post:** `make viral-check` scores the hook, pacing, loop, loudness and packaging.
+
+## 🎬 Directed, reviewed, delivered
+
+The studio works like a small production team. Each step has a check that measures what you would otherwise have to spot by eye, and says how to fix it.
+
+| Step | Command | What it catches |
+| --- | --- | --- |
+| **Plan** | `make treatment-lint` | A hook that takes too long, one shot size for the whole film, a camera that only pushes in, an ending that never lands. |
+| **Build** | `make validate` | A camera that runs past the edge of the set, or drifts there and back inside one shot. |
+| **Voice** | `make narration-check` | Lines the voice dropped, repeated or misread, heard back against the script. |
+| **Render** | automatic | Every render measures itself: dead stretches, frozen endings, a wrong first frame, sounds that miss their action, blended cuts. |
+| **Review** | `make review-pack` · `make review` | Cold reviewers by lens (director, sound, continuity), and notes you leave by clicking the frame itself. |
+| **Deliver** | `make deliver` | A damaged file, loudness off target, clipping peaks, a sound cut off at the end; the facts are sealed in `delivery.md`. |
+
+`make state` tells you where any episode stands and the exact next command, so you can stop and pick up again anytime. [The full quality guide →](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing)
 
 ## 💻 Fits your PC
 
@@ -154,6 +169,17 @@ show me the preview, then make a 15-second test where it talks and waves.
 </details>
 
 <details>
+<summary>🔍 <b>Review and deliver my video</b></summary>
+
+```text
+Read the film-QA report of the latest preview of [episode], then prepare the
+review pack and have a reviewer that did not build it check each lens.
+Fix what matters, render the master, run make deliver, and tell me what
+changed and what each amber item means.
+```
+</details>
+
+<details>
 <summary>📅 <b>Plan a batch of episodes</b></summary>
 
 ```text
@@ -193,7 +219,8 @@ Rules change by region, so check your dashboard. [Full monetization guide →](h
 | --- | --- |
 | 🚀 **Get started** | [Quick Start](https://github.com/fiwon123/viral-short-videos-ai/wiki/Quick-Start) · [Your PC and Performance](https://github.com/fiwon123/viral-short-videos-ai/wiki/Your-PC-and-Performance) · [Examples](https://github.com/fiwon123/viral-short-videos-ai/wiki/Examples) |
 | 🎨 **Create** | [Create a Channel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Create-a-Channel) · [AI Characters and Hook Clips](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Characters-and-Hook-Clips) · [Prompt Cookbook](https://github.com/fiwon123/viral-short-videos-ai/wiki/AI-Workflow-and-Prompt-Cookbook) |
-| 📈 **Grow** | [Make Shorts Travel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Make-Shorts-Travel) · [Batch Production](https://github.com/fiwon123/viral-short-videos-ai/wiki/Automate-a-Channel) · [QA and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) |
+| ✅ **Review** | [QA, Export and Publishing](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing) · [Audio and Sound Design](https://github.com/fiwon123/viral-short-videos-ai/wiki/Audio-and-Sound-Design) · [Motion, Camera and Rigs](https://github.com/fiwon123/viral-short-videos-ai/wiki/Motion-Camera-and-Rigs) |
+| 📈 **Grow** | [Make Shorts Travel](https://github.com/fiwon123/viral-short-videos-ai/wiki/Make-Shorts-Travel) · [Batch Production](https://github.com/fiwon123/viral-short-videos-ai/wiki/Automate-a-Channel) · [Monetization](https://github.com/fiwon123/viral-short-videos-ai/wiki/YouTube-and-TikTok-Monetization) |
 | 🛠️ **Reference** | [Creative Controls](https://github.com/fiwon123/viral-short-videos-ai/wiki/Creative-Controls) · [Manifest Reference](https://github.com/fiwon123/viral-short-videos-ai/wiki/Manifest-Reference) · [Renderer Support](https://github.com/fiwon123/viral-short-videos-ai/wiki/Renderer-Support) · [Troubleshooting](https://github.com/fiwon123/viral-short-videos-ai/wiki/Troubleshooting) |
 
 <p align="center"><sub>MIT licensed · Made for creators who want to ship original animated Shorts, not copies. No one can promise a viral video; the studio helps you make one worth watching.</sub></p>

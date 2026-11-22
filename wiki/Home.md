@@ -22,14 +22,16 @@
 | **Plan for monetization** | [YouTube and TikTok Monetization](YouTube-and-TikTok-Monetization) | A checklist for your platform and the milestones to track |
 | **Make characters and moving hooks** | [AI Characters and Hook Clips](AI-Characters-and-Hook-Clips) | A rigged cast that blinks and lip-syncs, and an opening shot that moves |
 | **Check what your PC can do** | [Your PC and Performance](Your-PC-and-Performance) | The automatic mode for your machine, and every limit you can change |
+| **Review and deliver** | [QA, Export and Publishing](QA-Export-and-Publishing) | Film QA on every render, cold reviews by lens, notes on the frame, and a sealed delivery |
 | **Try the tools** | [Quick Start](Quick-Start) → [Examples](Examples) | A first local render and four complete reference projects |
 
 ## ✅ Review before publishing
 
 - [ ] Watch the preview on a phone with sound and muted.
 - [ ] Check that the first frame sets up the story and the ending delivers the payoff.
+- [ ] Read the film-QA report: no frozen ending, no dead stretch, sounds on their frames.
 - [ ] Read the thumbnail, captions, and publishing copy at upload size.
-- [ ] Review the export report and open the final MP4.
+- [ ] Run `make deliver` and answer every amber item in `delivery.md`.
 
 ## 🛠️ Find a technical answer
 

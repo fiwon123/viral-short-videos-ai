@@ -69,6 +69,13 @@ Presets:
 
 Per-layer `parallax` scales the camera move: backgrounds move less, foregrounds more.
 
+### Cuts, zoom and the set
+
+- **Cut between setups with a `hold` key.** Several framings of one performance read as edited shots. Put each cut key half a frame in (`at` = (frame + 0.5) / frames), so motion blur never blends the two framings into one frame; film QA reports `ghost-cut` if it does.
+- **Zoom moves at an even visual rate.** Zoom keys interpolate in log space: a linear key from 1× to 4× passes 2× halfway, so the ease you write is the shape you see.
+- **Keep the set on the camera, and larger than the frame.** A set pinned with `parallax: 0` stays still while the cast zooms, so characters slide off their floor. A set drawn exactly frame-size shows empty canvas when the camera pans or pulls out past it. `make validate` warns about the second, with how far and when.
+- **Let a move land.** A push that eases back out, or a pan across and back, within a second reads as a wobble. `make validate` flags it; hold the end of the move or cut instead.
+
 ## 🫧 Squash, stretch and skew
 
 Use independent axes for weight and impact:
