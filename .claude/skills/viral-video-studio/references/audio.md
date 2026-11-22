@@ -12,6 +12,10 @@ Use the `audio_library` definition in the [manifest schema](../../../../studio/s
 
 For richer acting or an original recorded identity, use a `recorded` profile with a stable `identity` and supply dry takes in each speech line's `file`. A file can also override the synthesis for one line in a Kokoro profile. Reuse the same performer or approved provider voice ID and settings. If using an external voice design or recording service, audition it and bring the resulting audio files into the project.
 
+For a complete recording, generate `make script EPISODE=...` and read `voice-script.txt` in its whole-recording order, or record each speaker separately. Run `make voice-import EPISODE=... FILE='recording.mp3' [SPEAKER=<name>] [LANGUAGE=pt] [MODEL=base]`. It matches lines in order, writes takes and clip-relative `.words.json` files under the episode's `audio/voice/`, and updates matching lines' `file` fields. The audio pass uses those timings for captions and mouth motion. Missing lines retain any previous take.
+
+Read `voice-import.json` and listen to every partial or inferred take before continuing. The command exits nonzero when any line is partial, inferred or missing, even though matched takes were saved. A line's `pace` or `pitch` still affects its imported recording and produces a warning. Run `make audio` and `make narration-check` before animating to the new takes. Recognition uses faster-whisper from `requirements-voice.txt`; `STUDIO_ASR=off` disables import.
+
 Any local TTS program can be a voice: a `command` profile runs it once per line and caches the take like Kokoro. `{out}` is the WAV to write; the line goes to stdin, or into `{text}` with `"input": "arg"`. Free options by need: Piper (fast, many languages, one voice per model), Coqui XTTS or F5-TTS (zero-shot cloning from a short reference the user owns), Chatterbox (English with emotion control), eSpeak NG (scratch). Check each model's licence for commercial use.
 
 **Voices that know their own timing.** Captions and lip sync normally time each word by listening to the take. A voice that already knows when it said each word is exact instead:

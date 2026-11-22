@@ -185,6 +185,10 @@ def write(episode_path, out_dir=None):
                   f"  make voice-import EPISODE={shown_path(episode_path)} FILE=<your recording> [SPEAKER=<name>]", "",
                   "Lines marked (written: ...) are respelled so the voice says them right. If your voice",
                   "already pronounces the written form correctly, you may read that instead.", ""]
+        if len(speakers) > 1:
+            voice += ["Whole recording order:", ""]
+            voice += [f"{entry['id']} {entry['line']['speaker']}: {spoken(entry['line'])}" for entry in lines]
+            voice.append("")
         for name in speakers:
             profile = voices.get(name, {})
             voice += ["-" * 40, f"{name}" + (f": {flat(profile['direction'])}" if profile.get("direction") else ""), "-" * 40, "",

@@ -54,7 +54,9 @@ def spoken_take(line, voice, base, temp, profile, takes, commands=None, hosted=N
     paced = False
     provided = None
     if "file" in line:
-        raw = read_audio(asset(base, line["file"]))
+        path = asset(base, line["file"])
+        raw = read_audio(path)
+        provided = read_words(path)
         source = line["file"]
         detail = {"engine": "recorded"}
     elif profile and profile.get("engine") == "command":
