@@ -184,6 +184,59 @@ def coverage_warnings(shot, rate=48):
     return warnings
 
 
+WANDER_PAN, WANDER_ZOOM, WANDER_GAP, WANDER_RETURN = 0.074, math.log(1.03), 1.0, 0.5
+
+
+def wander_warnings(shot, rate=24):
+    """Warn when the authored camera moves one way and comes back within a second inside one setup.
+
+    Presets and shakes are designed and left out; ``hold`` keys are cuts between setups and split the
+    track. A move is a run of one sign on pan x, pan y or log zoom; a wobble is a move of at least
+    WANDER_PAN of the frame (or WANDER_ZOOM in log zoom) followed, after at most WANDER_GAP seconds, by a
+    run back of at least WANDER_RETURN of it.
+    """
+    from .design import camera_points, pose_at
+    camera = shot.get("camera") or {}
+    keys = camera.get("keyframes") or []
+    if shot.get("three") or camera.get("preset") or len(keys) < 3:
+        return []
+    duration = float(shot.get("duration", 1))
+    bounds = sorted({0.0, 1.0} | {float(key["at"]) for key in keys if key.get("ease") == "hold"})
+    points = camera_points({"camera": {key: value for key, value in camera.items() if key != "shakes"}})
+    found = []
+    for start, end in zip(bounds, bounds[1:]):
+        steps = max(2, int((end - start) * duration * rate))
+        # Sample just inside the setup so the jump at a hold key is never read as a move.
+        times = [start + (end - start) * (0.001 + 0.998 * index / steps) for index in range(steps + 1)]
+        poses = [pose_at(points, at) for at in times]
+        for name, size, read in (("pan", WANDER_PAN, lambda pose: float(pose.get("x", 0))),
+                                 ("pan", WANDER_PAN, lambda pose: float(pose.get("y", 0))),
+                                 ("zoom", WANDER_ZOOM, lambda pose: math.log(max(1e-6, float(pose.get("zoom", 1)))))):
+            values = [read(pose) for pose in poses]
+            # Runs of one sign over the frames that move; a hold (no change) ends a run and is the gap after it.
+            moves, begin, sign = [], None, 0
+            for index in range(1, len(values) + 1):
+                change = values[index] - values[index - 1] if index < len(values) else 0.0
+                now = 0 if abs(change) < 1e-6 else (1 if change > 0 else -1)
+                if now != sign:
+                    if sign and begin is not None:
+                        moves.append((begin, index - 1, values[index - 1] - values[begin]))
+                    begin, sign = (index - 1 if now else None), now
+            moves = [run for run in moves if abs(run[2]) >= 1e-4]
+            for (a0, a1, first), (b0, b1, back) in zip(moves, moves[1:]):
+                gap = (times[b0] - times[a1]) * duration
+                if abs(first) >= size and first * back < 0 and abs(back) >= WANDER_RETURN * abs(first) and gap <= WANDER_GAP \
+                        and (times[b1] - times[b0]) * duration <= 1.0 + WANDER_GAP:
+                    found.append((name, times[a0] * duration, times[b1] * duration, abs(back) / abs(first)))
+                    break
+    if not found:
+        return []
+    name, begin, end, share = found[0]
+    return [f"{shot['id']}: the camera {('pushes' if name == 'zoom' else 'pans')} one way and comes "
+            f"{share:.0%} of the way back at {begin:.2f}-{end:.2f}s, inside one setup: it reads as a wobble. "
+            f"Let the move land and hold, or cut to the new framing (a hold key) instead of drifting back."]
+
+
 def lint(source, expanded, library=None):
     """Return a list of human-readable warnings."""
     warnings = []
@@ -207,6 +260,7 @@ def lint(source, expanded, library=None):
             if stage:
                 warnings.extend(contact_warnings(shot, stage["objects"]))
             warnings.extend(coverage_warnings(shot))
+            warnings.extend(wander_warnings(shot))
             duration = float(shot.get("duration", 1))
             frame = 1 / (fps * max(duration, 1e-6))
             for layer in shot.get("layers", []):
