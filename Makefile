@@ -33,7 +33,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa treatment-lint state deliver narration-check review-pack character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa treatment-lint state deliver narration-check script review-pack character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor review comments \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
@@ -73,6 +73,7 @@ help:
 	@echo "  make state EPISODE=... [WRITE=1]  the stage the evidence supports and the next command"
 	@echo "  make review-pack EPISODE=... [VIDEO=...] [LENS=sound]  director, sound and continuity packets for cold reviewers"
 	@echo "  make narration-check EPISODE=... [VIDEO=...]  hear each spoken line back and compare it with the script"
+	@echo "  make script EPISODE=...     production script (script.md) and voice-app script (voice-script.txt)"
 	@echo "  make deliver EPISODE=... [VIDEO=...]  gate the master and write delivery.md (VERIFY=delivery.md checks it)"
 	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
@@ -152,6 +153,10 @@ deliver:
 	@if [ -n "$(VERIFY)" ]; then $(PYTHON) -m studio.episode_state verify $(VERIFY); else \
 		test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...], or VERIFY=.../delivery.md"; exit 1; }; \
 		$(PYTHON) -m studio.episode_state deliver $(EPISODE) $(CHANNEL_ARG) $(if $(VIDEO),--video $(VIDEO),); fi
+
+script:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
+	@$(PYTHON) -m studio.script $(EPISODE)
 
 narration-check:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
