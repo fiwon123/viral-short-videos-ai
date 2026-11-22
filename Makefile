@@ -33,7 +33,7 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa treatment-lint state deliver narration-check review-pack character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+.PHONY: help status init channel-memory style-lock style-check discover reference viral-check film-qa treatment-lint state deliver narration-check script voice-import review-pack character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
         still presets templates schema batch test support parity safearea editor review comments \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
@@ -66,6 +66,7 @@ help:
 	@echo "  make hardware               what this machine can generate art with (GPU, ComfyUI, diffusers)"
 	@echo "  make hero EPISODE=... SHOT=...  AI video clip for a hook shot, 2.5D without a GPU [IMAGE= PROMPT= KEEP= WORKFLOW= BACKEND= SEED= DRY=1]"
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
+	@echo "  make reference CHANNEL=... URL=... [TOP=1..3]  study YouTube videos or a channel’s top Shorts"
 	@echo "  make character3d OUT=....glb [SPEC=...]  rigged low-poly 3D character (bones for poses and ik)"
 	@echo "  make viral-check EPISODE=... [VIDEO=...]  score hook, pacing, loop, packaging and loudness"
 	@echo "  make film-qa VIDEO=... [EPISODE=...]  energy curve, dead runs, frozen end, framing of a render (red exits 1)"
@@ -73,6 +74,8 @@ help:
 	@echo "  make state EPISODE=... [WRITE=1]  the stage the evidence supports and the next command"
 	@echo "  make review-pack EPISODE=... [VIDEO=...] [LENS=sound]  director, sound and continuity packets for cold reviewers"
 	@echo "  make narration-check EPISODE=... [VIDEO=...]  hear each spoken line back and compare it with the script"
+	@echo "  make script EPISODE=...     production script (script.md) and voice-app script (voice-script.txt)"
+	@echo "  make voice-import EPISODE=... FILE=... [SPEAKER=...] [LANGUAGE=...]  split a recorded script into timed takes"
 	@echo "  make deliver EPISODE=... [VIDEO=...]  gate the master and write delivery.md (VERIFY=delivery.md checks it)"
 	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
@@ -131,6 +134,13 @@ discover:
 		--rank $(or $(RANK),velocity) --days $(or $(DAYS),7) --limit $(or $(LIMIT),10) \
 		$(if $(SLUG),--snapshots workspace/$(SLUG)/research/snapshots,)
 
+reference: export STUDIO_REFERENCE_URLS := $(URL)
+reference: export STUDIO_REFERENCE_CHANNEL := $(CHANNEL)
+reference: export STUDIO_REFERENCE_TOP := $(TOP)
+reference: export STUDIO_REFERENCE_LANGS := $(SUB_LANGS)
+reference:
+	@$(PYTHON) -m studio.reference_study
+
 character3d:
 	@test -n "$(OUT)" || { echo "Set OUT=workspace/<channel>/channel/scene-library/<name>.glb [SPEC=colours.json]"; exit 1; }
 	@$(PYTHON) -m studio.glbcharacter $(OUT) $(if $(SPEC),--spec $(SPEC),)
@@ -152,6 +162,15 @@ deliver:
 	@if [ -n "$(VERIFY)" ]; then $(PYTHON) -m studio.episode_state verify $(VERIFY); else \
 		test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...], or VERIFY=.../delivery.md"; exit 1; }; \
 		$(PYTHON) -m studio.episode_state deliver $(EPISODE) $(CHANNEL_ARG) $(if $(VIDEO),--video $(VIDEO),); fi
+
+script:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
+	@$(PYTHON) -m studio.script $(EPISODE)
+
+voice-import:
+	@test -n "$(EPISODE)" && test -n "$(FILE)" || { echo "Set EPISODE=... FILE=... [SPEAKER=...] [LANGUAGE=...] [MODEL=...]"; exit 1; }
+	@$(PYTHON) -m studio.voice_import "$(EPISODE)" "$(FILE)" $(if $(SPEAKER),--speaker "$(SPEAKER)") \
+		$(if $(LANGUAGE),--language "$(LANGUAGE)") $(if $(MODEL),--model "$(MODEL)")
 
 narration-check:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }

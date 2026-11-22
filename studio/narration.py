@@ -97,6 +97,7 @@ def tokens(text, language="en"):
     text = unicodedata.normalize("NFKC", str(text or "")).replace("*", "").lower()
     if lang in CHARACTERS:
         return [char for char in text if char.isalnum()]
+    text = re.sub(r"(?<=\d)[,.](?=\d{3}(?!\d))", "", text)  # 40,000 / 40.000 -> 40000
     text = re.sub(r"(?<=[^\W\d_])(?=\d)|(?<=\d)(?=[^\W\d_])", " ", text)  # GTA6 -> gta 6
     contractions = CONTRACTIONS.get(lang, {})
     words = [part for word in re.findall(r"\w+(?:-\w+)*", text) for part in contractions.get(word, word).split()]
@@ -126,6 +127,8 @@ def merge_numbers(words, lang):
         value, index = int(words[index]), index + 1
         if index < len(words) and words[index] in ("100", "1000") and 0 < value < 10:
             value, index = value * int(words[index]), index + 1  # two hundred
+        if index < len(words) and words[index] == "1000" and 10 <= value < 1000:
+            value, index = value * 1000, index + 1  # 40 thousand, two hundred thousand
         while index < len(words):
             at = index + 1 if words[index] == joiner and index + 1 < len(words) else index
             if not words[at].isdigit():
@@ -202,7 +205,7 @@ def decode(path, start=None, seconds=None):
     command = ["ffmpeg", "-nostdin", "-v", "error"]
     if start is not None:
         command += ["-ss", f"{max(0.0, start):.3f}"]
-    command += ["-i", str(path)]
+    command += ["-protocol_whitelist", "file,pipe", "-i", str(path)]
     if seconds is not None:
         command += ["-t", f"{seconds:.3f}"]
     data = subprocess.run(command + ["-vn", "-ac", "1", "-ar", str(RATE), "-f", "f32le", "-"],
@@ -210,22 +213,38 @@ def decode(path, start=None, seconds=None):
     return np.frombuffer(data, dtype="<f4").copy()
 
 
-def whisper(model=None):
-    """A transcriber ``(audio, language) -> text``, or None when faster-whisper is not installed."""
+def whisper_segments(model=None, *, word_timestamps=False):
+    """Load the shared recognizer once and return segments and detected language."""
     if os.environ.get("STUDIO_ASR", "").lower() in ("0", "off", "false", "no"):
         return None
     try:
         from faster_whisper import WhisperModel
     except ImportError:
         return None
+    from .machine import current
     name = model or os.environ.get("STUDIO_ASR_MODEL", "base")
-    loaded = WhisperModel(name, device="cpu", compute_type="int8", download_root=str(ROOT / "audio-models" / "whisper"))
+    loaded = WhisperModel(name, device="cpu", compute_type="int8", cpu_threads=current()["threads"],
+                          download_root=str(ROOT / "audio-models" / "whisper"))
 
     def transcribe(audio, language):
-        segments, _ = loaded.transcribe(audio, language=language_code(language), beam_size=5,
-                                        condition_on_previous_text=False)
-        return " ".join(segment.text.strip() for segment in segments)
+        return loaded.transcribe(audio, language=language_code(language) if language else None, beam_size=5,
+                                 condition_on_previous_text=False, word_timestamps=word_timestamps)
+
     transcribe.model = name
+    return transcribe
+
+
+def whisper(model=None):
+    """A transcriber ``(audio, language) -> text``, or None when faster-whisper is unavailable."""
+    recognize = whisper_segments(model)
+    if recognize is None:
+        return None
+
+    def transcribe(audio, language):
+        segments, _ = recognize(audio, language or "en")
+        return " ".join(segment.text.strip() for segment in segments)
+
+    transcribe.model = recognize.model
     return transcribe
 
 

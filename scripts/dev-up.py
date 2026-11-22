@@ -433,6 +433,7 @@ IMAGE_INPUTS = [
     "Dockerfile",
     "requirements.txt",
     "requirements-voice.txt",
+    "requirements-reference.txt",
     "package.json",
     "package-lock.json",
     "scripts/dev-sandbox-rc.sh",

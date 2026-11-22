@@ -12,7 +12,7 @@ import numpy as np
 
 from .core import MAX_SECONDS, SAMPLE_RATE, asset, ffmpeg, require, run
 from .lipsync import speaker_shapes
-from .voices import CommandTakes, KokoroTakes
+from .voices import CommandTakes, ElevenLabsTakes, KokoroTakes, read_words
 
 
 def read_audio(path, channels=1):
@@ -49,17 +49,26 @@ def act(raw, line, paced=False):
     return np.frombuffer(data, dtype="<f4").astype(np.float32)
 
 
-def spoken_take(line, voice, base, temp, profile, takes, commands=None):
+def spoken_take(line, voice, base, temp, profile, takes, commands=None, hosted=None):
     text = line.get("spoken_text", line["text"]).replace("*", "")
     paced = False
+    provided = None
     if "file" in line:
-        raw = read_audio(asset(base, line["file"]))
+        path = asset(base, line["file"])
+        raw = read_audio(path)
+        provided = read_words(path)
         source = line["file"]
         detail = {"engine": "recorded"}
     elif profile and profile.get("engine") == "command":
         path, detail = (commands or CommandTakes(base)).take(text, profile)
         raw = read_audio(path)
         source = f"Local TTS ({Path(profile['command'][0]).name})"
+        provided = read_words(path)
+    elif profile and profile.get("engine") == "elevenlabs":
+        path, detail = (hosted or ElevenLabsTakes(base)).take(text, profile)
+        raw = read_audio(path)
+        source = f"ElevenLabs ({profile['voice_id']})"
+        provided = read_words(path)
     elif profile:
         if line.get("pace"):
             profile = {**profile, "speed": float(profile.get("speed", 1.0)) * float(line["pace"])}
@@ -84,6 +93,14 @@ def spoken_take(line, voice, base, temp, profile, takes, commands=None):
     start = max(0, int(audible[0]) - SAMPLE_RATE // (20 if profile else 40))
     end = min(len(raw), int(audible[-1]) + SAMPLE_RATE // (10 if profile else 16))
     clip = raw[start:end]
+    if provided:
+        # The voice's own word timings, moved onto the trimmed clip and the line's pace.
+        scale = 1.0 if paced else 1.0 / max(0.5, min(2.0, float(line.get("pace", 1) or 1)))
+        shift, length = start / SAMPLE_RATE, len(clip) / SAMPLE_RATE
+        detail["provider_words"] = [
+            {"text": item["text"], "start": round(min(length, max(0.0, float(item["start"]) * scale - shift)), 3),
+             "end": round(min(length, max(0.0, float(item["end"]) * scale - shift)), 3)}
+            for item in provided]
     gain = 0.73 / peak
     if profile:
         # Match dialogue energy with a peak ceiling. Retain the take's internal dynamics.
@@ -245,10 +262,12 @@ def measured_words(line, caption_text, clip, base, language=None):
     from .wordtiming import measure
 
     spoken = line.get("spoken_text", line["text"]).replace("*", "")
-    try:
-        timed, method = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes", language=language)
-    except Exception:  # Timing is a polish step; never block a render on it.
-        return None
+    timed, method = line.get("_provider_words"), "provider"
+    if not timed:
+        try:
+            timed, method = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes", language=language)
+        except Exception:  # Timing is a polish step; never block a render on it.
+            return None
     if not timed:
         return None
     shown = [word for word in caption_text.split() if word]
@@ -280,7 +299,7 @@ def line_visemes(line, clip, fps, base, available, language):
     if not shapes or line.get("lipsync") is False:
         return []
     spoken = line.get("spoken_text", line["text"]).replace("*", "")
-    words = line.get("words")
+    words = line.get("words") or line.get("_provider_words")
     if not words or len(words) != len(spoken.split()):
         try:
             words, _ = measure(clip, SAMPLE_RATE, spoken, cache=Path(base) / ".audio-takes")
@@ -583,6 +602,9 @@ def plan_shot(shot, fps, voice, base, temp, profiles, takes, sound_bank):
         if "lead" not in line and at < previous_end:
             raise ValueError(f"{shot['id']} has overlapping speech. Move the line by {previous_end - at} frames or omit at.")
         clip, source, detail = spoken_take(line, voice, base, temp, profiles.get(line["speaker"]), takes)
+        provided = detail.pop("provider_words", None) if isinstance(detail, dict) else None
+        if provided:
+            line = {**line, "_provider_words": provided}
         end = at + math.ceil(len(clip) / step)
         beat = round(pause_after(line) * fps)
         # Add a brief visual hold when speech extends beyond the requested shot; a punchline holds its beat.

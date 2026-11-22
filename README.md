@@ -84,6 +84,9 @@ The studio works like a small production team. Each step has a check that measur
 
 | Step | Command | What it catches |
 | --- | --- | --- |
+| **Study** | `make reference` | Timecoded YouTube reference evidence and a comparison for editorial review. |
+| **Script** | `make script` | A pre-animation shot script and a voice script ready to record. |
+| **Voice import** | `make voice-import` | Per-line takes and word timing from one full recording or one recording per speaker. |
 | **Plan** | `make treatment-lint` | A hook that takes too long, one shot size for the whole film, a camera that only pushes in, an ending that never lands. |
 | **Build** | `make validate` | A camera that runs past the edge of the set, or drifts there and back inside one shot. |
 | **Voice** | `make narration-check` | Lines the voice dropped, repeated or misread, heard back against the script. |
@@ -92,6 +95,22 @@ The studio works like a small production team. Each step has a check that measur
 | **Deliver** | `make deliver` | A damaged file, loudness off target, clipping peaks, a sound cut off at the end; the facts are sealed in `delivery.md`. |
 
 `make state` tells you where any episode stands and the exact next command, so you can stop and pick up again anytime. [The full quality guide →](https://github.com/fiwon123/viral-short-videos-ai/wiki/QA-Export-and-Publishing)
+
+To study references at channel creation or before an episode, pass up to three public YouTube video URLs, or pass the creator's channel with `TOP=3`.
+
+```sh
+make reference CHANNEL=my-channel URL='https://www.youtube.com/@example' TOP=3
+```
+
+Downloads and platform captions stay under `reference-media/` for local study. Each breakdown, comparison and editable `patterns.md` goes under the channel's `research/references/`. The comparison states how many indexed Shorts had usable view counts. Set `SUB_LANGS` for additional caption languages. On the host, `make setup-host` installs the downloader and recognizer. Run `make dev-build` to refresh an existing sandbox image.
+
+Write the episode script with `make script EPISODE=...`, record the lines in order, then import the audio:
+
+```sh
+make voice-import EPISODE=workspace/my-channel/episodes/my-episode/episode.json FILE='full voice.mp3'
+```
+
+Add `SPEAKER=<name>` for one file per speaker and `LANGUAGE=pt` to set the recognizer language explicitly. Check partial, inferred, and missing lines in `voice-import.json`, then run `make audio` and `make narration-check` before animating to the new takes.
 
 ## 💻 Fits your PC
 

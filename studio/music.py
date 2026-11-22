@@ -98,6 +98,29 @@ def tempo(samples):
     return round(float(bpm), 1)
 
 
+def tempo_alternatives(samples, bpm, share=0.6):
+    """Tempi at 3/2 and 2/3 of ``bpm`` whose onset autocorrelation is nearly as strong as the pick's. A
+    syncopated figure (a 3-3-2 kick) repeats every one and a half beats and can out-correlate the beat, so
+    ``tempo`` read a 125 bpm song as 83; naming both readings leaves the choice to the ear."""
+    onset = onsets(samples)
+    if onset is None or not bpm:
+        return []
+    onset = np.convolve(onset, [0.25, 0.5, 0.25], mode="same")
+    onset = onset - onset.mean()
+    corr = np.correlate(onset, onset, mode="full")[len(onset) - 1:]
+    fps = RATE / HOP
+
+    def strength(value):
+        lag = 60 * fps / value
+        return corr[max(1, int(lag) - 1):int(lag) + 2].max()
+
+    picked = strength(bpm)
+    if picked <= 0:
+        return []
+    return [round(float(value), 1) for value in (bpm * 3 / 2, bpm * 2 / 3)
+            if 60 <= value <= 180 and strength(value) >= share * picked]
+
+
 def first_beat(samples, bpm):
     """Seconds to the first beat: the phase of the beat grid that collects the most onset strength."""
     onset = onsets(samples)

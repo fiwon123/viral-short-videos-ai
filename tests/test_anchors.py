@@ -142,6 +142,32 @@ class MusicGridTests(unittest.TestCase):
         self.assertAlmostEqual(bpm, 120, delta=2)
         self.assertAlmostEqual(first_beat(samples, bpm), 0.3, delta=0.03)
 
+    def test_a_syncopated_figure_names_the_beat_as_an_alternative(self):
+        # A 3-3-2 kick at 125 bpm repeats every one and a half beats and reads as about 83 (seen on a real
+        # music Short); the beat must at least be named beside it. A plain click track names nothing else.
+        from studio.music import RATE, tempo, tempo_alternatives
+        rng, beat = np.random.default_rng(0), 60 / 125
+        samples = rng.normal(0, .003, RATE * 15)
+
+        def hit(at, amp, tone):
+            start = int(at * RATE)
+            t = np.arange(min(int(.12 * RATE), len(samples) - start)) / RATE
+            body = np.sin(2 * np.pi * 55 * t) if tone else rng.normal(0, 1, len(t))
+            samples[start:start + len(t)] += amp * np.exp(-t / .03) * body
+
+        for bar in range(8):
+            origin = 0.2 + bar * 4 * beat
+            for position, amp, tone in ((0, .8, 1), (1.5, .8, 1), (3, .6, 1), (1, .5, 0), (3, .5, 0)):
+                hit(origin + position * beat, amp, tone)
+            for half in range(8):
+                hit(origin + half * beat / 2, .12, 0)
+        bpm = tempo(samples)
+        self.assertTrue(any(abs(value - 125) < 3 for value in [bpm, *tempo_alternatives(samples, bpm)]), bpm)
+        clicks = np.zeros(RATE * 12)
+        for at in np.arange(0.3, 12, 0.5):
+            clicks[int(at * RATE):int(at * RATE) + 400] = np.hanning(800)[400:] * 0.8
+        self.assertEqual(tempo_alternatives(clicks, tempo(clicks)), [])
+
     def test_music_grid_sources(self):
         from studio.anchors import music_grid
         self.assertEqual(music_grid({"preset": "pulse"})["bpm"], 120.0)

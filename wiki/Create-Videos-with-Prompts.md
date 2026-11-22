@@ -96,6 +96,26 @@ python video.py render workspace/<channel>/episodes/<episode>/episode.json \
   --renderer hyperframes
 ```
 
+## Script for voice and visual AI
+
+Before anything is animated, every episode gets a fresh script:
+
+```sh
+make script EPISODE=workspace/<channel>/episodes/<episode>/episode.json
+```
+
+| File | What it holds | Use it for |
+| --- | --- | --- |
+| `script.md` | The voices, then shot by shot: time, what the picture shows, sounds, every line with its ID, time, speaker and delivery, and a visual-AI prompt in the channel's look | Reading the film before it exists; generating shots or backgrounds with an image or video AI |
+| `voice-script.txt` | Each speaker's lines ready to paste, a version with delivery as `[tags]`, and the lines with IDs and times | Recording in ElevenLabs or any voice app |
+
+Times are estimates until the first audio pass, then the measured ones. Ask for a new script whenever the lines change.
+
+```text
+Write the script for [episode] with make script and show me voice-script.txt.
+I will record it in ElevenLabs.
+```
+
 ## Review like an editor
 
 | Watch | Check |

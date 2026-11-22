@@ -50,7 +50,7 @@ COMPOSE_UP := docker compose -f docker-compose.yml -f docker-compose.agent.yml
 # --- Is the dev image current? -------------------------------------------------
 # The Dockerfile and every file it COPYs, in this order. scripts/dev-up.py hashes
 # the same list. dev-up never rebuilds; a stale image is refused by name.
-IMAGE_INPUTS ?= Dockerfile requirements.txt requirements-voice.txt package.json package-lock.json scripts/dev-sandbox-rc.sh
+IMAGE_INPUTS ?= Dockerfile requirements.txt requirements-voice.txt requirements-reference.txt package.json package-lock.json scripts/dev-sandbox-rc.sh
 IMAGE_INPUTS_HASH = $(shell cat $(IMAGE_INPUTS) 2>/dev/null | { sha256sum 2>/dev/null || shasum -a 256; } | cut -c1-16)
 DEV_IMAGE ?= $(shell sed -n 's/^name:[[:space:]]*//p' docker-compose.yml | head -n 1)-dev
 
@@ -69,9 +69,9 @@ setup-host:
 	  "$(HOST_PYTHON)" -m venv "$(VENV)"; \
 	fi
 	@if command -v uv >/dev/null 2>&1; then \
-	  uv pip install --python "$(VENV)/bin/python" -r requirements.txt -r requirements-voice.txt; \
+	  uv pip install --python "$(VENV)/bin/python" -r requirements.txt -r requirements-voice.txt -r requirements-reference.txt; \
 	else \
-	  "$(VENV)/bin/python" -m pip install -r requirements.txt -r requirements-voice.txt; \
+	  "$(VENV)/bin/python" -m pip install -r requirements.txt -r requirements-voice.txt -r requirements-reference.txt; \
 	fi
 	@command -v npm >/dev/null 2>&1 || { echo "ERROR: install Node.js 22+ for the SVG and 3D renderers, then rerun." >&2; exit 1; }
 	@npm ci --ignore-scripts --no-audit --no-fund

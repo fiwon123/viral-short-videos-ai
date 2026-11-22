@@ -84,10 +84,10 @@ RUN if getent passwd node >/dev/null; then userdel --remove node; fi \
     && git config --system --add safe.directory /workspace
 
 # --- Python: the studio and the voice engine, in one venv ---
-COPY requirements.txt requirements-voice.txt /opt/studio/
+COPY requirements.txt requirements-voice.txt requirements-reference.txt /opt/studio/
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
-    && /opt/venv/bin/pip install --no-cache-dir -r /opt/studio/requirements.txt -r /opt/studio/requirements-voice.txt
+    && /opt/venv/bin/pip install --no-cache-dir -r /opt/studio/requirements.txt -r /opt/studio/requirements-voice.txt -r /opt/studio/requirements-reference.txt
 
 # --- Node: the renderer packages ---
 # Installed at the path the node_modules volume is mounted on, so a NEW volume
