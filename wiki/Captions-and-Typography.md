@@ -50,7 +50,7 @@ Captions are part of the edit. They should land on the beat, fit the phone safe 
 
 The audio pass measures when each word is actually spoken and writes the timings into `timeline.json` and the caption cue. Karaoke uses those timings automatically. SRT remains line-level.
 
-Timing uses a local speech model (faster-whisper, included in the studio image) in the line's language: an English model for English voices, a multilingual one for the rest. Without it, the studio falls back to the take's loudness and pauses. Set `STUDIO_WORD_TIMING=energy` to force the fallback, or `STUDIO_WHISPER_MODEL=small` for a larger model. Models download once into `audio-models/whisper/`.
+A voice that returns its own word timings (ElevenLabs, or a command that writes `{words}`) is used as is: see [Audio and Sound Design](Audio-and-Sound-Design). Otherwise timing uses a local speech model (faster-whisper, included in the studio image) in the line's language: an English model for English voices, a multilingual one for the rest. Without it, the studio falls back to the take's loudness and pauses. Set `STUDIO_WORD_TIMING=energy` to force the fallback, or `STUDIO_WHISPER_MODEL=small` for a larger model. Models download once into `audio-models/whisper/`.
 
 ## ✨ Animation
 

@@ -14,6 +14,13 @@ For richer acting or an original recorded identity, use a `recorded` profile wit
 
 Any local TTS program can be a voice: a `command` profile runs it once per line and caches the take like Kokoro. `{out}` is the WAV to write; the line goes to stdin, or into `{text}` with `"input": "arg"`. Free options by need: Piper (fast, many languages, one voice per model), Coqui XTTS or F5-TTS (zero-shot cloning from a short reference the user owns), Chatterbox (English with emotion control), eSpeak NG (scratch). Check each model's licence for commercial use.
 
+**Voices that know their own timing.** Captions and lip sync normally time each word by listening to the take. A voice that already knows when it said each word is exact instead:
+
+- A `command` program writes `[{"text", "start", "end"}]` (seconds in its WAV) to `{words}`: a forced aligner, or a wrapper around a hosted voice's timestamps.
+- `"engine": "elevenlabs"` with `voice_id` (optional `model`, `voice_settings`) uses ElevenLabs' timestamped speech. The key comes only from `ELEVENLABS_API_KEY` on the host; each take and its timings are cached per line, so the sandbox (no keys) and later renders reuse them without a call. It is a paid, hosted service: confirm the user wants it and owns the rights the plan grants before casting with it.
+
+The render records `word_timing: provider` on those lines; the studio shifts the timings for the silence it trims and scales them for `pace`.
+
 ```json
 "narrator": {"engine": "command", "direction": "Warm, dry storyteller.",
              "command": ["piper", "--model", "audio-models/en_US-ryan-high.onnx", "--output_file", "{out}"]}

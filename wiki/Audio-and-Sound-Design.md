@@ -28,6 +28,20 @@ Create a channel audio library and point `channel.json` at it:
 
 Use `recorded` profiles with approved WAVs when you need a specific performance. Audition the cast together on a neutral line, a reaction and a quiet beat before locking a series.
 
+### Voices with their own timing
+
+Any local TTS program can be a voice with `"engine": "command"` (Piper, XTTS, F5-TTS, Chatterbox). Hosted voices work too:
+
+```json
+{"narrator": {"engine": "elevenlabs", "voice_id": "<voice id>", "model": "eleven_multilingual_v2",
+              "voice_settings": {"stability": 0.4, "similarity_boost": 0.8},
+              "direction": "Warm, dry storyteller."}}
+```
+
+ElevenLabs returns when each word is spoken along with the audio, so captions and lip sync follow the voice exactly instead of estimating. Set `ELEVENLABS_API_KEY` in your environment on the host (never in a file the repository tracks). Each line is generated once and cached with its timings: later renders, and the Docker sandbox, which has no keys, reuse the take without calling the service.
+
+Any other voice or aligner can do the same through a command: write the word timings as JSON (`[{"text": "Hello", "start": 0.12, "end": 0.48}]`, seconds in the take) to the `{words}` path.
+
 > [!TIP]
 > Before animating to a take, run `make narration-check EPISODE=...`. It hears every line back and flags dropped, repeated or misread words and numbers, so you re-voice while it is still cheap. See [QA, Export and Publishing](QA-Export-and-Publishing).
 
