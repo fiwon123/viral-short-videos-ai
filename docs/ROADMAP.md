@@ -305,7 +305,7 @@ Real voice-app recording (2026-11-22): the first 62 s of a user's ElevenLabs nar
 
 Reference captions (#109): a live pt-BR Short failed whole when YouTube answered 429 to its auto-translated `en` caption track. Media and metadata now download first, captions in a separate best-effort call; a refusal is kept as `captions_error` and named in the breakdown. Same Short, same 429: study complete (140 s, three caption tracks).
 
-Next: nothing open. Known weak spot: `music.tempo` read a syncopated 125 bpm music Short as 83.5 (a 3:2 lag); comb, tempo prior and grid-fit fixes were tried on a 20-case synthetic set plus the real track and none held without breaking other cases, so nothing changed. Options: report the 3:2 alternative in the breakdown, or a beat tracker dependency.
+Next: nothing open. Known weak spot: `music.tempo` read a syncopated 125 bpm music Short as 83.5 (a 3:2 lag); comb, tempo prior and grid-fit fixes were tried on a 20-case synthetic set plus the real track and none held without breaking other cases, so `tempo` is unchanged. Instead (#111) `music.tempo_alternatives` names the 3:2 / 2:3 reading when its onset autocorrelation is at least 0.6 of the pick's, and the reference breakdown asks the reviewer to choose by ear. On the 20-case set every 3:2 miss names the true tempo and click tracks name none; the real Short reads "83.4 BPM; 125.1 fits almost as well". A beat tracker remains the option if the music fitter ever needs it.
 
 ### Restricted host baseline (2026-11-22)
 

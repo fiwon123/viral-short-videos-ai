@@ -131,8 +131,8 @@ def sound_candidates(path, words):
         return [], None
     bpm = music.tempo(samples) if len(samples) <= 180 * music.RATE else None
     clarity = music.pulse_clarity(samples, bpm)
-    grid = {"bpm": bpm, "first_beat": music.first_beat(samples, bpm), "clarity": round(clarity, 3)} if (
-        bpm and clarity >= music.PULSE) else None
+    grid = {"bpm": bpm, "first_beat": music.first_beat(samples, bpm), "clarity": round(clarity, 3),
+            "alternatives": music.tempo_alternatives(samples, bpm)} if bpm and clarity >= music.PULSE else None
     threshold = max(0.30, float(np.quantile(onset, 0.97)))
     points = []
     hop = music.HOP / music.RATE
@@ -194,8 +194,13 @@ def breakdown(metadata, evidence, media_link, report, phrases):
     if report["edge_frame_delta"] is not None:
         rows.append(f"- Opening/closing sample difference {report['edge_frame_delta']:.3f} on a 0–1 scale. Inspect the loop in playback.")
     grid = report["pulse_candidate"]
-    rows.append(f"- Mixed-audio pulse candidate {grid['bpm']:.1f} BPM, first beat {timestamp(grid['first_beat'])}." if grid else
-                "- No reliable regular pulse measured in the mixed audio.")
+    if grid:
+        other = grid.get("alternatives") or []
+        also = (f" A {' or '.join(f'{value:.1f}' for value in other)} BPM reading fits almost as well "
+                "(a syncopated figure can repeat every one and a half beats); confirm the beat by ear.") if other else ""
+        rows.append(f"- Mixed-audio pulse candidate {grid['bpm']:.1f} BPM, first beat {timestamp(grid['first_beat'])}.{also}")
+    else:
+        rows.append("- No reliable regular pulse measured in the mixed audio.")
     rows.extend(["- Music presence and sound labels need listening. Sudden rises can come from music, effects or untimed speech.",
                  f"- Transcript status {report['transcript_status']}. " + (
                      "Platform caption files are in the local media folder." if metadata.get("captions") else
