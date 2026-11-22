@@ -8,6 +8,7 @@ from itertools import pairwise
 import json
 import math
 from pathlib import Path
+import re
 import sys
 from tempfile import TemporaryDirectory
 from uuid import uuid4
@@ -52,23 +53,129 @@ def fill_word_timings(words, anchors):
     return timings
 
 
-def align(lines, heard, language):
-    """Align the script in order. Require anchors on both sides of every imported take."""
-    expected, owners, script_tokens = [], [], []
+SPELLED = re.compile(r"(?:[A-Z]\.){2,}[A-Z]?\.?")
+
+
+def join_letters(heard):
+    """One word for an acronym the recognizer spelled out: "S", ".S", ".D." or "S.S.D." -> "SSD"."""
+    out, run = [], []
+
+    def flush():
+        if len(run) > 1 and any("." in item["word"] for item in run):
+            out.append({"word": "".join(item["word"].strip(" .") for item in run),
+                        "start": run[0]["start"], "end": run[-1]["end"]})
+        else:
+            out.extend(run)
+        run.clear()
+
+    for item in heard:
+        text = item["word"].strip()
+        if SPELLED.fullmatch(text):
+            item = {**item, "word": text.replace(".", "")}
+        core = text.strip(".")
+        if len(core) == 1 and core.isalpha() and core.isupper():
+            run.append(item)
+            continue
+        flush()
+        out.append(item)
+    flush()
+    return out
+
+
+def forms(line):
+    """The texts a reader may have followed: the respelled script first, then the written line and caption."""
+    seen = []
+    for text in (spoken(line), line.get("text", ""), line.get("caption", "")):
+        text = str(text or "").replace("*", "")
+        if text.strip() and text not in seen:
+            seen.append(text)
+    return seen
+
+
+def best_form(line, said, language):
+    """The form whose words the recording supports best; ties keep the respelled script."""
+    def score(text):
+        script = [part for word in text.split() for part in tokens(word, language)]
+        if not script:
+            return -1
+        blocks = SequenceMatcher(None, script, said, autojunk=False).get_matching_blocks()
+        return sum(block.size for block in blocks) / len(script)
+    return max(forms(line), key=score)
+
+
+def silences_in(audio, rate=SAMPLE_RATE, minimum=0.25):
+    """Pauses in a recording as ``(start, end)`` seconds, measured against its own noise floor."""
+    hop = int(rate * 0.02)
+    count = len(audio) // hop
+    if count < 3:
+        return []
+    frames = np.asarray(audio[:count * hop], dtype=np.float64).reshape(count, hop)
+    level = 20 * np.log10(np.sqrt((frames ** 2).mean(axis=1)) + 1e-9)
+    floor, loud = np.percentile(level, 10), np.percentile(level, 95)
+    quiet = level < min(floor + 12, loud - 25)
+    found, begin = [], None
+    for index, value in enumerate(np.append(quiet, False)):
+        if value and begin is None:
+            begin = index
+        elif not value and begin is not None:
+            if (index - begin) * 0.02 >= minimum:
+                found.append((begin * 0.02, index * 0.02))
+            begin = None
+    return found
+
+
+def edge_at_pause(silences, side, low, high, anchor, missing):
+    """Where an unheard edge of a line ends: the pause nearest the anchor between the neighbouring lines."""
+    if side == "start":
+        options = [end for start, end in silences if low - 0.05 <= end <= anchor + 0.05]
+        edge = max(options) if options else (0.0 if low == 0 else None)
+        span = None if edge is None else anchor - edge
+    else:
+        options = [start for start, end in silences if anchor - 0.05 <= start <= high + 0.05]
+        edge = min(options) if options else None
+        span = None if edge is None else edge - anchor
+    if span is None or not 0.08 * missing <= span <= 0.8 * missing + 0.4:
+        return None
+    return edge
+
+
+def snap(silences, start, end, previous, following, reach=0.4):
+    """Recognizers place word edges early or late; widen a take to the pauses around it, never past a neighbour."""
+    before = [stop for begin, stop in silences if start - reach <= stop <= start and stop >= previous]
+    after = [begin for begin, stop in silences if end <= begin <= end + reach and begin <= following]
+    inside = [stop for begin, stop in silences if begin <= start < stop]
+    ending = [begin for begin, stop in silences if begin < end < stop]
+    start = max(before) if before else (inside[0] if inside else start)
+    end = min(after) if after else (ending[0] if ending else end)
+    return start, end
+
+
+def spread(words, start, end):
+    step = (end - start) / max(1, len(words))
+    return [{"text": text, "start": start + step * i, "end": start + step * (i + 1)} for i, text in enumerate(words)]
+
+
+def align(lines, heard, language, silences=None):
+    """Align the script in order. Every imported take needs both edges: heard words, or (with ``silences``)
+    one heard edge and a pause in the recording where the other was misheard."""
+    said, said_owners = [], []
+    heard = join_letters(sorted(heard, key=lambda item: item["start"]))
+    recognized = [(word, tokens(word["word"], language)) for word in heard]
+    recognized = [(word, parts) for word, parts in recognized if parts]
+    for index, (_, parts) in enumerate(recognized):
+        said.extend(parts)
+        said_owners.extend([index] * len(parts))
+
+    expected, owners, script_tokens, chosen = [], [], [], []
     for index, (_, line) in enumerate(lines):
-        words = [(word, tokens(word, language)) for word in spoken(line).split()]
+        text = best_form(line, said, language)
+        chosen.append(text)
+        words = [(word, tokens(word, language)) for word in text.split()]
         words = [(word, parts) for word, parts in words if parts]
         expected.append(words)
         for position, (_, parts) in enumerate(words):
             script_tokens.extend(parts)
             owners.extend([(index, position)] * len(parts))
-
-    said, said_owners = [], []
-    recognized = [(word, tokens(word["word"], language)) for word in sorted(heard, key=lambda item: item["start"])]
-    recognized = [(word, parts) for word, parts in recognized if parts]
-    for index, (_, parts) in enumerate(recognized):
-        said.extend(parts)
-        said_owners.extend([index] * len(parts))
 
     matches = [{} for _ in lines]
     for block in SequenceMatcher(None, script_tokens, said, autojunk=False).get_matching_blocks():
@@ -81,23 +188,46 @@ def align(lines, heard, language):
     ambiguous = {phrase for phrase, count in duplicates.items()
                  if sum(tuple(said[i:i + len(phrase)]) == phrase for i in range(len(said))) < count}
 
+    matches = [{position: spots for position, spots in matched.items() if len(spots) == len(words[position][1])}
+               for words, matched in zip(expected, matches)]
+    spans = [(min(recognized[s][0]["start"] for spots in m.values() for s in spots),
+              max(recognized[s][0]["end"] for spots in m.values() for s in spots)) if m else None for m in matches]
+
     results, unmatched = [], []
     for index, (words, matched, phrase) in enumerate(zip(expected, matches, phrases)):
-        matched = {position: spots for position, spots in matched.items()
-                   if len(spots) == len(words[position][1])}
         coverage = len(matched) / max(1, len(words))
-        result = {"status": "missing", "coverage": round(coverage, 2), "words": []}
+        result = {"status": "missing", "coverage": round(coverage, 2), "words": [], "form": chosen[index]}
+        last = len(words) - 1
         if phrase in ambiguous:
             result["warning"] = "Repeated script line has too few distinguishable matches."
-        elif coverage >= 0.6 and 0 in matched and len(words) - 1 in matched:
+        elif coverage >= 0.6 and matched and (0 in matched and last in matched or silences is not None):
             anchors = {index: {"text": words[index][0], "start": recognized[spots[0]][0]["start"],
                                "end": recognized[spots[-1]][0]["end"]} for index, spots in sorted(matched.items())}
+            low = max([span[1] for span in spans[:index] if span] or [0.0])
+            high = min([span[0] for span in spans[index + 1:] if span] or [math.inf])
+            first, final = min(anchors), max(anchors)
+            head = tail = None
+            if first:
+                head = edge_at_pause(silences, "start", low, high, anchors[first]["start"], first)
+            if final < last:
+                tail = edge_at_pause(silences, "end", low, high, anchors[final]["end"], last - final)
+            if (first and head is None) or (final < last and tail is None):
+                result["warning"] = "Could not place both edges of this line with enough matching words."
+                results.append(result)
+                continue
             used = {spot for spots in matched.values() for spot in spots}
             clean = coverage == 1 and len(used) == max(used) - min(used) + 1
             timings = fill_word_timings(words, anchors)
+            if first:
+                timings = spread([text for text, _ in words[:first]], head, anchors[first]["start"]) + timings
+            if final < last:
+                timings += spread([text for text, _ in words[final + 1:]], anchors[final]["end"], tail)
             result.update(status="found" if clean else "partial", words=timings,
                           start=timings[0]["start"], end=timings[-1]["end"])
-            if not clean:
+            if head is not None or tail is not None:
+                result["warning"] = ("An edge of this line was misheard and placed at the pause in the recording. "
+                                     "Listen to the take before using it.")
+            elif not clean:
                 result["warning"] = "The recording differs from the script. Review the take and estimated timing."
         elif not matched:
             unmatched.append(index)
@@ -176,13 +306,15 @@ def run(episode_path, recording, speaker=None, *, transcribe=None, language=None
     heard = [{"word": word["word"], "start": max(0.0, word["start"]), "end": min(duration, word["end"])}
              for word in heard if math.isfinite(word["start"]) and math.isfinite(word["end"])
              and max(0.0, word["start"]) < min(duration, word["end"])]
-    results = align(lines, heard, language or detected)
+    pauses = silences_in(audio)
+    results = align(lines, heard, language or detected, silences=pauses)
     batches = episode_path.parent / "audio" / "voice"
     if not batches.resolve().is_relative_to(episode_path.parent):
         raise ValueError("The voice output directory must stay inside the episode.")
     batch = batches / uuid4().hex
     rows = [{"id": ident, "speaker": line["speaker"], "text": spoken(line),
              "status": result["status"], "coverage": result["coverage"],
+             **({"matched_text": result["form"]} if result["form"] != spoken(line) else {}),
              **({"warning": result["warning"]} if "warning" in result else {})}
             for (ident, line), result in zip(lines, results)]
     found = [(line, result, row) for (_, line), result, row in zip(lines, results, rows) if result["words"]]
@@ -206,6 +338,7 @@ def run(episode_path, recording, speaker=None, *, transcribe=None, language=None
                         start, end = result["start"], result["end"]
                         previous = found[index - 1][1]["end"] if index else 0.0
                         following = found[index + 1][1]["start"] if index + 1 < len(found) else duration
+                        start, end = snap(pauses, start, end, previous, following)
                         first = round(max(0.0, start - PAD_BEFORE, (previous + start) / 2) * SAMPLE_RATE)
                         last = round(min(duration, end + PAD_AFTER, (end + following) / 2) * SAMPLE_RATE)
                         clip = audio[first:last]
