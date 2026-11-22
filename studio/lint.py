@@ -109,6 +109,81 @@ def contact_warnings(shot, objects):
     return warnings
 
 
+COVER_TOLERANCE = 0.005  # a share of the frame: under this the strip is smaller than ~5 px at 1080
+
+
+def _backdrops(shot):
+    """The layers that are the set: ``plane: background``, or a bottom layer that fills the frame.
+    Layers with keys or depth are left out (their box moves in ways the check does not model)."""
+    layers = shot.get("layers", [])
+    found = [layer for layer in layers if layer.get("plane") == "background"]
+    if not found and layers:
+        first = layers[0]
+        if float(first.get("width", 0)) >= 1 and float(first.get("height", 0)) >= 1 \
+                and abs(float(first.get("x", 0.5)) - 0.5) < 0.01 and abs(float(first.get("y", 0.5)) - 0.5) < 0.01:
+            found = [first]
+    return [layer for layer in found if "width" in layer and "height" in layer and not layer.get("keyframes")
+            and not float(layer.get("z", 0) or 0) and layer.get("kind") in ("image", "svg", "rect", "video")]
+
+
+def coverage_warnings(shot, rate=48):
+    """Warn when the 2D camera's view leaves a shot's backdrop: empty canvas shows at the frame's edge.
+
+    The view of a layer with parallax ``p`` is the camera with its zoom and offset scaled by ``p``, as the
+    painters apply it; the visible region in layer space is then compared with the layer's box.
+    """
+    from .camera import resolve_camera
+    from .design import camera_points, pose_at
+    if shot.get("three") or not shot.get("camera"):
+        return []
+    backdrops = _backdrops(shot)
+    if not backdrops:
+        return []
+    duration = float(shot.get("duration", 1))
+    probe = dict(shot)
+    probe["camera"] = resolve_camera(shot, seconds=duration)
+    points = camera_points(probe)
+    if not points:
+        return []
+    warnings = []
+    for layer in backdrops:
+        amount = max(0.0, min(2.0, float(layer.get("parallax", 1))))
+        if not amount:
+            continue
+        half_w, half_h = float(layer["width"]) / 2, float(layer["height"]) / 2
+        cx0, cy0 = float(layer.get("x", 0.5)), float(layer.get("y", 0.5))
+        worst, spans, inside = 0.0, [], None
+        steps = max(2, int(duration * rate))
+        for step in range(steps + 1):
+            progress = step / steps
+            camera = pose_at(points, progress)
+            zoom = 1 + (float(camera.get("zoom", 1)) - 1) * amount
+            x, y = float(camera.get("x", 0)) * amount, float(camera.get("y", 0)) * amount
+            turn = abs(math.radians(float(camera.get("rotate", 0)) * amount))
+            # The view's half extents in layer space, grown to hold the frame when the camera rotates.
+            vw = (0.5 * math.cos(turn) + 0.5 * math.sin(turn)) / max(zoom, 1e-6)
+            vh = (0.5 * math.cos(turn) + 0.5 * math.sin(turn)) / max(zoom, 1e-6)
+            centre_x, centre_y = 0.5 - x / max(zoom, 1e-6), 0.5 - y / max(zoom, 1e-6)
+            gap = max(cx0 - half_w - (centre_x - vw), (centre_x + vw) - (cx0 + half_w),
+                      cy0 - half_h - (centre_y - vh), (centre_y + vh) - (cy0 + half_h))
+            if gap > COVER_TOLERANCE:
+                worst = max(worst, gap)
+                if inside is None:
+                    inside = progress
+            elif inside is not None:
+                spans.append((inside, progress))
+                inside = None
+        if inside is not None:
+            spans.append((inside, 1.0))
+        if spans:
+            times = ", ".join(f"{a * duration:.2f}-{b * duration:.2f}s" for a, b in spans[:3])
+            warnings.append(f"{shot['id']}/{layer['id']}: the camera's view leaves this backdrop by up to "
+                            f"{worst:.1%} of the frame at {times}, so empty canvas shows at the edge. Give the "
+                            f"backdrop bleed (larger width/height, the art drawn past the frame), or keep the "
+                            f"camera inside it.")
+    return warnings
+
+
 def lint(source, expanded, library=None):
     """Return a list of human-readable warnings."""
     warnings = []
@@ -131,6 +206,7 @@ def lint(source, expanded, library=None):
             stage = scenes3d.get((shot.get("three") or {}).get("scene"))
             if stage:
                 warnings.extend(contact_warnings(shot, stage["objects"]))
+            warnings.extend(coverage_warnings(shot))
             duration = float(shot.get("duration", 1))
             frame = 1 / (fps * max(duration, 1e-6))
             for layer in shot.get("layers", []):
