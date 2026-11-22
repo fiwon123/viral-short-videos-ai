@@ -125,7 +125,7 @@ class DeliverTests(unittest.TestCase):
             text = delivery.read_text(encoding="utf-8")
             self.assertIn("Film QA: **", text)
             self.assertIn("Viral check: **81**/100", text)
-            self.assertIn("Director's notes: **none**", text)
+            self.assertIn("Review notes: **none**", text)
             self.assertIn("say why the director pass was skipped", text)
             self.assertTrue(verify(delivery)["ok"])
             (layout.renders / "ep-stills").mkdir()
@@ -231,6 +231,46 @@ class AudioGateTests(unittest.TestCase):
             self.assertEqual(code, 2, report)
             self.assertTrue(any("does not decode cleanly" in reason for reason in report["reasons"]))
             self.assertFalse((video.parent / "delivery.md").exists())
+
+
+class ReviewedFileTests(unittest.TestCase):
+    """Reviews name the file they judged; deliver lists which render each review saw."""
+
+    def test_prompts_ask_where_it_loses_you_and_for_the_reviewed_line(self):
+        from studio.episode_state import review_pack, reviewed_line
+        with TemporaryDirectory() as temp:
+            layout = Layout(temp)
+            (layout.folder / "treatment.md").write_text(GOOD + KEY_STILLS, encoding="utf-8")
+            layout.age_episode()
+            video = clip(layout.renders / "ep-preview" / "video.mp4")
+            pack = Path(review_pack(layout.episode)["pack"])
+            line = reviewed_line(video)
+            self.assertRegex(line, r"^Reviewed: ep-preview sha256 [0-9a-f]{12}$")
+            director = (pack / "prompt.md").read_text(encoding="utf-8")
+            self.assertIn("Where does it start to lose you?", director)
+            for name in ("prompt.md", "prompt-sound.md", "prompt-continuity.md"):
+                self.assertIn(line, (pack / name).read_text(encoding="utf-8"), name)
+
+    def test_deliver_lists_the_render_each_review_saw(self):
+        from studio.episode_state import deliver, reviewed_line
+        with TemporaryDirectory() as temp:
+            layout = Layout(temp)
+            (layout.folder / "treatment.md").write_text(GOOD, encoding="utf-8")
+            layout.age_episode()
+            preview = clip(layout.renders / "ep-preview" / "video.mp4")
+            master = clip(layout.renders / "ep-v1" / "video.mp4", frozen=False)
+            review = layout.folder / "review"
+            review.mkdir()
+            (review / "director-ep-preview.md").write_text(reviewed_line(preview) + "\nP0: the hook\n")
+            (review / "sound-ep-v1.md").write_text(reviewed_line(master) + "\nfine\n")
+            (review / "old.md").write_text("notes with no header\n")
+            report, code = deliver(layout.episode, video=master, viral=viral_stub,
+                                   narration=lambda where, folder: {"verdict": "no-speech", "notes": []})
+            self.assertEqual(code, 0, report)
+            text = (master.parent / "delivery.md").read_text(encoding="utf-8")
+            self.assertIn("`review/director-ep-preview.md` (ep-preview, not this master)", text)
+            self.assertIn("`review/sound-ep-v1.md` (ep-v1, this master)", text)
+            self.assertIn("`review/old.md` (names no render)", text)
 
 
 class ReviewPackTests(unittest.TestCase):

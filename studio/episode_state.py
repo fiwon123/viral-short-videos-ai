@@ -70,10 +70,14 @@ Files (in this folder): {files}
    phone size when it changes? Is any stretch one framing with only text changing? Does the payoff get
    its own shot size or move? Does the end move? Is the cast one style with the set? Would this look
    the same on another channel?
-3. Read report.json last. Name any film-qa note you disagree with, and why.
-4. Give the three notes a demanding director would give, ranked P0/P1, each with the fix.
+3. Where does it start to lose you? Name the second your attention drops, what is (not) happening there,
+   and why. A film can be correct everywhere and still be boring; this is the note users act on most.
+4. Read report.json last. Name any film-qa note you disagree with, and why.
+5. Give the three notes a demanding director would give, ranked P0/P1, each with the fix.
 
 Earlier notes for this episode (read them first; do not re-report what was fixed): {earlier}
+
+Start your notes with this line, so the delivery can tell which file you judged: {reviewed}
 
 Write the result to {target}. The verdict is yours; do not soften it for the maker.
 """
@@ -99,6 +103,8 @@ Answer with times:
 6. The end: the last sound has finished before the last frame; nothing is cut off.
 
 Earlier notes for this episode (read them first; do not re-report what was fixed): {earlier}
+
+Start your notes with this line, so the delivery can tell which file you judged: {reviewed}
 
 Write the result to {target}: a table (priority, time, problem, fix), then two sentences on the soundtrack.
 Every fix names the field and the amount: a cue's `at` / `at_word` (by N frames), `gain`, `sound` or
@@ -126,6 +132,8 @@ For every pair and every still:
 6. Style: one line weight and one rendering style across cast, props and set.
 
 Earlier notes for this episode (read them first; do not re-report what was fixed): {earlier}
+
+Start your notes with this line, so the delivery can tell which file you judged: {reviewed}
 
 Write the result to {target}: a table (priority, time, where in the frame, problem, fix). Every fix names the
 layer and the field (`x` / `y` / `z` keys, `parallax`, `scale`, a pose, the layer order) or the generator line.
@@ -446,8 +454,16 @@ def deliver(episode, channel=None, video=None, *, viral=None, narration=None):
         facts.append(f"- Narration: **{speech['verdict']}** ({len(speech.get('lines', []))} line(s) heard back with "
                      f"faster-whisper {speech.get('model', '')})".replace(" )", ")"))
         facts += [f"  - {note['severity']} `{note['kind']}`: {note['note']}" for note in speech["notes"]]
-    facts.append(f"- Director's notes: {', '.join(f'`review/{path.name}`' for path in notes)} (listed, not read)"
-                 if notes else "- Director's notes: **none** (no review/*.md; the director pass did not happen)")
+    master = (video.parent.name, _sha(video)[:12])
+
+    def saw(path):
+        seen = reviewed_render(path)
+        if seen is None:
+            return f"`review/{path.name}` (names no render)"
+        return f"`review/{path.name}` ({seen[0]}{', this master' if seen == master else ', not this master'})"
+    facts.append(f"- Review notes: {', '.join(saw(path) for path in notes)} (listed with the file each says it "
+                 f"judged; not read)" if notes else
+                 "- Review notes: **none** (no review/*.md; the director pass did not happen)")
     facts.append(f"- Publishing copy: {'`publishing.md`' if (folder / 'publishing.md').is_file() else 'missing'}")
     facts.append(f"- Written {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} by make deliver"
                  + (f" at studio commit `{commit}`" if commit else ""))
@@ -511,6 +527,20 @@ def key_stills(treatment):
                                      section.group(1) if section else "", re.M):
         found.append((label.strip().lower().replace(" ", "-"), float(seconds)))
     return found
+
+
+REVIEWED = re.compile(r"Reviewed:\s*(\S+)\s+sha256\s+([0-9a-f]{12})")
+
+
+def reviewed_line(video):
+    """The header a reviewer starts the notes with: the render and the first 12 hex of the file's sha256."""
+    return f"Reviewed: {Path(video).parent.name} sha256 {_sha(video)[:12]}"
+
+
+def reviewed_render(path):
+    """(render, sha12) a review file says it judged, or None when it has no Reviewed line."""
+    found = REVIEWED.search(Path(path).read_text(encoding="utf-8", errors="replace")[:2000])
+    return (found.group(1), found.group(2)) if found else None
 
 
 def earlier_notes(where):
@@ -681,8 +711,8 @@ def review_pack(episode, video=None, lenses=LENSES):
             if cut_pairs(video, report_data, pack / "cuts.png"):
                 lens_files.insert(0, "cuts.png")
         target = f"episodes/{where['slug']}/review/{lens}-{video.parent.name}.md"
-        (pack / prompt_name).write_text(template.format(files=", ".join(lens_files), target=target, earlier=earlier),
-                                        encoding="utf-8")
+        (pack / prompt_name).write_text(template.format(files=", ".join(lens_files), target=target, earlier=earlier,
+                                                        reviewed=reviewed_line(video)), encoding="utf-8")
         prompts.append(prompt_name)
         targets[lens] = target
     extra = [name for name in ("sound.png", "sound-cues.json", "cuts.png") if (pack / name).is_file()]
