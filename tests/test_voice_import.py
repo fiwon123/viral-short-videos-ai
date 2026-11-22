@@ -11,7 +11,7 @@ from unittest.mock import patch
 import numpy as np
 
 from studio import audio
-from studio.voice_import import align, run, write_clip
+from studio.voice_import import align, edge_at_pause, join_letters, run, silences_in, snap, write_clip
 from studio.voices import read_words
 
 
@@ -57,6 +57,45 @@ class VoiceAlignmentTests(unittest.TestCase):
         lines.insert(2, ("A.4", line("Another line")))
         self.assertEqual([row["status"] for row in align(lines, heard, "en")],
                          ["found", "missing", "missing", "found"])
+
+
+class RecordedSpeechTests(unittest.TestCase):
+    """Cases seen when real Whisper heard a pt-br recording of a respelled script."""
+
+    def test_written_form_and_spelled_letters_match_a_respelled_line(self):
+        lines = [("A.1", line("Meu SSD pediu demissão.", spoken_text="Meu ésse ésse dê pediu demissão."))]
+        heard = [word("Meu", .5, .7), word("S", .7, .8), word(".S", .9, 1), word(".D.", 1.1, 1.3),
+                 word("pediu", 1.4, 1.7), word("demissão.", 1.8, 2.3)]
+        row = align(lines, heard, "pt-br")[0]
+        self.assertEqual(row["status"], "found")
+        self.assertEqual(row["form"], "Meu SSD pediu demissão.")
+        self.assertEqual(row["words"][1], {"text": "SSD", "start": .7, "end": 1.3})
+        self.assertEqual(join_letters([word("S.S.D.", 0, 1)])[0]["word"], "SSD")
+        self.assertEqual([item["word"] for item in join_letters([word("O", 0, .1), word("E", .2, .3)])], ["O", "E"])
+
+    def test_a_misheard_first_word_is_placed_at_the_pause(self):
+        lines = [("A.1", line("Vai sair agora")), ("A.2", line("Fica aqui mesmo"))]
+        heard = [word("Pois", 0.6, 0.8), word("sair", 0.9, 1.2), word("agora", 1.3, 1.7),
+                 word("Fica", 2.5, 2.7), word("aqui", 2.8, 3), word("mesmo", 3.1, 3.4)]
+        self.assertEqual(align(lines, heard, "pt")[0]["status"], "missing")
+        row = align(lines, heard, "pt", silences=[(0, .55), (1.8, 2.4)])[0]
+        self.assertEqual(row["status"], "partial")
+        self.assertIn("pause", row["warning"])
+        self.assertEqual((row["start"], row["end"]), (.55, 1.7))
+        self.assertIsNone(edge_at_pause([(0, .1)], "start", 0.5, 9, 3.0, 1))  # 2.5 s is no single word
+
+    def test_take_edges_widen_to_the_pauses_but_not_into_a_neighbour(self):
+        silences = [(0, .5), (2.4, 3.1), (5, 5.6)]
+        self.assertEqual(snap(silences, .3, 2.2, 0, 3.3), (.5, 2.4))
+        self.assertEqual(snap(silences, 3.3, 4.9, 3.2, 9), (3.3, 5))
+        self.assertEqual(snap(silences, 3.2, 4.9, 3.15, 4.95), (3.2, 4.9))
+
+    def test_pauses_are_found_against_the_noise_floor(self):
+        rate = 1000
+        t = np.arange(3 * rate) / rate
+        signal = 0.3 * np.sin(2 * np.pi * 110 * t) + np.random.default_rng(0).normal(0, .003, len(t))
+        signal[1000:1600] = np.random.default_rng(1).normal(0, .003, 600)
+        self.assertEqual([(round(a, 2), round(b, 2)) for a, b in silences_in(signal, rate)], [(1.0, 1.6)])
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg is required")

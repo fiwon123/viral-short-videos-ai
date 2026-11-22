@@ -295,7 +295,9 @@ Extra checks for the priority tracks:
 
 Issues #100 and #101 share the voice-recognition and reference workflow changes on `feat/100-voice-import`. Both commands are implemented; the skill's audio and reference guides describe their outputs, uncertainty and review steps, with mirrored Claude copies. The voice importer now has a Make/CLI integration test with an injected recognizer: paths with spaces, speaker filtering, saved timing sidecars, success and a nonzero result after a partial import. Host testing of the original combined implementation ran 313 tests and reproduced the same 11 baseline failures below; the expanded voice suite runs nine tests successfully. `make dev-build` completed successfully. In the rebuilt sandbox image `make test` ran 314 tests, all passing, none skipped (the 11 restricted-host baseline failures do not occur there). Live YouTube ranking/downloads and recognition with actual model weights remain unverified.
 
-Next: PR to `dev` linking #100 and #101 is open; merge only on the user's request. Then verify `make reference` against live YouTube and `make voice-import` with real Whisper weights on a real recording.
+Merged in #102. Live voice check (#103): real faster-whisper `base` on a pt-br recording of seven Kokoro takes from a 3-speaker respelled script imported only 2 found, 1 partial, 4 missing: the recognizer writes "S .S .D."/"GTA VI" where the script says "ésse ésse dê", and one misheard edge word ("Vai" as "pois") dropped a line. Now each line matches its best form (respelled, `text`, `caption`; `matched_text`), spelled letters are joined, a missing edge is placed at the recording's pause, and take edges snap to pauses. Same recording: 2 found, 5 partial, 0 missing; every clip holds its whole line (60-70 ms lead, nothing cut, no neighbour audio); SPEAKER=SSD placed 3 of 3. Unverified: a human-voiced recording with room noise, English.
+
+Next: verify `make reference` against live YouTube.
 
 ### Restricted host baseline (2026-11-22)
 
