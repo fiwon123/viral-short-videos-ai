@@ -61,16 +61,26 @@ clear at phone size. Compare a clean and finished frame.
 ## 🔍 Review prompt
 
 ```text
-Watch the preview with sound and muted. Check the hook, caption sync, contact
-frames, camera continuity and the payoff. List only issues that change the
-story or readability, then fix them and re-render.
+Read the film-QA report of the latest preview, then run make review-pack and
+give each lens (director, sound, continuity) to a reviewer that did not build
+the episode. Fix every P0 and the P1s that matter, re-render the preview, and
+tell me which notes changed and which you left, with the reason.
+```
+
+When you want to give the notes yourself:
+
+```text
+Open make review for [episode]. I will leave notes on the frames. When I say
+done, read them with make comments, look at each frame and close-up first,
+change only what each note is about, re-render, and reply to each note.
 ```
 
 ## ✅ Delivery checklist
 
+- [ ] `make deliver` passes and every amber item is answered in `delivery.md`.
 - [ ] MP4, thumbnail, and `publishing.md` are present. Include SRT when the video uses captions.
 - [ ] The phone preview passes with sound and muted.
-- [ ] The mix meets the loudness target for the episode.
+- [ ] Spoken lines pass `make narration-check` (or the notes say why a line is exempt).
 - [ ] Platform copy fits each field’s limit.
 - [ ] Editable manifests and assets are saved in the channel workspace.
 
