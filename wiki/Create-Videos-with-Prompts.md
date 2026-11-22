@@ -17,19 +17,21 @@ For each: the hook, the one visible change, the payoff, a rough runtime,
 the camera idea and the sound idea. Keep the production effort similar.
 ```
 
-### 2. Beat sheet
+### 2. Treatment
 
 ```text
-Write a timed beat sheet for the chosen approach.
-Include hook, setup, escalation, payoff and loop.
-Give each beat a start/end time, the character action, the prop state,
-the camera state and the sound idea. Keep it under [runtime] seconds.
+Write episodes/<episode>/treatment.md for the chosen approach, following
+the skill's direction standard: the idea in one sentence, the route,
+an energy curve (hook, build, optional stop, payoff, landing) and a shot
+table where every row has a time, a subject, an action, a shot size, a
+camera move, on-screen words and a sound. Keep it under [runtime] seconds.
+Run make treatment-lint EPISODE=... and fix every red note.
 ```
 
 ### 3. Manifest
 
 ```text
-Turn the beat sheet into a valid episode manifest at
+Turn the treatment into a valid episode manifest at
 workspace/<channel>/episodes/<episode>/episode.json.
 Use the channel palette and recurring characters.
 Use parent/pivot rigs for the character, a camera preset or keys,

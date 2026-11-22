@@ -8,7 +8,7 @@ from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFilter, ImageFont
 
 from .camera import resolve_camera
 from .core import asset, scoped_asset
-from .easing import catmull_rom, ease
+from .easing import LOG_KEYS, catmull_rom, ease
 from .transform import depth_fade, apply as apply_matrix
 from .transform import bbox as matrix_bbox
 from .transform import camera_matrix, inverse, layer_matrix, multiply, translate
@@ -333,6 +333,11 @@ def _rgb_list(value):
     return [int(value[i:i + 2], 16) for i in (0, 2, 4)]
 
 
+def _log_pair(name, start, end):
+    return (name in LOG_KEYS and not isinstance(start, (list, tuple)) and not isinstance(start, bool)
+            and start > 0 and end > 0)
+
+
 def _mix(start, end, k):
     if isinstance(start, list):
         return [a + (b - a) * k for a, b in zip(start, end)]
@@ -414,10 +419,17 @@ def pose_at(points, progress):
                 p3 = points[index + 1][1].get(name, end[name]) if index + 1 < len(points) else end[name]
                 if isinstance(value, list):
                     result[name] = [catmull_rom(a, b, c, d, t) for a, b, c, d in zip(p0, value, end[name], p3)]
+                elif _log_pair(name, value, end[name]) and p0 > 0 and p3 > 0:
+                    result[name] = math.exp(catmull_rom(math.log(p0), math.log(value), math.log(end[name]),
+                                                        math.log(p3), t))
                 else:
                     result[name] = catmull_rom(p0, value, end[name], p3, t)
             else:
-                result[name] = _mix(value, end[name], ease(t, "smooth" if property_mode == "auto" else property_mode))
+                k = ease(t, "smooth" if property_mode == "auto" else property_mode)
+                if _log_pair(name, value, end[name]):
+                    result[name] = math.exp(_mix(math.log(value), math.log(end[name]), k))
+                else:
+                    result[name] = _mix(value, end[name], k)
         return result
     return points[-1][1]
 
@@ -764,7 +776,7 @@ def apply_post(image, config, *, seed=0, palette=None):
 
 class Composition:
     def __init__(self, shot, canvas, channel, font, base, *, episode_post=None, motion_blur=0,
-                 channel_base=None):
+                 channel_base=None, seconds=None):
         self.shot = shot
         self.canvas = canvas
         self.base = base
@@ -772,7 +784,7 @@ class Composition:
         self.palette = channel["palette"]
         self.background = resolve_color(shot.get("background", "background"), self.palette)
         self.post = _merge(channel.get("post"), episode_post, shot.get("post"))
-        self.camera = resolve_camera(shot) if shot.get("camera") else None
+        self.camera = resolve_camera(shot, seconds=seconds) if shot.get("camera") else None
         self.camera_points = camera_points({**shot, "camera": self.camera}) if shot.get("camera") else None
         self.track = (self.camera or {}).get("track")
         layers = sorted(depth_order(shot["layers"]), key=lambda item: item.get("plane") != "background")

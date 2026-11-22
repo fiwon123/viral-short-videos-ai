@@ -79,7 +79,7 @@ Files are classified by folder and file words into the studio's sound names (who
 
 Spot sound from the animation with `make spot` (proposals) and `make spot APPLY=1` (writes cues marked `"spotted": true`; rerunning replaces only those). It places whooshes on fast moves panned to the layer, impacts where a fast layer stops, pops on appearances, swishes on fast spins, whooshes on whip/slide/zoom transitions and impacts on camera shakes. It skips moments that already have a hand-placed cue and caps density. Treat it as a first pass: keep the hits that sell the action, delete the rest, and give the signature moment a designed layered cue.
 
-Shape individual cues like an editor would. Use `highpass` (Hz) to clear low mud from whooshes and UI sounds, `lowpass` to push a sound behind a wall or into the distance, `punch` (0–1) to sharpen an impact's attack for phone speakers, and `saturate` (0–1) for warmth and grit. Spotted cues get sensible defaults. `video.py check-visual` lists `sound_notes` when more than five cues land within one second, and `caption_notes` for captions that are too fast, flicker, or sit under the platform UI.
+Shape individual cues like an editor would. Use `highpass` (Hz) to clear low mud from whooshes and UI sounds, `lowpass` to push a sound behind a wall or into the distance, `punch` (0–1) to sharpen an impact's attack for phone speakers, and `saturate` (0–1) for warmth and grit. Spotted cues get sensible defaults. `video.py check-visual` lists `sound_notes` when more than five cues land within one second, and `caption_notes` for captions that are too fast, flicker, or sit under the platform UI. After the render, film-qa hears each impulsive cue in the MP4's own audio and finds the frame where motion starts or stops near it; `sound-early` (over 45 ms ahead) and `sound-late` (over 125 ms behind) name the cue and how many frames to move it. Sustained sounds, sounds with several attacks in their own sample (a rattle, a splash, chewing), sounds with no clear picture event and sounds on a cut are listed in `metrics.sync` but not judged.
 
 The mixer puts SFX through a gentle glue compressor and dips the music bed briefly under each hit (`music.sfx_duck`) so effects punch through without pumping.
 
@@ -100,6 +100,8 @@ Moods (calm, happy, funny, epic, tense, sad, action, dreamy) come from folder an
 ```
 
 The pick is deterministic per episode title and prefers tracks at least as long as the episode, so a channel keeps one sound without reusing one track every upload. Put the mood in the channel style preset's `music` to give every episode the same default.
+
+The picked track is then fitted to the episode instead of cut at the last frame. The track's opening plays from its first downbeat and its own ending lands on the last frame; whole bars come out of the middle (or repeat, for a track shorter than the episode), joined only on bar lines so the beat carries across. What is left of a bar comes out of the ending's ring-out first, then off the head. The join with the smallest loudness step wins; film-qa reports `music-join` when even that one changes by more than 6 dB, so listen to it or pick another track. `music.beat` follows the arrangement, so `at_beat` anchors and `snap` still land. The plan is in the render's `timeline.json` (`music.arrangement`). Music given as `"file"` is fitted the same way, on its `beat` if you author one or on the beat measured from the file; a file with no clear pulse (a drone, a pad, ambience) has no bars to cut on and plays from the start as before. Set `"fit": false` for the old behaviour (play from the start and cut), and `"loop": false` to never repeat bars.
 
 ## Generate fresh Foley
 
@@ -141,6 +143,8 @@ Run the audio-only mix with the same episode manifest used for the final video.
 python video.py audio episodes/my-episode/episode.json \
   --channel channels/my-channel/channel.json
 ```
+
+Then hear it back: `make narration-check EPISODE=...` transcribes every line's take with faster-whisper (in the image and `requirements-voice.txt`; the model downloads once into `audio-models/whisper/`) and compares it with the script, counting the line's `spoken_text` respelling and number words as correct. It names lines that came out `unheard`, `misread` (a quarter of the words, or a long word such as a name, missing), a `number` read wrong, and a `repeat`. Respell in `spoken_text`, slow the `pace` or re-voice, before anything is animated to the take. Without faster-whisper the verdict is `unchecked`, not green; set `"narration": false` on a line no recogniser can hear (a creature voice). `make deliver` repeats the check on the master and lists its notes as amber items.
 
 Listen to `mix.wav` and review `timeline.json` and `audio-qa.json`. Check that the speakers sound distinct, breaths and pauses serve the line, the same performer carries across cuts, and the material and contact frame match the sound. Listen on headphones and a phone speaker. The QA report counts eSpeak lines and stock preset effects, which are useful to flag in a review. Keep the dialogue forward and give impacts space around key words.
 

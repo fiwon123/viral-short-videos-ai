@@ -75,8 +75,12 @@ Run from the repository root, on the host or in the sandbox (`make shell`):
 | Command | What it proves |
 |---|---|
 | `make test` | The `unittest` suite in `tests/` (Python; the browser pose-parity tests run `node`). Every change. |
+| `make treatment-lint EPISODE=...` | The episode's plan: hook, shot sizes, camera grammar, energy curve, variety against the ledger (red exits 1) |
 | `make validate EPISODE=...` | The manifest against the schema, the style lock and the lint rules |
 | `make check EPISODE=...` | Visual QA notes: captions, contrast, sound density, contacts |
+| `make deliver EPISODE=...` | The delivery gate: film-qa, treatment and viral-check on the master, a full decode and its sound (loudness, true peak, cut tail); refuses red or a damaged file; writes sealed `delivery.md` (`VERIFY=` checks it) |
+| `make narration-check EPISODE=...` | Each spoken line heard back (faster-whisper, optional) against the script: unheard, misread, number, repeat (red exits 1; `unchecked` without a recogniser) |
+| `make film-qa VIDEO=...` | The render's pixels: energy per second, dead runs, frozen ending, blank frames, longest framing, sound effects against their picture events (red exits 1) |
 | `make parity` | The renderers still agree on the shared fixture (non-zero past the threshold). Renderer changes. |
 | `make doctor` | ffmpeg, the h264 encoder, the node renderers and Kokoro are usable |
 
@@ -113,7 +117,7 @@ unverified and retry in a smaller batch.
 |---|---|
 | Layout, colour, captions, a pose | a still at the moment that matters |
 | Motion, timing, easing, a camera move | `make still ONION=3`, `make motion-report`, or the preview MP4 frames |
-| A whole episode | a contact sheet plus `make viral-check` |
+| A whole episode | a contact sheet plus `make viral-check` and `make film-qa VIDEO=...` |
 
 The Read tool renders PNG, JPEG and GIF, not MP4: pull frames out of a video
 (`ffmpeg -ss <t> -i video.mp4 -frames:v 1 frame.png`) before review.

@@ -33,8 +33,8 @@ LIBRARY ?= audio/cast-v2.json
 VOICES ?=
 VOICES_ARG = $(if $(VOICES),--voices $(VOICES),)
 
-.PHONY: help status init channel-memory style-lock style-check discover viral-check character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
-        still presets templates schema batch test support parity safearea editor \
+.PHONY: help status init channel-memory style-lock style-check discover viral-check film-qa treatment-lint state deliver narration-check review-pack character3d art hardware hero assets sfx sfx-import music-import music-list depth-photo spot character motion-report vfx doctor list channel-doc migrate sound effect motion \
+        still presets templates schema batch test support parity safearea editor review comments \
         validate check audio preview render \
         clean clean-cache clean-previews archive published \
         prune-duplicates prune-casting prune-brand prune-legacy
@@ -68,6 +68,12 @@ help:
 	@echo "  make discover QUERY=... [RANK=velocity|views|outlier] [SLUG=...]  rank recent Shorts by speed (needs YOUTUBE_API_KEY)"
 	@echo "  make character3d OUT=....glb [SPEC=...]  rigged low-poly 3D character (bones for poses and ik)"
 	@echo "  make viral-check EPISODE=... [VIDEO=...]  score hook, pacing, loop, packaging and loudness"
+	@echo "  make film-qa VIDEO=... [EPISODE=...]  energy curve, dead runs, frozen end, framing of a render (red exits 1)"
+	@echo "  make treatment-lint EPISODE=...  check the episode's treatment.md plan before building (red exits 1)"
+	@echo "  make state EPISODE=... [WRITE=1]  the stage the evidence supports and the next command"
+	@echo "  make review-pack EPISODE=... [VIDEO=...] [LENS=sound]  director, sound and continuity packets for cold reviewers"
+	@echo "  make narration-check EPISODE=... [VIDEO=...]  hear each spoken line back and compare it with the script"
+	@echo "  make deliver EPISODE=... [VIDEO=...]  gate the master and write delivery.md (VERIFY=delivery.md checks it)"
 	@echo "  make channel-memory SLUG=... [EPISODE=...]  create missing memory, ledger, idea bank and series bible files"
 	@echo "  make motion-report          flag dead holds, linear moves, lockstep starts, snaps, low contrast"
 	@echo "  make effect RECIPE=...      generate a custom Effect Lab SVG"
@@ -85,6 +91,8 @@ help:
 	@echo "  make parity                 render the shared renderer parity fixture"
 	@echo "  make safearea               write a platform safe-area guide"
 	@echo "  make editor                 open the local shot inspector"
+	@echo "  make review EPISODE=...     play the newest render and leave notes on a frame"
+	@echo "  make comments EPISODE=... [DONE=c1 REPLY=...]  open notes with their frame and close-up, or resolve one"
 	@echo "  make doctor                 check ffmpeg, node, Chrome, Kokoro"
 	@echo "  make list                   channel folders and episodes"
 	@echo
@@ -130,6 +138,32 @@ character3d:
 viral-check:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=.../video.mp4]"; exit 1; }
 	@$(PYTHON) -m studio.viral_check $(EPISODE) $(CHANNEL_ARG) $(if $(VIDEO),--video $(VIDEO),)
+
+film-qa:
+	@test -n "$(VIDEO)" || { echo "Set VIDEO=.../video.mp4 [EPISODE=.../episode.json] [ROUTE=continuous|montage|hybrid] [STOP=8.0-8.6]"; exit 1; }
+	@$(PYTHON) -m studio.film_qa $(VIDEO) $(if $(EPISODE),--episode $(EPISODE),) $(if $(ROUTE),--route $(ROUTE),) \
+		$(if $(STOP),--stop $(STOP),)
+
+state:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [WRITE=1]"; exit 1; }
+	@$(PYTHON) -m studio.episode_state state $(EPISODE) $(CHANNEL_ARG) $(if $(WRITE),--write,)
+
+deliver:
+	@if [ -n "$(VERIFY)" ]; then $(PYTHON) -m studio.episode_state verify $(VERIFY); else \
+		test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...], or VERIFY=.../delivery.md"; exit 1; }; \
+		$(PYTHON) -m studio.episode_state deliver $(EPISODE) $(CHANNEL_ARG) $(if $(VIDEO),--video $(VIDEO),); fi
+
+narration-check:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
+	@$(PYTHON) -m studio.narration $(EPISODE) $(if $(VIDEO),--video $(VIDEO),)
+
+review-pack:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
+	@$(PYTHON) -m studio.episode_state review-pack $(EPISODE) $(if $(VIDEO),--video $(VIDEO),) $(if $(LENS),--lens $(LENS),)
+
+treatment-lint:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json (or its treatment.md)"; exit 1; }
+	@$(PYTHON) -m studio.treatment $(EPISODE)
 
 channel-memory:
 	@test -n "$(SLUG)" || { echo "Set SLUG=<channel slug> (workspace/<slug>/)"; exit 1; }
@@ -249,7 +283,7 @@ batch:
 		$(if $(OUT_ROOT),--out-root "$(OUT_ROOT)",)
 
 test:
-	@$(PYTHON) -m unittest discover -s tests -v
+	@STUDIO_WORD_TIMING=energy STUDIO_ASR=off $(PYTHON) -m unittest discover -s tests -v  # never load a speech model
 
 style-lock:
 	@test -n "$(CHANNEL)" || { echo "Set CHANNEL=workspace/<slug>/channel/channel.json"; exit 1; }
@@ -276,9 +310,17 @@ parity:
 safearea:
 	@$(PYTHON) video.py safearea --platform $(or $(PLATFORM),youtube-shorts) --out $(or $(OUT),docs/assets/safearea.png)
 
+review:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [VIDEO=...]"; exit 1; }
+	@$(PYTHON) -m studio.comments serve $(EPISODE) $(if $(VIDEO),--video $(VIDEO),) $(if $(PORT),--port $(PORT),)
+
+comments:
+	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json [DONE=c1 REPLY=...]"; exit 1; }
+	@$(PYTHON) -m studio.comments $(if $(DONE),done $(EPISODE) $(DONE) --reply "$(REPLY)",list $(EPISODE))
+
 editor:
 	@test -n "$(EPISODE)" || { echo "Set EPISODE=workspace/<channel>/episodes/<episode>/episode.json"; exit 1; }
-	@$(PYTHON) video.py editor $(EPISODE) $(CHANNEL_ARG)
+	@$(PYTHON) video.py editor $(EPISODE) $(CHANNEL_ARG) $(if $(PORT),--port $(PORT),)
 
 doctor:
 	@$(PYTHON) video.py doctor

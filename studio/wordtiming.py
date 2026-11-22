@@ -16,6 +16,7 @@ from difflib import SequenceMatcher
 from hashlib import sha256
 import json
 import os
+from pathlib import Path
 import re
 
 import numpy as np
@@ -183,17 +184,28 @@ def map_recognised(script, heard):
     return result
 
 
-def whisper(clip, rate, words):
+def model_name(language=None):
+    """``STUDIO_WHISPER_MODEL``, else ``base.en`` for English lines and the multilingual ``base`` for the rest
+    (an English-only model mistimes every other language)."""
+    chosen = os.environ.get("STUDIO_WHISPER_MODEL")
+    if chosen:
+        return chosen
+    return "base.en" if str(language or "en").lower().startswith("en") else "base"
+
+
+def whisper(clip, rate, words, language=None):
     try:
         from faster_whisper import WhisperModel
     except ImportError:
         return None
-    model = _whisper_model(WhisperModel)
+    model = _whisper_model(WhisperModel, model_name(language))
     audio = np.asarray(clip, dtype=np.float32)
     if rate != 16000:
         target = int(len(audio) * 16000 / rate)
         audio = np.interp(np.linspace(0, len(audio) - 1, target), np.arange(len(audio)), audio).astype(np.float32)
+    code = str(language).split("-")[0].lower() if language else None
     segments, _ = model.transcribe(audio, word_timestamps=True, initial_prompt=" ".join(words),
+                                   language=code if code and not model_name(language).endswith(".en") else None,
                                    condition_on_previous_text=False, vad_filter=False)
     heard = [{"text": item.word.strip(), "start": item.start, "end": item.end}
              for segment in segments for item in (segment.words or [])]
@@ -204,15 +216,16 @@ def whisper(clip, rate, words):
 _MODEL = {}
 
 
-def _whisper_model(factory):
-    name = os.environ.get("STUDIO_WHISPER_MODEL", "base.en")
+def _whisper_model(factory, name):
     if name not in _MODEL:
-        _MODEL[name] = factory(name, device="cpu", compute_type="int8")
+        root = Path(__file__).resolve().parents[1] / "audio-models" / "whisper"  # shared by host and sandbox
+        _MODEL[name] = factory(name, device="cpu", compute_type="int8", download_root=str(root))
     return _MODEL[name]
 
 
-def measure(clip, rate, text, cache=None, method=None):
-    """Return (words, method) for a clip. ``method`` forces energy/whisper/auto."""
+def measure(clip, rate, text, cache=None, method=None, language=None):
+    """Return (words, method) for a clip. ``method`` forces energy/whisper/auto; ``language`` is the voice's
+    (``pt-br``), which picks the Whisper model."""
     words = [word for word in text.split() if word]
     if not words:
         return [], "none"
@@ -220,14 +233,14 @@ def measure(clip, rate, text, cache=None, method=None):
     key = None
     if cache is not None:
         digest = sha256(np.asarray(clip, dtype=np.float32).tobytes())
-        digest.update(json.dumps([words, method, os.environ.get("STUDIO_WHISPER_MODEL", "base.en")]).encode())
+        digest.update(json.dumps([words, method, model_name(language)]).encode())
         key = cache / f"words-{digest.hexdigest()[:24]}.json"
         if key.is_file():
             stored = json.loads(key.read_text(encoding="utf-8"))
             return stored["words"], stored["method"]
     result, used = None, "energy"
     if method in {"auto", "whisper"}:
-        result = whisper(clip, rate, words)
+        result = whisper(clip, rate, words, language)
         used = "whisper" if result else used
         if result is None and method == "whisper":
             raise ValueError("STUDIO_WORD_TIMING=whisper needs faster-whisper installed in the studio Python")

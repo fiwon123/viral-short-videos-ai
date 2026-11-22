@@ -10,7 +10,7 @@
 # socket.
 #
 # Debian trixie ships Python 3.13, the newest version kokoro-onnx supports.
-FROM node:22.22.2-trixie-slim
+FROM node:26.13.1-trixie-slim
 
 # Build-time ARGs are declared AFTER FROM: an ARG declared before it expands
 # empty in every instruction below.

@@ -9,7 +9,8 @@ Manifest checks (no render needed):
 * hook-text     no words on screen in the first second (caption or text layer)
 * hook-hit      no sound effect or line lands in the first 0.25 s
 * first-shot    the opening shot runs longer than 3 s without a camera move
-* pacing        a shot holds longer than 6 s, or the average shot is over 4 s
+* pacing        a shot holds longer than 6 s (10 s even with a camera or 3D scene),
+                or the average shot is over 4 s
 * runtime       outside the 15-60 s sweet spot (over 180 s is not a Short)
 * captions      no captions, or a static style on a short-form episode
 * packaging     missing or long thumbnail text, long title, title not echoed early
@@ -91,9 +92,19 @@ def manifest_notes(source, expanded):
                            "Cut or move the camera by 3 s to keep the hook tight."))
     durations = [float(shot["duration"]) for shot in shots]
     for shot in shots:
-        if float(shot["duration"]) > 6.0 and not shot.get("camera") and not shot.get("three"):
-            notes.append(_note("pacing", "medium", f"Shot {shot['id']} holds {float(shot['duration']):.1f}s.",
+        length = float(shot["duration"])
+        moved = bool(shot.get("camera") or shot.get("three"))
+        if length > 6.0 and not moved:
+            notes.append(_note("pacing", "medium", f"Shot {shot['id']} holds {length:.1f}s.",
                                "Split it, add a camera move, or add a visible change every 2-3 s."))
+        elif length > 10.0:
+            # A camera block or a 3D scene does not prove the picture changes: one framing for most of a
+            # Short reads as a slide. Measure the render with film-qa.
+            notes.append(_note("pacing", "medium", f"Shot {shot['id']} is one framing for {length:.1f}s.",
+                               "Cut to a new shot size at the turn or the payoff; check the render with make film-qa."))
+        elif length > 6.0:
+            notes.append(_note("pacing", "low", f"Shot {shot['id']} runs {length:.1f}s on one camera setup.",
+                               "Confirm the picture keeps changing with make film-qa VIDEO=..."))
     if sum(durations) / len(durations) > 4.0:
         notes.append(_note("pacing", "low", f"Average shot length is {sum(durations) / len(durations):.1f}s.",
                            "Short-form usually changes the picture every 2-4 s."))
@@ -195,7 +206,7 @@ def check(source, expanded, video=None):
 
 def main():
     from .core import load, validate_channel
-    from .pipeline import prepare_episode
+    from .pipeline import prepare_episode, resolve_source
     from .project import resolve_channel
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -208,6 +219,7 @@ def main():
     validate_channel(channel, channel_path.parent)
     source = load(args.episode, "episode")
     expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
+    source = resolve_source(source, channel, channel_path.parent, args.episode.parent)
     print(json.dumps(check(source, expanded, args.video), indent=2))
     return 0
 

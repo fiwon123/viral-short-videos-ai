@@ -50,6 +50,13 @@ env:
   # below rather than loosening it further.
   DEV_BRANCH_PATTERN: '^(feat|fix|refactor|docs|test|chore|ci)/[0-9]+-'
 
+  # Dependabot's update branches (.github/dependabot.yml targets `dev`). They
+  # carry no issue number, so they are accepted only when the pull request was
+  # opened by Dependabot itself: a person cannot skip the convention by naming
+  # a branch `dependabot/...`.
+  BOT_BRANCH_PATTERN: '^dependabot/'
+  BOT_LOGIN: 'dependabot[bot]'
+
   # Branches that may target `main`:
   #   - `dev`  -- the release pull request. The head of that PR *is* the
   #               integration branch, because the release is `dev` -> `main`
@@ -73,6 +80,7 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
 
@@ -90,6 +98,15 @@ jobs:
               exit 1
               ;;
           esac
+
+          if [[ "$BASE_REF" == dev && "$HEAD_REF" =~ $BOT_BRANCH_PATTERN ]]; then
+            if [[ "$AUTHOR" == "$BOT_LOGIN" ]]; then
+              echo "accepted: Dependabot update '$HEAD_REF' -> '$BASE_REF'"
+              exit 0
+            fi
+            echo "::error::branch '$HEAD_REF' looks like a Dependabot update but was opened by '$AUTHOR'. Expected: $expected"
+            exit 1
+          fi
 
           if [[ ! "$HEAD_REF" =~ $pattern ]]; then
             echo "::error::branch '$HEAD_REF' may not target '$BASE_REF'. Expected: $expected"

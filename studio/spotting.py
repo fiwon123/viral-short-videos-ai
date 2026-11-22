@@ -148,7 +148,7 @@ def apply(source_episode, report):
     for scene in source_episode["scenes"]:
         for shot in scene["shots"]:
             kept = [cue for cue in shot.get("sfx", []) if not cue.get("spotted")]
-            merged = sorted(kept + report.get(shot["id"], []), key=lambda cue: float(cue["at"]))
+            merged = sorted(kept + report.get(shot["id"], []), key=lambda cue: float(cue.get("at", 0)))  # anchored cues keep their anchor
             if merged:
                 shot["sfx"] = merged
             else:
@@ -159,7 +159,7 @@ def apply(source_episode, report):
 def main():
     from .audio_library import load_audio_library
     from .core import load, validate_channel
-    from .pipeline import prepare_episode
+    from .pipeline import prepare_episode, resolve_source
     from .project import resolve_channel
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -174,7 +174,7 @@ def main():
     expanded = prepare_episode(source, channel, channel_path.parent, episode_dir=args.episode.parent)
     library = load_audio_library(channel, channel_path.parent)
     sounds = set((library[0] if library else {}).get("sounds", {}))
-    report = spot(source, expanded, sounds)
+    report = spot(resolve_source(source, channel, channel_path.parent, args.episode.parent), expanded, sounds)
     if args.apply:
         raw = json.loads(args.episode.read_text(encoding="utf-8"))
         apply(raw, report)
