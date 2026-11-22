@@ -97,6 +97,7 @@ def tokens(text, language="en"):
     text = unicodedata.normalize("NFKC", str(text or "")).replace("*", "").lower()
     if lang in CHARACTERS:
         return [char for char in text if char.isalnum()]
+    text = re.sub(r"(?<=\d)[,.](?=\d{3}(?!\d))", "", text)  # 40,000 / 40.000 -> 40000
     text = re.sub(r"(?<=[^\W\d_])(?=\d)|(?<=\d)(?=[^\W\d_])", " ", text)  # GTA6 -> gta 6
     contractions = CONTRACTIONS.get(lang, {})
     words = [part for word in re.findall(r"\w+(?:-\w+)*", text) for part in contractions.get(word, word).split()]
@@ -126,6 +127,8 @@ def merge_numbers(words, lang):
         value, index = int(words[index]), index + 1
         if index < len(words) and words[index] in ("100", "1000") and 0 < value < 10:
             value, index = value * int(words[index]), index + 1  # two hundred
+        if index < len(words) and words[index] == "1000" and 10 <= value < 1000:
+            value, index = value * 1000, index + 1  # 40 thousand, two hundred thousand
         while index < len(words):
             at = index + 1 if words[index] == joiner and index + 1 < len(words) else index
             if not words[at].isdigit():

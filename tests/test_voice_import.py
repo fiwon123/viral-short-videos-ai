@@ -11,7 +11,8 @@ from unittest.mock import patch
 import numpy as np
 
 from studio import audio
-from studio.voice_import import align, edge_at_pause, join_letters, run, silences_in, snap, write_clip
+from studio.voice_import import (align, edge_at_pause, join_letters, recognizer_model, run, silences_in, snap,
+                                  write_clip)
 from studio.voices import read_words
 
 
@@ -96,6 +97,33 @@ class RecordedSpeechTests(unittest.TestCase):
         signal = 0.3 * np.sin(2 * np.pi * 110 * t) + np.random.default_rng(0).normal(0, .003, len(t))
         signal[1000:1600] = np.random.default_rng(1).normal(0, .003, 600)
         self.assertEqual([(round(a, 2), round(b, 2)) for a, b in silences_in(signal, rate)], [(1.0, 1.6)])
+
+    def test_pauses_are_found_in_room_noise_close_to_the_voice(self):
+        # Seen live: speech 26 dB over a noise floor that wobbles a few dB from frame to frame.
+        rate, rng = 1000, np.random.default_rng(2)
+        t = np.arange(3 * rate) / rate
+        wobble = np.repeat(10 ** (rng.uniform(-3, 3, 3 * rate // 20) / 20), 20)
+        noise = rng.normal(0, .01, len(t)) * wobble
+        signal = 0.3 * np.sin(2 * np.pi * 110 * t) + noise
+        signal[1000:1600] = noise[1000:1600]
+        self.assertEqual([(round(a, 2), round(b, 2)) for a, b in silences_in(signal, rate)], [(1.0, 1.6)])
+
+    def test_a_number_written_in_words_matches_the_recognizers_digits(self):
+        lines = [("A.1", line("It handled 40 thousand requests"))]
+        heard = [word("It", .1, .2), word("handled", .2, .5), word("40", .5, .8), word(",000", .8, 1.2),
+                 word("requests", 1.2, 1.6)]
+        row = align(lines, heard, "en")[0]
+        self.assertEqual(row["status"], "found")
+        self.assertEqual([(item["text"], item["start"], item["end"]) for item in row["words"][2:4]],
+                         [("40", .5, .85), ("thousand", .85, 1.2)])
+
+    def test_a_known_english_recording_uses_the_english_model(self):
+        with patch.dict(os.environ, {"STUDIO_ASR_MODEL": ""}):
+            self.assertEqual(recognizer_model("en-us"), "base.en")
+            self.assertEqual(recognizer_model("pt-br"), "base")
+            self.assertEqual(recognizer_model(None), "base")
+        with patch.dict(os.environ, {"STUDIO_ASR_MODEL": "small"}):
+            self.assertEqual(recognizer_model("en"), "small")
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg is required")

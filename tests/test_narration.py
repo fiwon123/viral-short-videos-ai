@@ -39,6 +39,10 @@ class TokenTests(unittest.TestCase):
                                      ("treinta y cinco", "35", "es"), ("cem e vinte", "120", "pt-br")):
             self.assertEqual(tokens(spoken, lang), tokens(digits, lang), spoken)
         self.assertEqual(tokens("dois e três", "pt-br"), ["2", "e", "3"], "only a round value takes a smaller one")
+        for written, digits, lang in (("40 thousand", "40,000", "en-us"), ("two hundred thousand", "200000", "en-us"),
+                                      ("vinte mil", "20.000", "pt-br")):
+            self.assertEqual(tokens(written, lang), tokens(digits, lang), written)
+        self.assertEqual(tokens("3.5", "en-us"), ["3", "5"], "a decimal is not a digit group")
         self.assertEqual(tokens("o gato e o cão", "pt-br"), ["o", "gato", "e", "o", "cão"])
 
 

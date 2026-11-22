@@ -7,6 +7,7 @@ from difflib import SequenceMatcher
 from itertools import pairwise
 import json
 import math
+import os
 from pathlib import Path
 import re
 import sys
@@ -23,6 +24,14 @@ from .script import line_id, spoken
 from .voices import words_file
 
 PAD_BEFORE, PAD_AFTER = 0.06, 0.14
+
+
+def recognizer_model(language):
+    """``STUDIO_ASR_MODEL``, else the English-only model for a known English recording (it hears English
+    better: the multilingual one heard "Too late" as "to lay"), else the multilingual ``base``."""
+    if os.environ.get("STUDIO_ASR_MODEL"):
+        return os.environ["STUDIO_ASR_MODEL"]
+    return "base.en" if language and str(language).lower().startswith("en") else "base"
 
 
 def word_transcriber(model=None):
@@ -54,6 +63,7 @@ def fill_word_timings(words, anchors):
 
 
 SPELLED = re.compile(r"(?:[A-Z]\.){2,}[A-Z]?\.?")
+GROUPED = re.compile(r"[,.]\d{3}(?:[,.]\d{3})*[.,!?]?")
 
 
 def join_letters(heard):
@@ -70,6 +80,9 @@ def join_letters(heard):
 
     for item in heard:
         text = item["word"].strip()
+        if GROUPED.fullmatch(text) and out and out[-1]["word"].strip().rstrip(",.").isdigit():
+            out[-1] = {**out[-1], "word": out[-1]["word"].strip() + text, "end": item["end"]}  # "40" ",000"
+            continue
         if SPELLED.fullmatch(text):
             item = {**item, "word": text.replace(".", "")}
         core = text.strip(".")
@@ -111,8 +124,8 @@ def silences_in(audio, rate=SAMPLE_RATE, minimum=0.25):
         return []
     frames = np.asarray(audio[:count * hop], dtype=np.float64).reshape(count, hop)
     level = 20 * np.log10(np.sqrt((frames ** 2).mean(axis=1)) + 1e-9)
-    floor, loud = np.percentile(level, 10), np.percentile(level, 95)
-    quiet = level < min(floor + 12, loud - 25)
+    floor, loud = max(np.percentile(level, 10), -70.0), np.percentile(level, 95)
+    quiet = level < min(floor + 6, loud - 10)
     found, begin = [], None
     for index, value in enumerate(np.append(quiet, False)):
         if value and begin is None:
@@ -150,6 +163,24 @@ def snap(silences, start, end, previous, following, reach=0.4):
     return start, end
 
 
+def script_words(text, language):
+    """Script words with their tokens; a number said in several words ("40 thousand", "vinte e um") is one
+    entry, so it matches the recognizer's "40,000" or "21". ``align`` splits its timing back into words."""
+    words, out, index = text.split(), [], 0
+    while index < len(words):
+        parts, end = tokens(words[index], language), index + 1
+        if len(parts) == 1 and parts[0].isdigit():
+            for stop in range(min(len(words), index + 5), index + 1, -1):
+                joined = tokens(" ".join(words[index:stop]), language)
+                if len(joined) == 1 and joined[0].isdigit():
+                    parts, end = joined, stop
+                    break
+        if parts:
+            out.append((" ".join(words[index:end]), parts))
+        index = end
+    return out
+
+
 def spread(words, start, end):
     step = (end - start) / max(1, len(words))
     return [{"text": text, "start": start + step * i, "end": start + step * (i + 1)} for i, text in enumerate(words)]
@@ -170,7 +201,7 @@ def align(lines, heard, language, silences=None):
     for index, (_, line) in enumerate(lines):
         text = best_form(line, said, language)
         chosen.append(text)
-        words = [(word, tokens(word, language)) for word in text.split()]
+        words = script_words(text, language)
         words = [(word, parts) for word, parts in words if parts]
         expected.append(words)
         for position, (_, parts) in enumerate(words):
@@ -261,6 +292,9 @@ def align(lines, heard, language, silences=None):
                        for (text, _), word in zip(expected[index], between)]
             result.update(status="inferred", words=timings, start=timings[0]["start"], end=timings[-1]["end"],
                           warning="Words were inferred from the gap between confirmed lines. Listen before using.")
+    for result in results:
+        result["words"] = [part for word in result["words"] for part in
+                           (spread(word["text"].split(), word["start"], word["end"]) if " " in word["text"] else [word])]
     return results
 
 
@@ -301,7 +335,7 @@ def run(episode_path, recording, speaker=None, *, transcribe=None, language=None
     require("ffmpeg")
     audio = read_audio(recording)
     duration = len(audio) / SAMPLE_RATE
-    transcribe = transcribe or word_transcriber(model)
+    transcribe = transcribe or word_transcriber(model or recognizer_model(language))
     heard, detected = transcribe(decode(recording, seconds=MAX_SECONDS), language)
     heard = [{"word": word["word"], "start": max(0.0, word["start"]), "end": min(duration, word["end"])}
              for word in heard if math.isfinite(word["start"]) and math.isfinite(word["end"])

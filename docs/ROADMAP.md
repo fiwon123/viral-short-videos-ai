@@ -299,7 +299,9 @@ Merged in #102. Live voice check (#103): real faster-whisper `base` on a pt-br r
 
 Live reference check (#105): `make reference` on one public video (19 s, speech) and on `@YouTube` with `TOP=1` (1,511 Shorts indexed, 1,502 with view counts, top pick 57M views, about 1 min) downloaded media, captions and metadata, timed the speech with Whisper, and wrote breakdowns, contact sheets and the comparison. Fixed: apostrophes were written as `&#x27;`. Noted, not fixed: the pulse candidate read a music Short at 83.5 BPM where the song is about 125 (a 2:3 error); the breakdown already asks for the beat to be confirmed by ear.
 
-Next: nothing open from #100/#101. Remaining unverified: voice-import on a human-voiced recording with room noise, and in English.
+Live English check (#107): real Whisper on a two-speaker English recording (Kokoro, room noise near -40 dB, light reverb, 0.35-0.9 s pauses) gave 4 found, 2 partial, 1 missing, and three clips lost 0.11-0.18 s of their ending. Causes: the multilingual `base` was used for English (it heard "Too late" as "to lay"); the pause threshold sat inside the noise, so no pause was found and snapping never ran; "40 thousand" never matched "40,000". Now: `base.en` for a known English recording, pauses 6 dB over the floor, digit groups and spoken multipliers normalised (narration check too), several-word numbers aligned as one. Same recording: 6 found, 1 partial ("nas" heard as "NASA"), 0 missing, no clip loses speech; pt-br recording unchanged (0 missing, no speech cut).
+
+Next: nothing open. Still unverified: a human-voiced recording (only synthetic voices tested, with added noise). Known weak spot: the reference pulse candidate read a music Short at 2:3 of its tempo.
 
 ### Restricted host baseline (2026-11-22)
 
